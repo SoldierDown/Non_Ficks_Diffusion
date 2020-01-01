@@ -152,7 +152,10 @@ Rasterize()
 template<class T,int d> void MPM_Example<T,d>::
 Update_Constitutive_Model_State(const T dt)
 {
-
+    for(unsigned i=0;i<particles.size();++i){
+        T_Particle &particle=particles(i);
+        particle.constitutive_model.Precompute();
+    }
 }
 //######################################################################
 // Update_Particle_Velocities_And_Positions
@@ -160,7 +163,7 @@ Update_Constitutive_Model_State(const T dt)
 template<class T,int d> void MPM_Example<T,d>::
 Update_Particle_Velocities_And_Positions(const T dt)
 {
-    for(unsigned i=0;i<particles.size();++i) particles(i).X+=dt*vel;
+    
 }
 //######################################################################
 // Register_Options

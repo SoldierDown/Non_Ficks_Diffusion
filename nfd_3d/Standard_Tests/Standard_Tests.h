@@ -52,13 +52,16 @@ class Standard_Tests: public MPM_Example<T,d>
         const T block_area=block.Size();
         const T area_per_particle=block_area/number_of_particles;
 
+        const T E=100,nu=0.4;
         Random_Numbers<T> random;
         random.Set_Seed(0);
 
         particles.resize(number_of_particles);
         for(int i=0;i<number_of_particles;++i){
             particles(i).X=random.Get_Uniform_Vector(block);
-            particles(i).mass=mass_density*area_per_particle;}
+            particles(i).mass=mass_density*area_per_particle;
+            particles(i).constitutive_model.Compute_Lame_Parameters(E,nu);
+        }
     }
 //######################################################################
 };

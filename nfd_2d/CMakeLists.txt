@@ -3,6 +3,7 @@ if(ENABLE_NON_FICKS_DIFFUSION)
     main.cpp
     ../MPM_Driver.cpp
     ../MPM_Example.cpp
+    ../MPM_Constitutive_Model.cpp
   )
 
   find_package(OpenMP)
