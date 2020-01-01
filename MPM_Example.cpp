@@ -129,6 +129,7 @@ Limit_Dt(T& dt,const T time)
 template<class T,int d> void MPM_Example<T,d>::
 Rasterize()
 {
+    // Same as in MPM_DISNEY: Initialize_Grid_Based_Variables()
     // clear mass and velocity channels
     for(int level=0;level<levels;++level){
         Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),mass_channel);
@@ -146,6 +147,22 @@ Rasterize()
         Velocity_Normalization_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels,mass_channel);
 }
 //######################################################################
+// Update_Constitutive_Model_State
+//######################################################################
+template<class T,int d> void MPM_Example<T,d>::
+Update_Constitutive_Model_State(const T dt)
+{
+
+}
+//######################################################################
+// Update_Particle_Velocities_And_Positions
+//######################################################################
+template<class T,int d> void MPM_Example<T,d>::
+Update_Particle_Velocities_And_Positions(const T dt)
+{
+    for(unsigned i=0;i<particles.size();++i) particles(i).X+=dt*vel;
+}
+//######################################################################
 // Register_Options
 //######################################################################
 template<class T,int d> void MPM_Example<T,d>::
@@ -153,7 +170,7 @@ Register_Options()
 {
     Base::Register_Options();
 
-    parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
+    parse_args->Add_Integer_Argument("-threads",8,"Number of threads for OpenMP to use");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
     parse_args->Add_Double_Argument("-cfl",(T).5,"CFL number.");
     if(d==2) parse_args->Add_Vector_2D_Argument("-size",Vector<double,2>(64.),"n","Grid resolution");

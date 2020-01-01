@@ -16,8 +16,17 @@ class MPM_Particle
     using T_INDEX                   = Vector<int,d>;
 
   public:
+    bool valid;
     TV X,V;
     T mass,volume;
+    
+    T_INDEX base_node;
+    Vector<TV,d> weights;
+    Vector<TV,d> dweight;
+
+    // Constitutive model
+    
+
 
     MPM_Particle()
     {Initialize();}
@@ -26,6 +35,9 @@ class MPM_Particle
 
     void Initialize()
     {
+        valid=true;
+        X=TV();
+        V=TV();
         mass=(T)0.;
         volume=(T)0.;
     }

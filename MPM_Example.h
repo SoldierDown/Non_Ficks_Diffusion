@@ -67,6 +67,8 @@ class MPM_Example: public Example<T,d>
     void Initialize_SPGrid();
     void Initialize();
     void Rasterize();
+    void Update_Constitutive_Model_State(const T dt);
+    void Update_Particle_Velocities_And_Positions(const T dt);
     T Max_Particle_Velocity() const;
     void Limit_Dt(T& dt,const T time) override;
     void Register_Options() override;

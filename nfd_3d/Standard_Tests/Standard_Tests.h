@@ -37,7 +37,7 @@ class Standard_Tests: public MPM_Example<T,d>
     void Parse_Options() override
     {
         Base::Parse_Options();
-        output_directory="Test_"+std::to_string(test_number);
+        output_directory="nfd_3d_"+std::to_string(test_number);
 
         domain.min_corner=TV();domain.max_corner=TV(1);
     }

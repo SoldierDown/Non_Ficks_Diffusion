@@ -35,7 +35,7 @@ Advance_To_Target_Time(const T target_time)
         T dt=Compute_Dt(time,target_time);
         Example<T,d>::Clamp_Time_Step_With_Target_Time(time,target_time,dt,done);
         Log::cout<<"Dt: "<<dt<<std::endl;
-
+        Advance_Step(dt);
         if(!done) example.Write_Substep("END Substep",substep,0);
         time+=dt;}
 }
@@ -57,6 +57,17 @@ Simulate_To_Frame(const int target_frame)
         Write_Output_Files(++example.output_number);
 
         *(example.output)<<"TIME = "<<time<<std::endl;}
+}
+//######################################################################
+// Advance_Step
+//######################################################################
+template<class T,int d> void MPM_Driver<T,d>::
+Advance_Step(const T dt)
+{
+    example.Initialize_SPGrid();
+    example.Rasterize();
+    example.Update_Constitutive_Model_State(dt);
+    example.Update_Particle_Velocities_And_Positions(dt);
 }
 //######################################################################
 template class Nova::MPM_Driver<float,2>;
