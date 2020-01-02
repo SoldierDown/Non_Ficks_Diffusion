@@ -19,12 +19,12 @@ struct MPM_Data
     T ch1;          // X-velocity
     T ch2;          // Y-velocity
     T ch3;          // Z-velocity
-    T ch4;
-    T ch5;
-    T ch6;
-    T ch7;
-    T ch8;
-    T ch9;
+    T ch4;          // X-velocity-star
+    T ch5;          // Y-velocity-star
+    T ch6;          // Z-velocity-star
+    T ch7;          // X-force
+    T ch8;          // Y-force
+    T ch9;          // Z-force
     T ch10;
     T ch11;
     T ch12;

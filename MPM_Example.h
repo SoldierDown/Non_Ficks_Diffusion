@@ -11,6 +11,7 @@
 #include <nova/Tools/Utilities/Example.h>
 #include <nova/Tools/Utilities/Range_Iterator.h>
 #include <nova/Tools/Utilities/Utilities.h>
+#include <nova/Tools/Arrays/Array.h>
 #include "MPM_Data.h"
 #include "MPM_Particle.h"
 
@@ -33,15 +34,24 @@ class MPM_Example: public Example<T,d>
   public:
     using Base::frame_title;using Base::output_directory;using Base::parse_args;using Base::first_frame;
 
+    T flip;
     T cfl;
     int levels,threads;
     T_INDEX counts;
     Range<T,d> domain;
+    Range<T,d> bbox;
     Array<T_Particle> particles;
+    Array<int> simulated_particles;
+    Array<int> invalid_particles;
+    Array<int> valid_grid_indices;
+    Array<Array<int> > valid_grid_indices_thread;
+    TV gravity;
     Hierarchy *hierarchy;
 
     T Struct_type::* mass_channel;
     Channel_Vector velocity_channels;
+    Channel_Vector velocity_star_channels;
+    Channel_Vector f_channels;
 
     MPM_Example();
 
@@ -51,7 +61,7 @@ class MPM_Example: public Example<T,d>
     {
         if(fabs(x)<(T)1.) return (T).5*Nova_Utilities::Cube(fabs(x))-Nova_Utilities::Sqr(x)+(T)two_thirds;
         else if(fabs(x)<(T)2.) return (T)-one_sixth*Nova_Utilities::Cube(fabs(x))+Nova_Utilities::Sqr(x)-(T)2.*fabs(x)+(T)four_thirds;
-        return (T)0.;
+        else return (T)0.;
     }
 
     inline T N(const TV& X)
@@ -61,15 +71,45 @@ class MPM_Example: public Example<T,d>
         return value;
     }
 
+    static T dN(const T x)
+    {
+        int sign=x>=0?1:-1;
+        if(fabs(x)<(T)1.) return (T)1.5*Nova_Utilities::Sqr(x)*sign-(T)2.*x;
+        else if(fabs(x)<(T)2.) return (T)-.5*Nova_Utilities::Sqr(x)*sign+(T)2.*x-(T)2.*sign;
+        else return (T)0.;  
+    }
+
+    inline T dN(const TV X, const int axis)
+    {
+        const Grid<T,d>& grid=hierarchy->Lattice(0);T value=(T)1.;
+        for(int v=0;v<d;++v) 
+            if(v==axis) value*=N(X(v)*grid.one_over_dX(v));
+            else value*=N(X(v)*grid.one_over_dX(v));
+        return value;
+    }
+
+    inline TV dN(const TV& X)
+    {
+        TV value=TV();
+        for(int axis=0;axis<d;++axis) value(axis)=dN(X,axis);
+        return value;
+    }
+
 //######################################################################
     virtual void Initialize_Particles()=0;
 //######################################################################
     void Initialize_SPGrid();
     void Initialize();
+    void Reset_Grid_Based_Variables();
+    void Populate_Simulated_Particles();
     void Rasterize();
-    void Update_Constitutive_Model_State(const T dt);
+    void Update_Constitutive_Model_State();
     void Update_Particle_Velocities_And_Positions(const T dt);
-    T Max_Particle_Velocity() const;
+    void Estimate_Particle_Volumes();
+    void Apply_Force(const T dt);
+    void Apply_Explicit_Force(const T dt);
+    void Grid_Based_Collison();
+    T    Max_Particle_Velocity() const;
     void Limit_Dt(T& dt,const T time) override;
     void Register_Options() override;
     void Parse_Options() override;

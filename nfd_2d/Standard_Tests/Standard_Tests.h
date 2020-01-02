@@ -47,8 +47,8 @@ class Standard_Tests: public MPM_Example<T,d>
         Log::Scope scope("Initialize_Particles");
 
         const T mass_density=(T)2.;
-        const int number_of_particles=200;
-        const Range<T,d> block(TV({.3,.7}),TV({.7,.9}));
+        const int number_of_particles=5000;
+        const Range<T,d> block(TV({.45,.45}),TV({.55,.55}));
         const T block_area=block.Size();
         const T area_per_particle=block_area/number_of_particles;
 
@@ -58,7 +58,9 @@ class Standard_Tests: public MPM_Example<T,d>
         particles.resize(number_of_particles);
         for(int i=0;i<number_of_particles;++i){
             particles(i).X=random.Get_Uniform_Vector(block);
-            particles(i).mass=mass_density*area_per_particle;}
+            particles(i).mass=mass_density*area_per_particle;
+            particles(i).V(1)=(T)-1.;
+            }
     }
 //######################################################################
 };

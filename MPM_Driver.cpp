@@ -20,6 +20,9 @@ Initialize()
 
     if(!example.restart){example.Initialize();
         example.Rasterize();
+        example.Estimate_Particle_Volumes();
+        example.Update_Constitutive_Model_State();
+        example.Update_Particle_Velocities_And_Positions(1e-5);
     }
     else example.Read_Output_Files(example.restart_frame);
 }
@@ -30,11 +33,20 @@ template<class T,int d> void MPM_Driver<T,d>::
 Advance_To_Target_Time(const T target_time)
 {
     bool done=false;
+    T min_dt=(T)1e-6;
+    T max_dt=(T)1e-2;
+    T cfl=(T).1;
+    T max_v;
+    T dx_min=example.hierarchy->Lattice(0).dX(0);
     for(int substep=1;!done;substep++){
+        example.Populate_Simulated_Particles(); // add only valid particles to array
         Log::Scope scope("SUBSTEP","substep "+std::to_string(substep));
-        T dt=Compute_Dt(time,target_time);
+        //T dt=Compute_Dt(time,target_time);
+        max_v=example.Max_Particle_Velocity();
+        T dt=std::max(min_dt,std::min(max_dt,cfl*dx_min/std::max(max_v,(T)1e-2)));
+        dt/=(T)10;
         Example<T,d>::Clamp_Time_Step_With_Target_Time(time,target_time,dt,done);
-        Log::cout<<"Dt: "<<dt<<std::endl;
+        Log::cout<<"dt: "<<dt<<std::endl;
         Advance_Step(dt);
         if(!done) example.Write_Substep("END Substep",substep,0);
         time+=dt;}
@@ -65,8 +77,9 @@ template<class T,int d> void MPM_Driver<T,d>::
 Advance_Step(const T dt)
 {
     example.Initialize_SPGrid();
+    example.Reset_Grid_Based_Variables();
     example.Rasterize();
-    example.Update_Constitutive_Model_State(dt);
+    example.Update_Constitutive_Model_State();
     example.Update_Particle_Velocities_And_Positions(dt);
 }
 //######################################################################

@@ -1,5 +1,9 @@
 01/01/2019  
-# RECORD 
+### RECORD 
 - Add to Nova:  
-  - Diagonal_Matrix: To_Vector()
-  - Vector: 
+    - Diagonal_Matrix: To_Vector()  
+
+01/02/2019
+### RECORD
+- static  
+- inline
