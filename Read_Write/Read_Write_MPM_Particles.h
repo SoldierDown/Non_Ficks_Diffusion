@@ -32,12 +32,17 @@ class Read_Write<Array<MPM_Particle<T,d>>>
 
     static void Write(std::ostream& output,const Array<T_Particle>& object)
     {
-        Read_Write<size_t>::Write(output,object.size());
+        int valid_particles=0;
+        for(size_t i=0;i<object.size();++i) if(object(i).valid) valid_particles++;
+        Read_Write<size_t>::Write(output,valid_particles);
         for(size_t i=0;i<object.size();++i){
-            Read_Write<TV>::Write(output,object(i).X);
-            Read_Write<TV>::Write(output,object(i).V);
-            Read_Write<T>::Write(output,object(i).mass);
-            Read_Write<T>::Write(output,object(i).volume);}
+            if(object(i).valid){
+                Read_Write<TV>::Write(output,object(i).X);
+                Read_Write<TV>::Write(output,object(i).V);
+                Read_Write<T>::Write(output,object(i).mass);
+                Read_Write<T>::Write(output,object(i).volume);
+            }
+}
     }
 };
 }

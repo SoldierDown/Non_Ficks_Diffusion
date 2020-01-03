@@ -92,9 +92,9 @@ public:
     MPM_Constitutive_Model()
         :lambda(0),mu(0),lambda0(0),mu0(0),plastic(false),stretching_yield(FLT_MAX),compression_yield(-FLT_MAX),hardening_factor(0)
     {
-        Fe+=1;
-        Fp+=1;
-        Je=1;
+        Fe=Matrix<T,d>::Identity_Matrix();
+        Fp=Matrix<T,d>::Identity_Matrix();
+        Je=(T)1.;
         plastic=false;
     }
     ~MPM_Constitutive_Model(){}

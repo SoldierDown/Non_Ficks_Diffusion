@@ -35,8 +35,8 @@ Precompute()
     Ue=Matrix<T,d>();Ve=Matrix<T,d>();
     Fe.Fast_Singular_Value_Decomposition(Ue,Se,Ve);
     if(plastic){
-        for(int i=1;i<=d;i++) if(Se(i)>stretching_yield) Se(i)=stretching_yield;
-        for(int i=1;i<=d;i++) if(Se(i)<compression_yield) Se(i)=compression_yield;
+        for(int i=0;i<d;++i) if(Se(i)>stretching_yield) Se(i)=stretching_yield;
+        for(int i=0;i<d;++i) if(Se(i)<compression_yield) Se(i)=compression_yield;
         Fp=Ve*Se.Inverse()*Ue.Transposed()*Fe*Fp;
         Fe=Ue*Se*Ve.Transposed();
         T power=std::min(hardening_factor*(1-Fp.Determinant()),(T)hardening_max);

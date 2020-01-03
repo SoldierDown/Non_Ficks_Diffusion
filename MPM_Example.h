@@ -111,6 +111,7 @@ class MPM_Example: public Example<T,d>
     void Grid_Based_Collison();
     T    Max_Particle_Velocity() const;
     void Limit_Dt(T& dt,const T time) override;
+    void Test();
     void Register_Options() override;
     void Parse_Options() override;
     void Read_Output_Files(const int frame);
