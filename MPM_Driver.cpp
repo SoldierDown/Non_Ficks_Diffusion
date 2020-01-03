@@ -43,7 +43,7 @@ Advance_To_Target_Time(const T target_time)
         //T dt=Compute_Dt(time,target_time);
         max_v=example.Max_Particle_Velocity();
         T dt=std::max(min_dt,std::min(max_dt,cfl*dx_min/std::max(max_v,(T)1e-2)));
-        dt/=(T)100.;
+        dt=(T)1e-5;
         Example<T,d>::Clamp_Time_Step_With_Target_Time(time,target_time,dt,done);
         Log::cout<<"dt: "<<dt<<std::endl;
         Advance_Step(dt);

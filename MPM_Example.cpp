@@ -192,17 +192,17 @@ Rasterize()
             //std::cout<<"weight sum: "<<weight_sum<<std::endl;    
         }
     
-    // using Cell_Iterator             = Grid_Iterator_Cell<T,d>;
-    // Range<int,d> bounding_grid_cells(grid.Clamp_To_Cell(bbox.min_corner),grid.Clamp_To_Cell(bbox.max_corner));
+    using Cell_Iterator             = Grid_Iterator_Cell<T,d>;
+    Range<int,d> bounding_grid_cells(grid.Clamp_To_Cell(bbox.min_corner),grid.Clamp_To_Cell(bbox.max_corner));
 
-    // for(Cell_Iterator iterator(grid,bounding_grid_cells);iterator.Valid();iterator.Next()){
-    //     T_INDEX current_node=iterator.Cell_Index(); T mass=hierarchy->Channel(0,mass_channel)(current_node._data);
-    //     if(mass>(T)0.) for(int v=0;v<d;++v) hierarchy->Channel(0,velocity_channels(v))(current_node._data)/=mass;
-    // }
+    for(Cell_Iterator iterator(grid,bounding_grid_cells);iterator.Valid();iterator.Next()){
+        T_INDEX current_node=iterator.Cell_Index(); T mass=hierarchy->Channel(0,mass_channel)(current_node._data);
+        if(mass>(T)0.) for(int v=0;v<d;++v) hierarchy->Channel(0,velocity_channels(v))(current_node._data)/=mass;
+    }
 
     // normalize weights for velocity (to conserve momentum)
-    for(int level=0;level<levels;++level)
-        Velocity_Normalization_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels,mass_channel);
+    // for(int level=0;level<levels;++level)
+    //     Velocity_Normalization_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels,mass_channel);
 }
 //######################################################################
 // Update_Constitutive_Model_State
@@ -224,6 +224,9 @@ template<class T,int d> void MPM_Example<T,d>::
 Update_Particle_Velocities_And_Positions(const T dt)
 {
     Apply_Force(dt);
+
+    T max_v=(T)-100;
+    T min_v=(T)100;
 
     Array<Array<int> > remove_indices(threads);
     const Grid<T,d>& grid=hierarchy->Lattice(0);
@@ -251,12 +254,14 @@ Update_Particle_Velocities_And_Positions(const T dt)
             // std::cout<<"V_flip: "<<V_flip.Norm()<<std::endl;
             // std::cout<<"V_pic: "<<V_pic.Norm()<<std::endl;
             particle.V=V_flip*flip+V_pic*(1-flip);
-            //particle.V=TV();//V_flip*flip+V_pic*(1-flip);
+            T vnorm=particle.V.Norm();
+            if(vnorm>max_v) max_v=vnorm;
+            if(vnorm<min_v) min_v=vnorm;
             particle.X+=V_pic*dt;
         if(!grid.domain.Inside(particle.X)) particle.valid=false;
 
     }
-
+    printf("velocity range: %f, %f\n",min_v,max_v);
     // for(int i=1;i<remove_indices.size();++i)
     //     remove_indices(0).Append_Elements(remove_indices(i));
     // Array<int>::Sort(remove_indices(1));
@@ -292,6 +297,7 @@ Apply_Force(const T dt)
 template<class T,int d> void MPM_Example<T,d>::
 Apply_Explicit_Force(const T dt)
 {
+    gravity=Vector<T,d>::Axis_Vector(1)*(T)-2.;
     const Grid<T,d>& grid=hierarchy->Lattice(0);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){const int id=simulated_particles(i); T_Particle &particle=particles(id); T V0=particle.volume;
@@ -300,7 +306,7 @@ Apply_Explicit_Force(const T dt)
         for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){T_INDEX current_node=closest_node+iterator.Index();
             if(grid.Node_Indices().Inside(current_node)){const TV current_node_location=grid.Node(current_node);T weight=N(particle.X-current_node_location);
                 if(weight>(T)0.){ TV weight_grad=dN(particle.X-current_node_location);
-                    for(int v=0;v<d;++v) { hierarchy->Channel(0,f_channels(v))(current_node._data)-=(V0_P_FT*weight_grad)(v);
+                    for(int v=0;v<d;++v) { //hierarchy->Channel(0,f_channels(v))(current_node._data)-=(V0_P_FT*weight_grad)(v);
                         hierarchy->Channel(0,f_channels(v))(current_node._data)+=gravity(v)*particle.mass*weight;
     }}}}}
 }
