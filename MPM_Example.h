@@ -49,6 +49,7 @@ class MPM_Example: public Example<T,d>
     Hierarchy *hierarchy;
 
     T Struct_type::* mass_channel;
+    T Struct_type::* valid_nodes;
     Channel_Vector velocity_channels;
     Channel_Vector velocity_star_channels;
     Channel_Vector f_channels;

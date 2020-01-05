@@ -30,6 +30,7 @@ MPM_Example()
     f_channels(0)                           = &Struct_type::ch7;
     f_channels(1)                           = &Struct_type::ch8;
     if(d==3) f_channels(2)                  = &Struct_type::ch9;
+    valid_nodes                             = &Struct_type::ch10;
 }
 //######################################################################
 // Destructor
@@ -58,7 +59,9 @@ Reset_Grid_Based_Variables()
     // clear mass, velocity and force channels
     for(int level=0;level<levels;++level){
         Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),mass_channel);
-        for(int v=0;v<d;++v) {Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels(v));
+        Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),valid_nodes);
+        for(int v=0;v<d;++v) {
+            Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels(v));
             Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels(v));
             Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),f_channels(v));}}
     valid_grid_indices.Clear();
@@ -81,7 +84,7 @@ Compute_Bounding_Box(Range<T,d>& bbox)
         TV& current_min_corner=min_corner_per_thread(tid);
         TV& current_max_corner=max_corner_per_thread(tid);
         for(int v=0;v<d;++v){
-            T dd=(T)3./counts(v);
+            T dd=(T)2./counts(v);
             current_min_corner(v)=std::min(current_min_corner(v),p.X(v)-dd);
             current_max_corner(v)=std::max(current_max_corner(v),p.X(v)+dd);}}
 
@@ -181,6 +184,7 @@ Limit_Dt(T& dt,const T time)
 template<class T,int d> void MPM_Example<T,d>::
 Rasterize()
 {
+    gravity=Vector<T,d>::Axis_Vector(1)*(T)-2.;
     const Grid<T,d>& grid=hierarchy->Lattice(0);
     std::cout<<"cell width:"<<grid.dX(0)<<std::endl;
     for(unsigned i=0;i<simulated_particles.size();++i){ T weight_sum=(T)0.; const int id=simulated_particles(i); T_Particle& p=particles(id); T_INDEX closest_node=grid.Closest_Node(p.X);
@@ -188,21 +192,38 @@ Rasterize()
             if(grid.Node_Indices().Inside(current_node)){const TV current_node_location=grid.Node(current_node);T weight=N(p.X-current_node_location);
                 weight_sum+=weight;
                 hierarchy->Channel(0,mass_channel)(current_node._data)+=weight*p.mass;
-                for(int v=0;v<d;++v) hierarchy->Channel(0,velocity_channels(v))(current_node._data)+=weight*p.V(v);}}
+                if(weight>(T)0.) hierarchy->Channel(0,valid_nodes)(current_node._data)=(T)1.;
+                for(int v=0;v<d;++v) {hierarchy->Channel(0,velocity_channels(v))(current_node._data)+=weight*p.mass*p.V(v);
+                    // hierarchy->Channel(0,f_channels(v))(current_node._data)+=weight*p.mass*gravity(v);
+                }}}
+
             //std::cout<<"weight sum: "<<weight_sum<<std::endl;    
         }
     
-    using Cell_Iterator             = Grid_Iterator_Cell<T,d>;
+    // normalize weights for velocity (to conserve momentum)
+    for(int level=0;level<levels;++level)
+        Velocity_Normalization_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels,mass_channel);
+
+    T max_mass=(T)-100.;
+    T min_mass=FLT_MAX;
+    T max_v=(T)-100.;
+    T min_v=FLT_MAX;
+    using Cell_Iterator     = Grid_Iterator_Cell<T,d>;
     Range<int,d> bounding_grid_cells(grid.Clamp_To_Cell(bbox.min_corner),grid.Clamp_To_Cell(bbox.max_corner));
 
     for(Cell_Iterator iterator(grid,bounding_grid_cells);iterator.Valid();iterator.Next()){
         T_INDEX current_node=iterator.Cell_Index(); T mass=hierarchy->Channel(0,mass_channel)(current_node._data);
-        if(mass>(T)0.) for(int v=0;v<d;++v) hierarchy->Channel(0,velocity_channels(v))(current_node._data)/=mass;
+        if(mass>max_mass) max_mass=mass;
+        if(mass<min_mass) min_mass=mass;
+        for(int v=0;v<d;++v){
+            T vnorm=abs(hierarchy->Channel(0,velocity_channels(v))(current_node._data));
+            if(vnorm>max_v) max_v=vnorm;
+            if(vnorm<min_v) min_v=vnorm;
+        }
     }
+    printf("mass range: %f, %f\n", min_mass, max_mass);
+    printf("v range: %f, %f\n", min_v, max_v);
 
-    // normalize weights for velocity (to conserve momentum)
-    // for(int level=0;level<levels;++level)
-    //     Velocity_Normalization_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels,mass_channel);
 }
 //######################################################################
 // Update_Constitutive_Model_State
@@ -214,8 +235,7 @@ Update_Constitutive_Model_State()
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i); 
         T_Particle &particle=particles(id);    
-        particle.constitutive_model.Precompute();
-    }
+        particle.constitutive_model.Precompute();}
 }
 //######################################################################
 // Update_Particle_Velocities_And_Positions
@@ -225,43 +245,41 @@ Update_Particle_Velocities_And_Positions(const T dt)
 {
     Apply_Force(dt);
 
-    T max_v=(T)-100;
-    T min_v=(T)100;
-
     Array<Array<int> > remove_indices(threads);
     const Grid<T,d>& grid=hierarchy->Lattice(0);
 //#pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i); 
         T_Particle &particle=particles(id);
+        particle.V=TV();
         T_INDEX closest_node=grid.Closest_Node(particle.X); 
         TV V_pic=TV(),V_flip=particle.V; 
         Matrix<T,d> grad_Vp=Matrix<T,d>();
         for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){
             T_INDEX current_node=closest_node+iterator.Index();
+            
             if(grid.Node_Indices().Inside(current_node)){
                 const TV current_node_location=grid.Node(current_node);
                 T weight=N(particle.X-current_node_location);
+                for(int v=0;v<d;v++) particle.V(v)+=weight*hierarchy->Channel(0,velocity_star_channels(v))(current_node._data);
                 if(weight>(T)0.){ 
                     TV weight_grad=dN(particle.X-current_node_location),V_grid, delta_V_grid;
                     for(int v=0;v<d;++v) { V_grid(v)=hierarchy->Channel(0,velocity_star_channels(v))(current_node._data);
                         delta_V_grid(v)=hierarchy->Channel(0,velocity_star_channels(v))(current_node._data)-hierarchy->Channel(0,velocity_channels(v))(current_node._data);}
+                    //printf("weight: %f, V_grid: %f\n", weight, V_grid.Norm())      ;
                     V_pic+=weight*V_grid; 
                     V_flip+=weight*delta_V_grid;
-                    grad_Vp+=Matrix<T,d>::Outer_Product(V_grid,weight_grad);
-            }}}
+                    grad_Vp+=Matrix<T,d>::Outer_Product(V_grid,weight_grad);}}}
+
             particle.constitutive_model.Fe+=dt*grad_Vp*particle.constitutive_model.Fe;
-            // std::cout<<"V_flip: "<<V_flip.Norm()<<std::endl;
-            // std::cout<<"V_pic: "<<V_pic.Norm()<<std::endl;
+            //printf("V_flip: %f, V_pic: %f\n", V_flip.Norm(), V_pic.Norm());
             particle.V=V_flip*flip+V_pic*(1-flip);
-            T vnorm=particle.V.Norm();
-            if(vnorm>max_v) max_v=vnorm;
-            if(vnorm<min_v) min_v=vnorm;
+            
             particle.X+=V_pic*dt;
+
         if(!grid.domain.Inside(particle.X)) particle.valid=false;
 
     }
-    printf("velocity range: %f, %f\n",min_v,max_v);
     // for(int i=1;i<remove_indices.size();++i)
     //     remove_indices(0).Append_Elements(remove_indices(i));
     // Array<int>::Sort(remove_indices(1));
@@ -285,10 +303,12 @@ Apply_Force(const T dt)
 
     for(Cell_Iterator iterator(grid,bounding_grid_cells);iterator.Valid();iterator.Next()){
         T_INDEX current_node=iterator.Cell_Index(); T mass=hierarchy->Channel(0,mass_channel)(current_node._data);
-        if(mass>(T)0.){ 
-            //std::cout<<"dt/mass:"<<dt/mass<<std::endl;
-            for(int v=0;v<d;++v) hierarchy->Channel(0,velocity_star_channels(v))(current_node._data)=hierarchy->Channel(0,velocity_channels(v))(current_node._data)
-                                                                                            +dt/mass*hierarchy->Channel(0,f_channels(v))(current_node._data);}}
+        if(hierarchy->Channel(0,valid_nodes)(current_node._data)>(T)0.){
+            for(int v=0;v<d;++v) { hierarchy->Channel(0,velocity_star_channels(v))(current_node._data)=hierarchy->Channel(0,velocity_channels(v))(current_node._data)
+                                                                                            +dt/mass*hierarchy->Channel(0,f_channels(v))(current_node._data);
+            //printf("v*: %f, v: %f, dt/mass: %f, f: %f\n",hierarchy->Channel(0,velocity_star_channels(v))(current_node._data), hierarchy->Channel(0,velocity_channels(v))(current_node._data), dt/mass, hierarchy->Channel(0,f_channels(v))(current_node._data));
+    }}
+    }
     Grid_Based_Collison();
 }
 //######################################################################
@@ -297,7 +317,6 @@ Apply_Force(const T dt)
 template<class T,int d> void MPM_Example<T,d>::
 Apply_Explicit_Force(const T dt)
 {
-    gravity=Vector<T,d>::Axis_Vector(1)*(T)-2.;
     const Grid<T,d>& grid=hierarchy->Lattice(0);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){const int id=simulated_particles(i); T_Particle &particle=particles(id); T V0=particle.volume;
@@ -306,7 +325,7 @@ Apply_Explicit_Force(const T dt)
         for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){T_INDEX current_node=closest_node+iterator.Index();
             if(grid.Node_Indices().Inside(current_node)){const TV current_node_location=grid.Node(current_node);T weight=N(particle.X-current_node_location);
                 if(weight>(T)0.){ TV weight_grad=dN(particle.X-current_node_location);
-                    for(int v=0;v<d;++v) { //hierarchy->Channel(0,f_channels(v))(current_node._data)-=(V0_P_FT*weight_grad)(v);
+                    for(int v=0;v<d;++v) { hierarchy->Channel(0,f_channels(v))(current_node._data)-=(V0_P_FT*weight_grad)(v);
                         hierarchy->Channel(0,f_channels(v))(current_node._data)+=gravity(v)*particle.mass*weight;
     }}}}}
 }
@@ -316,7 +335,26 @@ Apply_Explicit_Force(const T dt)
 template<class T,int d> void MPM_Example<T,d>::
 Grid_Based_Collison()
 {   
+    T mu=(T)0.;
+    using Cell_Iterator     = Grid_Iterator_Cell<T,d>;
+    const Grid<T,d>& grid=hierarchy->Lattice(0);
+    Range<int,d> bounding_grid_cells(grid.Clamp_To_Cell(bbox.min_corner),grid.Clamp_To_Cell(bbox.max_corner));
 
+    for(Cell_Iterator iterator(grid,bounding_grid_cells);iterator.Valid();iterator.Next()){
+        T_INDEX current_node=iterator.Cell_Index(); 
+        const TV current_node_location=grid.Node(current_node);
+        if(current_node_location(1)<(T).1){
+            TV normal=TV::Axis_Vector(1)*(T)1.;
+            TV vel=TV();
+            for(int v=0;v<d;++v) vel(v)=hierarchy->Channel(0,velocity_star_channels(v))(current_node._data);
+            T projection=vel.Dot_Product(normal);
+            if(projection<(T)0.){
+                vel-=normal*projection;
+                if(-projection*mu<vel.Norm()) vel+=vel.Normalized()*projection*mu;
+                else vel=TV();}
+            for(int v=0;v<d;++v) hierarchy->Channel(0,velocity_star_channels(v))(current_node._data);
+        }
+    } 
 }
 //######################################################################
 // Estimate_Particle_Volumes
