@@ -23,8 +23,8 @@ using namespace Nova;
 template<class T,int d> void MPM_Constitutive_Model<T,d>::
 Compute_Lame_Parameters(const T E,const T nu)
 {
-    mu0=E/(2*(1+nu));
-    lambda0=(E*nu)/((1+nu)*(1-2*nu));
+    mu0=E/((T)2.*((T)1.+nu));
+    lambda0=(E*nu)/(((T)1.+nu)*((T)1.-(T)2.*nu));
 }
 //######################################################################
 // Precompute
@@ -44,7 +44,9 @@ Precompute()
         mu=exp(power)*mu0;}
     else{
         lambda=lambda0;
-        mu=mu0;}
+        mu=mu0;
+        // printf("lambda: %f, mu: %f\n",lambda, mu);
+        }
     Je=Se.Determinant();
     Re=Ue*Ve.Transposed();
     He=Fe.Cofactor_Matrix();

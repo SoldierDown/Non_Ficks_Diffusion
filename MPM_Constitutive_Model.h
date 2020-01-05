@@ -60,7 +60,9 @@ Matrix<T,3> dR(const Matrix<T,3>& dF,const Matrix<T,3>& R,const Matrix<T,3>& F)
     Matrix<T,3> S=R.Transpose_Times(F);
     Matrix<T,3> K(S.x[4]+S.x[0],S.x[5],-S.x[2],S.x[5],S.x[8]+S.x[0],S.x[1],-S.x[2],S.x[1],S.x[8]+S.x[4]);
     Vector<T,3> L;
-    L(0)=M.x[1]-M.x[3];L(1)=-M.x[6]+M.x[2];L(2)=-M.x[7]+M.x[5];
+    L(0)=M.x[1]-M.x[3];
+    L(1)=-M.x[6]+M.x[2];
+    L(2)=-M.x[7]+M.x[5];
     Vector<T,3> RV=K.Solve_Linear_System(L);
     Matrix<T,3> RTdR(0,RV(0),RV(1),-RV(0),0,RV(2),-RV(1),-RV(2),0);
     return R*RTdR;

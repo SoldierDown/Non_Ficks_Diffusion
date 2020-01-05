@@ -257,16 +257,14 @@ Update_Particle_Velocities_And_Positions(const T dt)
         Matrix<T,d> grad_Vp=Matrix<T,d>();
         for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){
             T_INDEX current_node=closest_node+iterator.Index();
-            
             if(grid.Node_Indices().Inside(current_node)){
                 const TV current_node_location=grid.Node(current_node);
                 T weight=N(particle.X-current_node_location);
-                for(int v=0;v<d;v++) particle.V(v)+=weight*hierarchy->Channel(0,velocity_star_channels(v))(current_node._data);
                 if(weight>(T)0.){ 
                     TV weight_grad=dN(particle.X-current_node_location),V_grid, delta_V_grid;
                     for(int v=0;v<d;++v) { V_grid(v)=hierarchy->Channel(0,velocity_star_channels(v))(current_node._data);
                         delta_V_grid(v)=hierarchy->Channel(0,velocity_star_channels(v))(current_node._data)-hierarchy->Channel(0,velocity_channels(v))(current_node._data);}
-                    //printf("weight: %f, V_grid: %f\n", weight, V_grid.Norm())      ;
+                    //printf("weight: %f, V_grid: %f\n", weight, V_grid.Norm());
                     V_pic+=weight*V_grid; 
                     V_flip+=weight*delta_V_grid;
                     grad_Vp+=Matrix<T,d>::Outer_Product(V_grid,weight_grad);}}}
@@ -277,7 +275,7 @@ Update_Particle_Velocities_And_Positions(const T dt)
             
             particle.X+=V_pic*dt;
 
-        if(!grid.domain.Inside(particle.X)) particle.valid=false;
+        //if(!grid.domain.Inside(particle.X)) particle.valid=false;
 
     }
     // for(int i=1;i<remove_indices.size();++i)
@@ -317,6 +315,8 @@ Apply_Force(const T dt)
 template<class T,int d> void MPM_Example<T,d>::
 Apply_Explicit_Force(const T dt)
 {
+    T min_f=FLT_MAX;
+    T max_f=-FLT_MAX;
     const Grid<T,d>& grid=hierarchy->Lattice(0);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){const int id=simulated_particles(i); T_Particle &particle=particles(id); T V0=particle.volume;
@@ -325,9 +325,12 @@ Apply_Explicit_Force(const T dt)
         for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){T_INDEX current_node=closest_node+iterator.Index();
             if(grid.Node_Indices().Inside(current_node)){const TV current_node_location=grid.Node(current_node);T weight=N(particle.X-current_node_location);
                 if(weight>(T)0.){ TV weight_grad=dN(particle.X-current_node_location);
-                    for(int v=0;v<d;++v) { hierarchy->Channel(0,f_channels(v))(current_node._data)-=(V0_P_FT*weight_grad)(v);
-                        hierarchy->Channel(0,f_channels(v))(current_node._data)+=gravity(v)*particle.mass*weight;
-    }}}}}
+                    for(int v=0;v<d;++v) { T component=(V0_P_FT*weight_grad)(v);
+                        if(component>max_f) max_f=component;
+                        if(component<min_f) min_f=component;
+                        hierarchy->Channel(0,f_channels(v))(current_node._data)-=(V0_P_FT*weight_grad)(v);
+                        hierarchy->Channel(0,f_channels(v))(current_node._data)+=gravity(v)*particle.mass*weight;}}}}}
+    printf("f range: %f, %f\n",min_f,max_f);
 }
 //######################################################################
 // Grid_Based_Collision

@@ -66,7 +66,7 @@ class Standard_Tests: public MPM_Example<T,d>
             p.V=TV::Axis_Vector(1)*(T)-1.;
             p.mass=mass_density*area_per_particle;
             p.constitutive_model.Compute_Lame_Parameters(E,nu);
-            p.constitutive_model.plastic=true;
+            p.constitutive_model.plastic=false;
             p.constitutive_model.stretching_yield=(T)1.005;
             p.constitutive_model.compression_yield=(T)0.985;
             p.constitutive_model.hardening_factor=(T)7.;}
