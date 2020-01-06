@@ -84,7 +84,7 @@ Compute_Bounding_Box(Range<T,d>& bbox)
         TV& current_min_corner=min_corner_per_thread(tid);
         TV& current_max_corner=max_corner_per_thread(tid);
         for(int v=0;v<d;++v){
-            T dd=(T)2./counts(v);
+            T dd=(T)3./counts(v);
             current_min_corner(v)=std::min(current_min_corner(v),p.X(v)-dd);
             current_max_corner(v)=std::max(current_max_corner(v),p.X(v)+dd);}}
 
@@ -187,18 +187,18 @@ Rasterize()
     gravity=Vector<T,d>::Axis_Vector(1)*(T)-2.;
     const Grid<T,d>& grid=hierarchy->Lattice(0);
     std::cout<<"cell width:"<<grid.dX(0)<<std::endl;
-    for(unsigned i=0;i<simulated_particles.size();++i){ T weight_sum=(T)0.; const int id=simulated_particles(i); T_Particle& p=particles(id); T_INDEX closest_node=grid.Closest_Node(p.X);
+    for(unsigned i=0;i<simulated_particles.size();++i){T weight_sum=(T)0.; const int id=simulated_particles(i); T_Particle& p=particles(id); T_INDEX closest_node=grid.Closest_Node(p.X);
         for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){T_INDEX current_node=closest_node+iterator.Index();
             if(grid.Node_Indices().Inside(current_node)){const TV current_node_location=grid.Node(current_node);T weight=N(p.X-current_node_location);
-                weight_sum+=weight;
-                hierarchy->Channel(0,mass_channel)(current_node._data)+=weight*p.mass;
-                if(weight>(T)0.) hierarchy->Channel(0,valid_nodes)(current_node._data)=(T)1.;
-                for(int v=0;v<d;++v) {hierarchy->Channel(0,velocity_channels(v))(current_node._data)+=weight*p.mass*p.V(v);
-                    // hierarchy->Channel(0,f_channels(v))(current_node._data)+=weight*p.mass*gravity(v);
-                }}}
-
-            //std::cout<<"weight sum: "<<weight_sum<<std::endl;    
-        }
+                if(weight>(T)0.){
+                    weight_sum+=weight;
+                    hierarchy->Channel(0,mass_channel)(current_node._data)+=weight*p.mass;
+                    hierarchy->Channel(0,valid_nodes)(current_node._data)=(T)1.;
+                    for(int v=0;v<d;++v) {hierarchy->Channel(0,velocity_channels(v))(current_node._data)+=weight*p.mass*p.V(v);}
+                }
+}}
+        
+}
     
     // normalize weights for velocity (to conserve momentum)
     for(int level=0;level<levels;++level)
@@ -221,9 +221,7 @@ Rasterize()
             if(vnorm<min_v) min_v=vnorm;
         }
     }
-    printf("mass range: %f, %f\n", min_mass, max_mass);
-    printf("v range: %f, %f\n", min_v, max_v);
-
+    printf("v range: %f %f, mass range: %f, %f\n", min_v,max_v,min_mass,max_mass);
 }
 //######################################################################
 // Update_Constitutive_Model_State
@@ -231,6 +229,7 @@ Rasterize()
 template<class T,int d> void MPM_Example<T,d>::
 Update_Constitutive_Model_State()
 {
+    //printf("active particles: %d\n",simulated_particles.size());
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i); 
@@ -264,18 +263,16 @@ Update_Particle_Velocities_And_Positions(const T dt)
                     TV weight_grad=dN(particle.X-current_node_location),V_grid, delta_V_grid;
                     for(int v=0;v<d;++v) { V_grid(v)=hierarchy->Channel(0,velocity_star_channels(v))(current_node._data);
                         delta_V_grid(v)=hierarchy->Channel(0,velocity_star_channels(v))(current_node._data)-hierarchy->Channel(0,velocity_channels(v))(current_node._data);}
-                    //printf("weight: %f, V_grid: %f\n", weight, V_grid.Norm());
                     V_pic+=weight*V_grid; 
                     V_flip+=weight*delta_V_grid;
                     grad_Vp+=Matrix<T,d>::Outer_Product(V_grid,weight_grad);}}}
 
             particle.constitutive_model.Fe+=dt*grad_Vp*particle.constitutive_model.Fe;
-            //printf("V_flip: %f, V_pic: %f\n", V_flip.Norm(), V_pic.Norm());
             particle.V=V_flip*flip+V_pic*(1-flip);
             
             particle.X+=V_pic*dt;
-
-        //if(!grid.domain.Inside(particle.X)) particle.valid=false;
+            //printf("V_pic: %f, %f\n",V_pic(0),V_pic(1));
+        // if(!grid.domain.Inside(particle.X)) particle.valid=false;
 
     }
     // for(int i=1;i<remove_indices.size();++i)
@@ -304,11 +301,12 @@ Apply_Force(const T dt)
         if(hierarchy->Channel(0,valid_nodes)(current_node._data)>(T)0.){
             for(int v=0;v<d;++v) { hierarchy->Channel(0,velocity_star_channels(v))(current_node._data)=hierarchy->Channel(0,velocity_channels(v))(current_node._data)
                                                                                             +dt/mass*hierarchy->Channel(0,f_channels(v))(current_node._data);
-            //printf("v*: %f, v: %f, dt/mass: %f, f: %f\n",hierarchy->Channel(0,velocity_star_channels(v))(current_node._data), hierarchy->Channel(0,velocity_channels(v))(current_node._data), dt/mass, hierarchy->Channel(0,f_channels(v))(current_node._data));
-    }}
+            // printf("v*: %f, v: %f, dt/mass: %f, f: %f\n",hierarchy->Channel(0,velocity_star_channels(v))(current_node._data), hierarchy->Channel(0,velocity_channels(v))(current_node._data), dt/mass, hierarchy->Channel(0,f_channels(v))(current_node._data));
+            }}
     }
     Grid_Based_Collison();
 }
+
 //######################################################################
 // Apply_Explicit_Force
 //######################################################################
@@ -324,13 +322,11 @@ Apply_Explicit_Force(const T dt)
         T_INDEX closest_node=grid.Closest_Node(particle.X);
         for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){T_INDEX current_node=closest_node+iterator.Index();
             if(grid.Node_Indices().Inside(current_node)){const TV current_node_location=grid.Node(current_node);T weight=N(particle.X-current_node_location);
-                if(weight>(T)0.){ TV weight_grad=dN(particle.X-current_node_location);
-                    for(int v=0;v<d;++v) { T component=(V0_P_FT*weight_grad)(v);
-                        if(component>max_f) max_f=component;
-                        if(component<min_f) min_f=component;
+                if(weight>(T)0.){ TV weight_grad=dN(particle.X-current_node_location); 
+                    for(int v=0;v<d;++v) {
                         hierarchy->Channel(0,f_channels(v))(current_node._data)-=(V0_P_FT*weight_grad)(v);
-                        hierarchy->Channel(0,f_channels(v))(current_node._data)+=gravity(v)*particle.mass*weight;}}}}}
-    printf("f range: %f, %f\n",min_f,max_f);
+                        // hierarchy->Channel(0,f_channels(v))(current_node._data)+=gravity(v)*particle.mass*weight;
+                        }}}}}
 }
 //######################################################################
 // Grid_Based_Collision
@@ -366,14 +362,14 @@ template<class T,int d> void MPM_Example<T,d>::
 Estimate_Particle_Volumes()
 {   
     const Grid<T,d>& grid=hierarchy->Lattice(0);
-    T one_over_volume_per_cell=(T)1.;
-    for(int v=0;v<d;++v) one_over_volume_per_cell*=grid.dX(v);
-    for(unsigned i=0;i<simulated_particles.size();++i){const int id=simulated_particles(i); T_Particle& particle=particles(id); 
-        T_INDEX closest_node=grid.Closest_Node(particle.X); T particle_density=(T)0.;
+    T one_over_volume_per_cell=(T)1./grid.dX.Product();
+    for(unsigned i=0;i<simulated_particles.size();++i){const int id=simulated_particles(i); T_Particle& p=particles(id); 
+        T_INDEX closest_node=grid.Closest_Node(p.X); T particle_density=(T)0.;
         for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){T_INDEX current_node=closest_node+iterator.Index();
-            if(grid.Node_Indices().Inside(current_node)){const TV current_node_location=grid.Node(current_node);T weight=N(particles(id).X-current_node_location);
+            if(grid.Node_Indices().Inside(current_node)){const TV current_node_location=grid.Node(current_node);T weight=N(p.X-current_node_location);
                 particle_density+=weight*hierarchy->Channel(0,mass_channel)(current_node._data);}}
-                particle.volume=particle.mass/particle_density;}   
+                particle_density*=one_over_volume_per_cell;
+                p.volume=p.mass/particle_density;}
 }
 //######################################################################
 // Register_Options

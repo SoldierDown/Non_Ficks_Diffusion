@@ -44,9 +44,7 @@ Precompute()
         mu=exp(power)*mu0;}
     else{
         lambda=lambda0;
-        mu=mu0;
-        // printf("lambda: %f, mu: %f\n",lambda, mu);
-        }
+        mu=mu0;}
     Je=Se.Determinant();
     Re=Ue*Ve.Transposed();
     He=Fe.Cofactor_Matrix();

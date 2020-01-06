@@ -50,7 +50,7 @@ class Standard_Tests: public MPM_Example<T,d>
 
         const T mass_density=(T)2.;
         const int number_of_particles=2000;
-        const Range<T,d> block(TV({.4,.15}),TV({.6,.35}));
+        const Range<T,d> block(TV({.4,.30}),TV({.6,.50}));
         const T block_area=block.Area();
         const T area_per_particle=block_area/number_of_particles;
         // std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
@@ -63,7 +63,7 @@ class Standard_Tests: public MPM_Example<T,d>
         for(int i=0;i<number_of_particles;++i){
             T_Particle &p=particles(i);
             p.X=random.Get_Uniform_Vector(block);
-            p.V=TV::Axis_Vector(1)*(T)-1.;
+            p.V(1)=(T)-1.;
             p.mass=mass_density*area_per_particle;
             p.constitutive_model.Compute_Lame_Parameters(E,nu);
             p.constitutive_model.plastic=false;

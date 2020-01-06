@@ -32,7 +32,7 @@ class Velocity_Normalization_Helper
         auto velocity_normalization_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(mass(offset)>(T)1e-7) for(int v=0;v<d;++v)
+                if(mass(offset)>(T)1e-10) for(int v=0;v<d;++v)
                     allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)/=mass(offset);}
         };
 
