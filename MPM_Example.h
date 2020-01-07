@@ -16,6 +16,24 @@
 #include "MPM_Particle.h"
 
 namespace Nova{
+
+template<class T> void
+Vector_To_Flag(Vector<int,2> current_node)
+{
+    using Struct_type               = MPM_Data<T>;
+    using Allocator_type            = SPGrid::SPGrid_Allocator<Struct_type,2>;
+    using Flag_array_mask           = typename Allocator_type::template Array_mask<unsigned>;
+    std::cout<<Flag_array_mask::Linear_Offset(current_node(0),current_node(1))<<std::endl;
+}
+
+template<class T> void
+Vector_To_Flag(Vector<int,3> current_node)
+{
+    using Struct_type               = MPM_Data<T>;
+    using Allocator_type            = SPGrid::SPGrid_Allocator<Struct_type,3>;
+    using Flag_array_mask           = typename Allocator_type::template Array_mask<unsigned>;
+    std::cout<<Flag_array_mask::Linear_Offset(current_node(0),current_node(1),current_node(2))<<std::endl;
+}
 template<class T,int d>
 class MPM_Example: public Example<T,d>
 {
@@ -49,7 +67,7 @@ class MPM_Example: public Example<T,d>
     Hierarchy *hierarchy;
 
     T Struct_type::* mass_channel;
-    T Struct_type::* valid_nodes;
+    T Struct_type::* valid_nodes_channel;
     Channel_Vector velocity_channels;
     Channel_Vector velocity_star_channels;
     Channel_Vector f_channels;

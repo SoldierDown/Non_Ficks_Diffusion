@@ -16,16 +16,24 @@ MPM_Driver(MPM_Example<T,d>& example_input)
 template<class T,int d> void MPM_Driver<T,d>::
 Initialize()
 {
-    Base::Initialize();
     if(!example.restart){
         example.Initialize();
-        example.Populate_Simulated_Particles();
+        example.Reset_Grid_Based_Variables();
         example.Rasterize();
         example.Estimate_Particle_Volumes();
         example.Update_Constitutive_Model_State();
         example.Update_Particle_Velocities_And_Positions(1e-5);
     }
     else example.Read_Output_Files(example.restart_frame);
+}
+//######################################################################
+// Execute_Main_Program
+//######################################################################
+template<class T,int d> void MPM_Driver<T,d>::
+Execute_Main_Program() 
+{
+    Initialize();
+    Simulate_To_Frame(example.last_frame);
 }
 //######################################################################
 // Advance_To_Target_Time
@@ -45,10 +53,11 @@ Advance_To_Target_Time(const T target_time)
         //T dt=Compute_Dt(time,target_time);
         max_v=example.Max_Particle_Velocity();
         T dt=std::max(min_dt,std::min(max_dt,cfl*dx_min/std::max(max_v,(T)1e-2)));
-        //dt=(T)1e-5;
+        dt=(T)1e-3;
         Example<T,d>::Clamp_Time_Step_With_Target_Time(time,target_time,dt,done);
         Log::cout<<"dt: "<<dt<<std::endl;
         Advance_Step(dt);
+        done=true;
         if(!done) example.Write_Substep("END Substep",substep,0);
         time+=dt;}
 }
@@ -83,7 +92,6 @@ Advance_Step(const T dt)
     example.Reset_Grid_Based_Variables();
     // std::cout<<"3"<<std::endl;
     example.Rasterize();
-    //example.Test();
     // std::cout<<"4"<<std::endl;
     example.Update_Constitutive_Model_State();
     // std::cout<<"5"<<std::endl;
