@@ -33,8 +33,6 @@ class Velocity_Normalization_Helper
         std::cout<<"Normalization\n"<<std::endl;
         auto mass=allocator.template Get_Const_Array<Struct_type,T>(mass_channel);
         auto valid_nodes=allocator.template Get_Const_Array<Struct_type,T>(valid_nodes_channel);
-        std::cout<<Flag_array_mask::elements_per_block<<std::endl;
-        std::cout<<sizeof(Flags_type)<<std::endl;
         auto velocity_normalization_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){

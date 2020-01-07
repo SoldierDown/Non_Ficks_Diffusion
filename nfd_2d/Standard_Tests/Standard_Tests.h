@@ -52,7 +52,7 @@ class Standard_Tests: public MPM_Example<T,d>
 
         const T mass_density=(T)2.;
         const int number_of_particles=2000;
-        const Range<T,d> block(TV({.4,.3}),TV({.6,.5}));
+        const Range<T,d> block(TV({.4,.7}),TV({.6,.9}));
         // const T block_area=block.Size();
         const T block_area=block.Area();
         const T area_per_particle=block_area/number_of_particles;
@@ -72,7 +72,6 @@ class Standard_Tests: public MPM_Example<T,d>
             p.constitutive_model.compression_yield=(T)0.985;
             p.constitutive_model.hardening_factor=(T)7.;
             particles.Append(p);
-            // Base::simulated_particles.Append(i);
         }
         // Log::cout<<"simulated size: "<<Base::simulated_particles.size()<<", particles: "<<particles.size()<<std::endl;        
     }

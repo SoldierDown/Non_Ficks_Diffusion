@@ -38,8 +38,10 @@ class Explicit_Force_Helper
                 for(int v=0;v<d;++v){
                     allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)=allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)
                                                                                                         +dt/mass(offset)*allocator.template Get_Array<Struct_type,T>(f_channels(v))(offset);
-                Log::cout<<"vi: "<<allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)
-                <<", dt: "<<dt<<", mass: "<<mass(offset)<<", v*i: "<<allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)<<std::endl;}}
+                // Log::cout<<"vi: "<<allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)
+                // <<", dt: "<<dt<<", mass: "<<mass(offset)<<", fi: "<< allocator.template Get_Array<Struct_type,T>(f_channels(v))(offset)
+                // <<", v*i: "<<allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)<<std::endl;
+            }}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,explicit_velocity_update_helper);        
     }

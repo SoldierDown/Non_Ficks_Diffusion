@@ -68,6 +68,7 @@ class MPM_Example: public Example<T,d>
 
     T Struct_type::* mass_channel;
     T Struct_type::* valid_nodes_channel;
+    T Struct_type::* collide_nodes_channel;
     Channel_Vector velocity_channels;
     Channel_Vector velocity_star_channels;
     Channel_Vector f_channels;
