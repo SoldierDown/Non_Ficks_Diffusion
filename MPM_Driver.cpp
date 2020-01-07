@@ -57,7 +57,6 @@ Advance_To_Target_Time(const T target_time)
         Example<T,d>::Clamp_Time_Step_With_Target_Time(time,target_time,dt,done);
         Log::cout<<"dt: "<<dt<<std::endl;
         Advance_Step(dt);
-        done=true;
         if(!done) example.Write_Substep("END Substep",substep,0);
         time+=dt;}
 }

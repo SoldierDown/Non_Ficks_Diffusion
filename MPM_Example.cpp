@@ -256,7 +256,7 @@ Update_Particle_Velocities_And_Positions(const T dt)
 
             p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
             p.V=V_flip*flip+V_pic*(1-flip);
-            // Log::cout<<V_pic<<std::endl;
+            //Log::cout<<V_pic<<std::endl;
             p.X+=V_pic*dt;
             //printf("V_pic: %f, %f\n",V_pic(0),V_pic(1));
         // if(!grid.domain.Inside(particle.X)) particle.valid=false;
@@ -289,8 +289,6 @@ Apply_Force(const T dt)
 template<class T,int d> void MPM_Example<T,d>::
 Apply_Explicit_Force(const T dt)
 {
-    T min_f=FLT_MAX;
-    T max_f=-FLT_MAX;
     const Grid<T,d>& grid=hierarchy->Lattice(0);
 //#pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){const int id=simulated_particles(i); T_Particle &p=particles(id); T V0=p.volume;
@@ -300,8 +298,9 @@ Apply_Explicit_Force(const T dt)
             if(grid.Node_Indices().Inside(current_node)){const TV current_node_location=grid.Node(current_node);T weight=N(p.X-current_node_location);
                 if(weight>(T)0.){ TV weight_grad=dN(p.X-current_node_location); 
                     for(int v=0;v<d;++v) {
-                        hierarchy->Channel(0,f_channels(v))(current_node._data)-=(V0_P_FT*weight_grad)(v);
+                        //hierarchy->Channel(0,f_channels(v))(current_node._data)-=(V0_P_FT*weight_grad)(v);
                         hierarchy->Channel(0,f_channels(v))(current_node._data)+=gravity(v)*p.mass*weight;
+                        //Log::cout<<"g: "<< gravity(v) << ", weight: " << weight << ", mass: " << hierarchy->Channel(0,mass_channel)(current_node._data)<<", f: "<<hierarchy->Channel(0,f_channels(v))(current_node._data)<<std::endl;
                         }}}}}
 }
 //######################################################################

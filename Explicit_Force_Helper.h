@@ -21,7 +21,7 @@ class Explicit_Force_Helper
 
   public:
     Explicit_Force_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-                                  Channel_Vector& f_channels,Channel_Vector velocity_channels,Channel_Vector& velocity_star_channels,
+                                  Channel_Vector f_channels,Channel_Vector velocity_channels,Channel_Vector& velocity_star_channels,
                                   T Struct_type::* mass_channel,T Struct_type::* valid_nodes_channel,const T dt)
     {Run(allocator,blocks,f_channels,velocity_channels,velocity_star_channels,mass_channel,valid_nodes_channel,dt);}
 
@@ -38,11 +38,8 @@ class Explicit_Force_Helper
                 for(int v=0;v<d;++v){
                     allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)=allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)
                                                                                                         +dt/mass(offset)*allocator.template Get_Array<Struct_type,T>(f_channels(v))(offset);
-                    // Log::cout<<"v*i: "<<allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)
-                    //     <<", vi: "<<allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)<<std::endl;
-                    // T velocity=allocator.template Get_Array<Struct_type,T>(f_channels(v))(offset);
-                    // Vector<int,d> index(Flag_array_mask::LinearToCoord(offset));
-            }}
+                Log::cout<<"vi: "<<allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)
+                <<", dt: "<<dt<<", mass: "<<mass(offset)<<", v*i: "<<allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)<<std::endl;}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,explicit_velocity_update_helper);        
     }
