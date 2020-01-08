@@ -77,21 +77,63 @@ class MPM_Example: public Example<T,d>
 
     ~MPM_Example();
 
-    static T N(const T x)
+    static T N2(const T x)
+    {
+        if(fabs(x)<(T).5) return (T).75-Nova_Utilities::Sqr(x);
+        else if(fabs(x)<(T)1.5) return (T).5*Nova_Utilities::Sqr((T)1.5-fabs(x));
+        else return (T)0.;
+    }
+
+    inline T N2(const TV& X)
+    {
+        const Grid<T,d>& grid=hierarchy->Lattice(0);T value=(T)1.;
+        for(int axis=0;axis<d;++axis) value*=N2(X(axis)*grid.one_over_dX(axis));
+        return value;
+    }
+
+    static T dN2(const T x)
+    {
+        int sign=x>=0?1:-1;
+        if(fabs(x)<(T).5) return -(T)2.*x;
+        else if(fabs(x)<(T)1.5) return x-(T)1.5*sign;
+        else return (T)0.;  
+    }
+
+    inline T dN2(const TV X, const int axis)
+    {
+        const Grid<T,d>& grid=hierarchy->Lattice(0);T value=(T)1.;
+        for(int v=0;v<d;++v) 
+            if(v==axis) value*=grid.one_over_dX(v)*dN2(X(v)*grid.one_over_dX(v));
+            else value*=N2(X(v)*grid.one_over_dX(v));
+        return value;
+    }
+
+    inline TV dN2(const TV& X)
+    {
+        TV value=TV();
+        for(int axis=0;axis<d;++axis) value(axis)=dN2(X,axis);
+        return value;
+    }
+
+
+
+
+
+    static T N3(const T x)
     {
         if(fabs(x)<(T)1.) return (T).5*Nova_Utilities::Cube(fabs(x))-Nova_Utilities::Sqr(x)+(T)two_thirds;
         else if(fabs(x)<(T)2.) return (T)-one_sixth*Nova_Utilities::Cube(fabs(x))+Nova_Utilities::Sqr(x)-(T)2.*fabs(x)+(T)four_thirds;
         else return (T)0.;
     }
 
-    inline T N(const TV& X)
+    inline T N3(const TV& X)
     {
         const Grid<T,d>& grid=hierarchy->Lattice(0);T value=(T)1.;
-        for(int axis=0;axis<d;++axis) value*=N(X(axis)*grid.one_over_dX(axis));
+        for(int axis=0;axis<d;++axis) value*=N3(X(axis)*grid.one_over_dX(axis));
         return value;
     }
 
-    static T dN(const T x)
+    static T dN3(const T x)
     {
         int sign=x>=0?1:-1;
         if(fabs(x)<(T)1.) return (T)1.5*Nova_Utilities::Sqr(x)*sign-(T)2.*x;
@@ -99,24 +141,26 @@ class MPM_Example: public Example<T,d>
         else return (T)0.;  
     }
 
-    inline T dN(const TV X, const int axis)
+    inline T dN3(const TV X, const int axis)
     {
         const Grid<T,d>& grid=hierarchy->Lattice(0);T value=(T)1.;
         for(int v=0;v<d;++v) 
-            if(v==axis) value*=N(X(v)*grid.one_over_dX(v));
-            else value*=N(X(v)*grid.one_over_dX(v));
+            if(v==axis) value*=grid.one_over_dX(v)*dN3(X(v)*grid.one_over_dX(v));
+            else value*=N3(X(v)*grid.one_over_dX(v));
         return value;
     }
 
-    inline TV dN(const TV& X)
+    inline TV dN3(const TV& X)
     {
         TV value=TV();
-        for(int axis=0;axis<d;++axis) value(axis)=dN(X,axis);
+        for(int axis=0;axis<d;++axis) value(axis)=dN3(X,axis);
         return value;
     }
 
+
+
 //######################################################################
-    virtual void Initialize_Particles()=0;
+    virtual void Initialize_Particles(int test_case)=0;
 //######################################################################
     void Initialize_SPGrid();
     void Initialize();

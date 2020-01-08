@@ -42,7 +42,7 @@ class Standard_Tests: public MPM_Example<T,d>
         domain.min_corner=TV();domain.max_corner=TV(1);
     }
 //######################################################################
-    void Initialize_Particles() override
+    void Initialize_Particles(int test_case) override
     {
         Log::Scope scope("Initialize_Particles");
 

@@ -8,6 +8,7 @@
 
 #include <nova/Tools/Random_Numbers/Random_Numbers.h>
 #include <nova/Tools/Utilities/Range.h>
+#include <nova/Geometry/Basic_Geometry/Sphere.h>
 #include "../../MPM_Example.h"
 
 
@@ -39,41 +40,71 @@ class Standard_Tests: public MPM_Example<T,d>
     {
         Base::Parse_Options();
         output_directory="nfd_2d_"+std::to_string(test_number);
-
+        
         domain.min_corner=TV();domain.max_corner=TV(1);
     }
 //######################################################################
-    void Initialize_Particles() override
+    void Initialize_Particles(int test_case) override
     {
         Log::Scope scope("Initialize_Particles");
-
-        //Base::simulated_particles.Clear();
         particles.Clear();
+        switch (test_case)
+        {
+        case 15:{
+            const T mass_density=(T)2.;
+            const int number_of_particles=2000;
+            const Range<T,d> block(TV({.4,.4}),TV({.6,.6}));
+            const T block_area=block.Area();
+            const T area_per_particle=block_area/number_of_particles;
+            // std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
+            const T E=(T)40.,nu=(T).2;
 
-        const T mass_density=(T)2.;
-        const int number_of_particles=2000;
-        const Range<T,d> block(TV({.4,.7}),TV({.6,.9}));
-        // const T block_area=block.Size();
-        const T block_area=block.Area();
-        const T area_per_particle=block_area/number_of_particles;
-        // std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
-        const T E=(T)40.,nu=(T).2;
+            Random_Numbers<T> random;
+            random.Set_Seed(0);
+            for(int i=0;i<number_of_particles;++i){
+                T_Particle p;
+                p.X=random.Get_Uniform_Vector(block);
+                p.V(1)=(T)-1.;
+                p.mass=mass_density*area_per_particle;
+                p.constitutive_model.Compute_Lame_Parameters(E,nu);
+                p.constitutive_model.plastic=true;
+                p.constitutive_model.stretching_yield=(T)1.005;
+                p.constitutive_model.compression_yield=(T)0.985;
+                p.constitutive_model.hardening_factor=(T)7.;
+                particles.Append(p);
+            }  
 
-        Random_Numbers<T> random;
-        random.Set_Seed(0);
-        for(int i=0;i<number_of_particles;++i){
-            T_Particle p;
-            p.X=random.Get_Uniform_Vector(block);
-            p.V(1)=(T)-1.;
-            p.mass=mass_density*area_per_particle;
-            p.constitutive_model.Compute_Lame_Parameters(E,nu);
-            p.constitutive_model.plastic=false;
-            p.constitutive_model.stretching_yield=(T)1.005;
-            p.constitutive_model.compression_yield=(T)0.985;
-            p.constitutive_model.hardening_factor=(T)7.;
-            particles.Append(p);
+        }break;
+        case 16:{
+            const T mass_density=(T)2.;
+            const int number_of_particles=10000;
+            const Sphere<T,d> ball(TV({.5,.5}),.1);
+            const T block_area=ball.Size();
+            const T area_per_particle=block_area/number_of_particles;
+            // std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
+            const T E=(T)30.,nu=(T).4;
+
+            Random_Numbers<T> random;
+            random.Set_Seed(0);
+            T theta,r;
+            for(int i=0;i<number_of_particles;++i){
+                T_Particle p;
+                p.X=random.Get_Vector_In_Sphere(ball)+ball.center;
+                p.V(1)=(T)-2.;
+                p.mass=mass_density*area_per_particle;
+                p.constitutive_model.Compute_Lame_Parameters(E,nu);
+                p.constitutive_model.plastic=true;
+                p.constitutive_model.stretching_yield=(T)1.01;
+                p.constitutive_model.compression_yield=(T)0.95;
+                p.constitutive_model.hardening_factor=(T)10.;
+                particles.Append(p);
+            }  
+
+        }break;
+        default:
+            break;
         }
-        // Log::cout<<"simulated size: "<<Base::simulated_particles.size()<<", particles: "<<particles.size()<<std::endl;        
+
     }
 //######################################################################
 };

@@ -10,4 +10,8 @@
 
 01/03/2020  
 ##### RECORD  
-- in *Range.h*: Size()
+- in *Range.h*: Size()  
+
+01/07/2020  
+##### TODO  
+- Check kernel function  

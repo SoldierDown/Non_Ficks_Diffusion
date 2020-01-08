@@ -30,13 +30,13 @@ class Velocity_Normalization_Helper
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
              Channel_Vector& velocity_channels,T Struct_type::* mass_channel,T Struct_type::* valid_nodes_channel) const
     {
-        std::cout<<"Normalization\n"<<std::endl;
+        // std::cout<<"Normalization\n"<<std::endl;
         auto mass=allocator.template Get_Const_Array<Struct_type,T>(mass_channel);
         auto valid_nodes=allocator.template Get_Const_Array<Struct_type,T>(valid_nodes_channel);
         auto velocity_normalization_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(valid_nodes(offset)>(T)0.) 
+                if(valid_nodes(offset)>(T).5) 
                 for(int v=0;v<d;++v){
                     allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)/=mass(offset);
                     T velocity=allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset);
@@ -50,8 +50,8 @@ class Velocity_Normalization_Helper
     void Min_Max(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
              Channel_Vector& velocity_channels,T Struct_type::* mass_channel,T Struct_type::* valid_nodes_channel) const
     {
-        std::cout<<"Min Max"<<std::endl;
-        std::cout<<"blocks.second: "<<blocks.second<<std::endl;
+        // std::cout<<"Min Max"<<std::endl;
+        // std::cout<<"blocks.second: "<<blocks.second<<std::endl;
         auto mass=allocator.template Get_Const_Array<Struct_type,T>(mass_channel);
         auto valid_nodes=allocator.template Get_Const_Array<Struct_type,T>(valid_nodes_channel);
         auto min_max_helper=[&](uint64_t offset)

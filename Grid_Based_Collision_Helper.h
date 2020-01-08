@@ -27,22 +27,25 @@ class Grid_Based_Collision_Helper
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
              Channel_Vector& velocity_star_channels,T Struct_type::* collide_nodes_channel,T Struct_type::* valid_nodes_channel) const
     {
-        Log::cout<<"Perform Grid Based Collision"<<std::endl;
-        Log::cout<<"blocks.second: "<<blocks.second<<std::endl;
+        // Log::cout<<"Perform Grid Based Collision"<<std::endl;
+        // Log::cout<<"blocks.second: "<<blocks.second<<std::endl;
         auto collide_nodes=allocator.template Get_Const_Array<Struct_type,T>(collide_nodes_channel);
         auto valid_nodes=allocator.template Get_Const_Array<Struct_type,T>(valid_nodes_channel);
         auto grid_based_collision_helper=[&](uint64_t offset)
         {
             T mu=(T)0.; TV normal_vector=TV::Axis_Vector(1)*(T)1.; 
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(valid_nodes(offset)>(T)0. && collide_nodes(offset)>(T)0.){
+                if(valid_nodes(offset)>(T).5 && collide_nodes(offset)>(T).5){
                     TV vel=TV();
                     for(int v=0;v<d;++v) vel(v)=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset);
+                    // Log::cout<<"Before: "<<vel<<", ";
                     T projection=vel.Dot_Product(normal_vector);
+                    // Log::cout<<"projection: "<<projection<<", ";
                     if(projection<(T)0.){
                         vel-=normal_vector*projection;
                         if(-projection*mu<vel.Norm()) vel+=vel.Normalized()*projection*mu;
                         else vel=TV();}
+                    // Log::cout<<"After: "<<vel<<std::endl;
                     for (int v=0;v<d;++v) allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)=vel(v);}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,grid_based_collision_helper);

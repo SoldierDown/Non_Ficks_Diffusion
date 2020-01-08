@@ -23,8 +23,18 @@ Initialize()
         example.Estimate_Particle_Volumes();
         example.Update_Constitutive_Model_State();
         example.Update_Particle_Velocities_And_Positions(1e-5);
+        time=1e-5;
     }
     else example.Read_Output_Files(example.restart_frame);
+}
+//######################################################################
+// Test
+//######################################################################
+template<class T,int d> void MPM_Driver<T,d>::
+Test()
+{
+    example.Initialize();
+    example.Test();
 }
 //######################################################################
 // Execute_Main_Program
@@ -32,6 +42,7 @@ Initialize()
 template<class T,int d> void MPM_Driver<T,d>::
 Execute_Main_Program() 
 {
+    // Test();
     Initialize();
     Simulate_To_Frame(example.last_frame);
 }
@@ -41,16 +52,32 @@ Execute_Main_Program()
 template<class T,int d> void MPM_Driver<T,d>::
 Advance_To_Target_Time(const T target_time)
 {
+    T min_dt=(T)1e-6;
+    T max_dt=(T).005;
+    T cfl=example.cfl;
+    T dx_min=example.hierarchy->Lattice(0).dX(0);
     bool done=false;
     for(int substep=1;!done;substep++){
         example.Populate_Simulated_Particles(); // add only valid particles to array
+        T max_v=example.Max_Particle_Velocity();
         Log::Scope scope("SUBSTEP","substep "+std::to_string(substep));
-        T dt=Compute_Dt(time,target_time);
-        Example<T,d>::Clamp_Time_Step_With_Target_Time(time,target_time,dt,done);
+//        T dt=Compute_Dt(time,target_time);
+        T dt=std::max(min_dt,std::min(max_dt,cfl*dx_min/std::max(max_v,(T)1e-2)));
+        dt/=(T)10.;
+        // Example<T,d>::Clamp_Time_Step_With_Target_Time(time,target_time,dt,done);
+        if(target_time-time<dt*1.001){
+            dt=target_time-time;
+            done=true;
+        }
+        else if(target_time-time<(T)2.*dt){
+            dt=(target_time-time)*(T).5;
+        }
         Log::cout<<"dt: "<<dt<<std::endl;
         Advance_Step(dt);
         if(!done) example.Write_Substep("END Substep",substep,0);
-        time+=dt;}
+        time+=dt;
+        Log::cout<<"time: "<<time<<std::endl;
+        ;}
 }
 //######################################################################
 // Simulate_To_Frame
@@ -77,17 +104,11 @@ Simulate_To_Frame(const int target_frame)
 template<class T,int d> void MPM_Driver<T,d>::
 Advance_Step(const T dt)
 {
-    // std::cout<<"1"<<std::endl;
     example.Initialize_SPGrid();
-    // std::cout<<"2"<<std::endl;
     example.Reset_Grid_Based_Variables();
-    // std::cout<<"3"<<std::endl;
     example.Rasterize();
-    // std::cout<<"4"<<std::endl;
     example.Update_Constitutive_Model_State();
-    // std::cout<<"5"<<std::endl;
     example.Update_Particle_Velocities_And_Positions(dt);
-    // std::cout<<"6"<<std::endl;
 }
 //######################################################################
 template class Nova::MPM_Driver<float,2>;

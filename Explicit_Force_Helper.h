@@ -34,12 +34,12 @@ class Explicit_Force_Helper
         auto explicit_velocity_update_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(valid_nodes(offset)>(T)0.) 
+                if(valid_nodes(offset)>(T).5) 
                 for(int v=0;v<d;++v){
                     allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)=allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)
                                                                                                         +dt/mass(offset)*allocator.template Get_Array<Struct_type,T>(f_channels(v))(offset);
                 // Log::cout<<"vi: "<<allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)
-                // <<", dt: "<<dt<<", mass: "<<mass(offset)<<", fi: "<< allocator.template Get_Array<Struct_type,T>(f_channels(v))(offset)
+                // <<", dt/mass: "<< dt/mass(offset) <<", fi: "<< allocator.template Get_Array<Struct_type,T>(f_channels(v))(offset)
                 // <<", v*i: "<<allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)<<std::endl;
             }}
         };

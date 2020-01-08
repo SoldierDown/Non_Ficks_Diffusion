@@ -25,8 +25,8 @@ struct MPM_Data
     T ch7;          // X-force
     T ch8;          // Y-force
     T ch9;          // Z-force
-    T ch10;       // valid nodes
-    T ch11;
+    T ch10;         // valid nodes
+    T ch11;         // collide nodes
     T ch12;
     T ch13;
     T ch14;
