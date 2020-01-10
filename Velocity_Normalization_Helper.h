@@ -22,10 +22,8 @@ class Velocity_Normalization_Helper
   public:
     Velocity_Normalization_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
                                   Channel_Vector& velocity_channels,T Struct_type::* mass_channel,T Struct_type::* valid_nodes_channel)
-    {
-        Run(allocator,blocks,velocity_channels,mass_channel,valid_nodes_channel);
-        // Min_Max(allocator,blocks,velocity_channels,mass_channel,valid_nodes_channel);
-    }
+    {Run(allocator,blocks,velocity_channels,mass_channel,valid_nodes_channel);
+    Min_Max(allocator,blocks,velocity_channels,mass_channel,valid_nodes_channel);}
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
              Channel_Vector& velocity_channels,T Struct_type::* mass_channel,T Struct_type::* valid_nodes_channel) const
@@ -50,8 +48,6 @@ class Velocity_Normalization_Helper
     void Min_Max(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
              Channel_Vector& velocity_channels,T Struct_type::* mass_channel,T Struct_type::* valid_nodes_channel) const
     {
-        // std::cout<<"Min Max"<<std::endl;
-        // std::cout<<"blocks.second: "<<blocks.second<<std::endl;
         auto mass=allocator.template Get_Const_Array<Struct_type,T>(mass_channel);
         auto valid_nodes=allocator.template Get_Const_Array<Struct_type,T>(valid_nodes_channel);
         auto min_max_helper=[&](uint64_t offset)
@@ -69,8 +65,7 @@ class Velocity_Normalization_Helper
                     if(velocity<min_v) min_v=velocity;
                     if(velocity>max_v) max_v=velocity;
                     Vector<int,d> index(Flag_array_mask::LinearToCoord(offset));}}}
-        printf("v range: %f, %f\n",min_v,max_v);
-            // Log::cout<<"Min_Max count:"<<cnt<<std::endl;
+            Log::cout<<"min v: "<<min_v<<", max v: "<<max_v<<std::endl;
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,min_max_helper);
     }

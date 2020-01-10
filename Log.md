@@ -15,3 +15,10 @@
 01/07/2020  
 ##### TODO  
 - Check kernel function  
+
+01/10/2020
+##### Summary  
+- Helper
+- Flag  
+- Barrier  
+- Parser  

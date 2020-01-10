@@ -184,12 +184,6 @@ template<class T,int d> void MPM_Example<T,d>::
 Limit_Dt(T& dt,const T time)
 {
     Log::cout<<"************************************\nSHOULD NOT APPEAR!\n************************************"<<std::endl;
-    T min_dt=(T)1e-6;
-    T max_dt=(T)1e-3;
-    T cfl=(T).1;
-    T dx_min=hierarchy->Lattice(0).dX(0);
-    T max_v=Max_Particle_Velocity();
-    dt=std::max(min_dt,std::min(max_dt,cfl*dx_min/std::max(max_v,(T)1e-2)));
 }
 //######################################################################
 // Rasterize
@@ -198,6 +192,7 @@ template<class T,int d> void MPM_Example<T,d>::
 Rasterize()
 {
     const Grid<T,d>& grid=hierarchy->Lattice(0);
+#pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){ const int id=simulated_particles(i); T_Particle& p=particles(id); T_INDEX closest_node=grid.Closest_Node(p.X);
         for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){T_INDEX current_node=closest_node+iterator.Index();
             if(grid.Node_Indices().Inside(current_node)){
@@ -219,15 +214,11 @@ Rasterize()
 template<class T,int d> void MPM_Example<T,d>::
 Update_Constitutive_Model_State()
 {
-    //printf("active particles: %d\n",simulated_particles.size());
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i); 
         T_Particle &particle=particles(id);    
         particle.constitutive_model.Precompute();}
-    // Log::cout<<"***************************************\nUpdate State\n***************************************"<<std::endl;
-    // for(int level=0;level<levels;++level) Traverse_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),valid_nodes_channel);   
-
 }
 //######################################################################
 // Update_Particle_Velocities_And_Positions
@@ -263,22 +254,9 @@ Update_Particle_Velocities_And_Positions(const T dt)
 
             p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
             p.V=V_flip*flip+V_pic*(1-flip);
-            // Log::cout<<"weight sum: "<<weight_sum<<", V_flip: "<<V_flip<<", V_pic: "<<V_pic<<std::endl;
             p.X+=V_pic*dt;
-            //printf("V_pic: %f, %f\n",V_pic(0),V_pic(1));
         if(!grid.domain.Inside(p.X)) p.valid=false;
-
     }
-    // Log::cout<<"***************************************\nUpdate Position\n***************************************"<<std::endl;
-    // for(int level=0;level<levels;++level) Traverse_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),valid_nodes_channel);   
-
-    // for(int i=1;i<remove_indices.size();++i)
-    //     remove_indices(0).Append_Elements(remove_indices(i));
-    // Array<int>::Sort(remove_indices(1));
-    // for(int i=remove_indices(0).size()-1;i>=0;--i){
-    //     int k=remove_indices(0)(i);
-    //     invalid_particles.Append(simulated_particles(k));
-    //     simulated_particles.Remove_Index(k);}
 }
 //######################################################################
 // Apply_Force
@@ -287,12 +265,7 @@ template<class T,int d> void MPM_Example<T,d>::
 Apply_Force(const T dt)
 {
     Apply_Explicit_Force(dt);
-    // Log::cout<<"***************************************\nBefore\n***************************************"<<std::endl;
-    // for(int level=0;level<levels;++level) Traverse_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),valid_nodes_channel);
-    Grid_Based_Collison();
-    // Log::cout<<"***************************************\nAfter\n***************************************"<<std::endl;
-    // for(int level=0;level<levels;++level) Traverse_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),valid_nodes_channel);   
-
+    Grid_Based_Collison();  
 }
 
 //######################################################################
@@ -330,6 +303,7 @@ Estimate_Particle_Volumes()
 {   
     const Grid<T,d>& grid=hierarchy->Lattice(0);
     T one_over_volume_per_cell=(T)1./grid.dX.Product();
+#pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){const int id=simulated_particles(i); T_Particle& p=particles(id); 
         T_INDEX closest_node=grid.Closest_Node(p.X); T particle_density=(T)0.;
         for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){T_INDEX current_node=closest_node+iterator.Index();

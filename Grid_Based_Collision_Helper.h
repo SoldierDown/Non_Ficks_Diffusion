@@ -42,13 +42,11 @@ class Grid_Based_Collision_Helper
                     &&(collide_nodes(offset)==((T)id+(T)1.)||collide_nodes(offset)==(T)3.)){
                     TV vel=TV();
                     for(int v=0;v<d;++v) vel(v)=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset);
-                    // Log::cout<<"id: "<<id<<", normal: "<<normal_vector<<", v0: "<<vel;
                     T projection=vel.Dot_Product(normal_vector);
                     if(projection<(T)0.){
                         vel-=normal_vector*projection;
                         if(-projection*mu<vel.Norm()) vel+=vel.Normalized()*projection*mu;
                         else vel=TV();}
-                    // Log::cout<<", vt: "<<vel<<std::endl;
                     for (int v=0;v<d;++v) allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)=vel(v);}}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,grid_based_collision_helper);

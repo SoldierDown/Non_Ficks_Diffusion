@@ -154,8 +154,63 @@ class Standard_Tests: public MPM_Example<T,d>
                     particles.Append(p);
                 }  
             }
+        } break;
+        // example 18: two snow balls collide
+        case 18:{
+            Random_Numbers<T> random;
+            random.Set_Seed(0);
+            // T_Barrier wall(0.,TV({1.,0.}),.1);
+            // Base::barriers.Append(wall);
+            T_Barrier ground(0.,TV({0.,1.}),.1);
+            Base::barriers.Append(ground);
 
+            {
+                const T mass_density=(T)2.;
+                const int number_of_particles=2000;
+                const Sphere<T,d> ball(TV({.8,.5}),.1);
+                const T block_area=ball.Size();
+                const T area_per_particle=block_area/number_of_particles;
+                std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
+                const T E=(T)30.,nu=(T).4;
+                for(int i=0;i<number_of_particles;++i){
+                    T_Particle p;
+                    p.X=random.Get_Vector_In_Sphere(ball)+ball.center;
+                    p.V(0)=(T)-2.;
+                    p.V(1)=(T).1;
+                    // p.V(1)=(T)-2.;
+                    p.mass=mass_density*area_per_particle;
+                    p.constitutive_model.Compute_Lame_Parameters(E,nu);
+                    p.constitutive_model.plastic=true;
+                    p.constitutive_model.stretching_yield=(T)1.01;
+                    p.constitutive_model.compression_yield=(T)0.95;
+                    p.constitutive_model.hardening_factor=(T)10.;
+                    particles.Append(p);
+                }  
+            }
 
+            {
+                const T mass_density=(T)2.;
+                const int number_of_particles=2000;
+                const Sphere<T,d> ball(TV({.2,.5}),.1);
+                const T block_area=ball.Size();
+                const T area_per_particle=block_area/number_of_particles;
+                std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
+                const T E=(T)30.,nu=(T).4;
+                for(int i=0;i<number_of_particles;++i){
+                    T_Particle p;
+                    p.X=random.Get_Vector_In_Sphere(ball)+ball.center;
+                    p.V(0)=(T)2.;
+                    p.V(1)=(T).1;
+                    // p.V(1)=(T)-2.;
+                    p.mass=mass_density*area_per_particle;
+                    p.constitutive_model.Compute_Lame_Parameters(E,nu);
+                    p.constitutive_model.plastic=true;
+                    p.constitutive_model.stretching_yield=(T)1.01;
+                    p.constitutive_model.compression_yield=(T)0.95;
+                    p.constitutive_model.hardening_factor=(T)10.;
+                    particles.Append(p);
+                }  
+            }
             
 
         }break;
