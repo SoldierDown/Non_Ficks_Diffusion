@@ -22,19 +22,19 @@ class Explicit_Force_Helper
   public:
     Explicit_Force_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
                                   Channel_Vector f_channels,Channel_Vector velocity_channels,Channel_Vector& velocity_star_channels,
-                                  T Struct_type::* mass_channel,T Struct_type::* valid_nodes_channel,const T dt)
-    {Run(allocator,blocks,f_channels,velocity_channels,velocity_star_channels,mass_channel,valid_nodes_channel,dt);}
+                                  T Struct_type::* mass_channel,unsigned Struct_type::* flags_channel,const T dt)
+    {Run(allocator,blocks,f_channels,velocity_channels,velocity_star_channels,mass_channel,flags_channel,dt);}
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
              Channel_Vector& f_channels,Channel_Vector velocity_channels,Channel_Vector& velocity_star_channels,
-             T Struct_type::* mass_channel,T Struct_type::* valid_nodes_channel,const T dt) const
+             T Struct_type::* mass_channel,unsigned Struct_type::* flags_channel,const T dt) const
     {
         auto mass=allocator.template Get_Const_Array<Struct_type,T>(mass_channel);
-        auto valid_nodes=allocator.template Get_Const_Array<Struct_type,T>(valid_nodes_channel);
+        auto valid_nodes=allocator.template Get_Const_Array<Struct_type,unsigned>(flags_channel);
         auto explicit_velocity_update_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(valid_nodes(offset)>(T).5) 
+                if(valid_nodes(offset)&Node_Active) 
                 for(int v=0;v<d;++v){
                     allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)=allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)
                                                                                                         +dt/mass(offset)*allocator.template Get_Array<Struct_type,T>(f_channels(v))(offset);

@@ -21,9 +21,13 @@ public:
     T mass,volume;
     
     T_INDEX base_node;              
-    Vector<TV,d> weights;
-    Vector<TV,d> dweight;
 
+    // Hydrogel variables
+    T mass_solid;
+    T mass_fluid;
+    T saturation;
+    T volume_fraction_0;
+    
     // Constitutive model
     MPM_Constitutive_Model<T,d> constitutive_model;
 
@@ -39,6 +43,12 @@ public:
         V=TV();
         mass=(T)0.;
         volume=(T)0.;
+
+        // Hydrogel variables
+        mass_solid=mass;
+        mass_fluid=(T)0.;
+        saturation=(T)0.;
+        volume_fraction_0=(T)0.;
     }
 };
 }

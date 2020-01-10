@@ -15,7 +15,7 @@
 #include "MPM_Data.h"
 #include "MPM_Particle.h"
 #include "MPM_Plane_Barrier.h"
-
+#include "MPM_Krylov_Vector.h"
 namespace Nova{
 
 template<class T> void
@@ -69,12 +69,22 @@ class MPM_Example: public Example<T,d>
     TV gravity;
     Hierarchy *hierarchy;
 
+    unsigned Struct_type::* flags_channel;
     T Struct_type::* mass_channel;
-    T Struct_type::* valid_nodes_channel;
     T Struct_type::* collide_nodes_channel;
     Channel_Vector velocity_channels;
     Channel_Vector velocity_star_channels;
     Channel_Vector f_channels;
+
+    // Hydrogel variables
+    T diff_coeff;
+    bool explicit_diffusion;
+
+    // Hydrogel channel
+    T Struct_type::* saturation_channel;
+    T Struct_type::* lap_saturation_channel;
+    T Struct_type::* void_mass_fluid_channel;
+    T Struct_type::* volume_channel;
 
     MPM_Example();
 
@@ -173,6 +183,8 @@ class MPM_Example: public Example<T,d>
     void Update_Constitutive_Model_State();
     void Update_Particle_Velocities_And_Positions(const T dt);
     void Estimate_Particle_Volumes();
+    void Ficks_Diffusion(T dt);
+    void Non_Ficks_Diffusion(T dt);
     void Apply_Force(const T dt);
     void Apply_Explicit_Force(const T dt);
     void Grid_Based_Collison();

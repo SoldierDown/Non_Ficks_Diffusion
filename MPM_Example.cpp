@@ -11,7 +11,8 @@
 #include "Velocity_Normalization_Helper.h"
 #include "Explicit_Force_Helper.h"
 #include "Grid_Based_Collision_Helper.h"
-#include "Traverse_Helper.h"
+#include "Saturation_Normalization_Helper.h"
+#include "Explicit_Lap_Saturation_Helper.h"
 
 using namespace Nova;
 using namespace SPGrid;
@@ -24,6 +25,7 @@ MPM_Example()
 {
     gravity=-TV::Axis_Vector(1)*(T)2.;
     flip=(T).9;
+    flags_channel                           = &Struct_type::flags;
     mass_channel                            = &Struct_type::ch0;
     velocity_channels(0)                    = &Struct_type::ch1;
     velocity_channels(1)                    = &Struct_type::ch2;
@@ -34,8 +36,12 @@ MPM_Example()
     f_channels(0)                           = &Struct_type::ch7;
     f_channels(1)                           = &Struct_type::ch8;
     if(d==3) f_channels(2)                  = &Struct_type::ch9;
-    valid_nodes_channel                     = &Struct_type::ch10;
-    collide_nodes_channel                   = &Struct_type::ch11;
+    collide_nodes_channel                   = &Struct_type::ch10;
+    // Hydrogel channels
+    saturation_channel                      = &Struct_type::ch11;
+    lap_saturation_channel                  = &Struct_type::ch12;
+    void_mass_fluid_channel                 = &Struct_type::ch13;
+    volume_channel                          = &Struct_type::ch14;
 }
 //######################################################################
 // Destructor
@@ -64,16 +70,19 @@ Reset_Grid_Based_Variables()
 {
     // clear mass, velocity and force channels
     for(int level=0;level<levels;++level){
+        Clear<Struct_type,unsigned,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),flags_channel);
         Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),collide_nodes_channel);
         Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),mass_channel);
-        Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),valid_nodes_channel);
+        
+        // Clear hydrogel channels
+        Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);
+        Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),lap_saturation_channel);
+        Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),void_mass_fluid_channel);
+        Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),volume_channel);
         for(int v=0;v<d;++v) {
             Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels(v));
             Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels(v));
-            Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),f_channels(v));}}
-    // Log::cout<<"***************************************\nReset\n***************************************"<<std::endl;
-    // for(int level=0;level<levels;++level) Traverse_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),valid_nodes_channel);   
-    
+            Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),f_channels(v));}} 
 }
 //######################################################################
 // Compute_Bounding_Box
@@ -120,8 +129,10 @@ Rasterize_Voxels(const Range<T,d>& bbox)
     const Grid<T,d>& grid=hierarchy->Lattice(0);
     Range<int,d> bounding_grid_cells(grid.Clamp_To_Cell(bbox.min_corner),grid.Clamp_To_Cell(bbox.max_corner));
 
-    for(Cell_Iterator iterator(grid,bounding_grid_cells);iterator.Valid();iterator.Next())
+    for(Cell_Iterator iterator(grid,bounding_grid_cells);iterator.Valid();iterator.Next()){
         hierarchy->Activate_Cell(0,iterator.Cell_Index(),Cell_Type_Interior);
+    }
+        
 }
 //######################################################################
 // Initialize_SPGrid
@@ -191,6 +202,7 @@ Limit_Dt(T& dt,const T time)
 template<class T,int d> void MPM_Example<T,d>::
 Rasterize()
 {
+    const T fluid_density=(T)1.;
     const Grid<T,d>& grid=hierarchy->Lattice(0);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){ const int id=simulated_particles(i); T_Particle& p=particles(id); T_INDEX closest_node=grid.Closest_Node(p.X);
@@ -199,14 +211,49 @@ Rasterize()
                 const TV current_node_location=grid.Node(current_node);T weight=N2(p.X-current_node_location);
                 if(weight>(T)0.){                                     
                     hierarchy->Channel(0,mass_channel)(current_node._data)+=weight*p.mass;
-                    hierarchy->Channel(0,valid_nodes_channel)(current_node._data)=(T)1.;
+                    hierarchy->Channel(0,flags_channel)(current_node._data)|=Node_Active;
+                    // hierarchy->Channel(0,valid_nodes_channel)(current_node._data)=(T)1.;
                     T cnt=(T)0.;
                     for(int id=0;id<barriers.size();++id) if(current_node_location.Dot_Product(barriers(id).normal)<barriers(id).surface) cnt=((T)id+(T)1.);
-                    hierarchy->Channel(0,collide_nodes_channel)(current_node._data)=cnt;    
-                    // if(cnt>(T).5) Log::cout<<"cnt: "<<cnt<<std::endl;                
-                    for(int v=0;v<d;++v) hierarchy->Channel(0,velocity_channels(v))(current_node._data)+=weight*p.mass*p.V(v);}}}}
+                    hierarchy->Channel(0,collide_nodes_channel)(current_node._data)=cnt;                 
+                    for(int v=0;v<d;++v) hierarchy->Channel(0,velocity_channels(v))(current_node._data)+=weight*p.mass*p.V(v);
+                    
+                    // hydrogel
+                    // rasterize fluid mass
+                    hierarchy->Channel(0,saturation_channel)(current_node._data)+=weight*p.mass_fluid;
+                    // rasterize full fluid mass
+                    hierarchy->Channel(0,void_mass_fluid_channel)(current_node._data)+=weight*fluid_density*p.volume_fraction_0*p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
+                    hierarchy->Channel(0,volume_channel)(current_node._data)+=weight*p.volume;}}}}
     // normalize weights for velocity (to conserve momentum)
-    for(int level=0;level<levels;++level) Velocity_Normalization_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels,mass_channel,valid_nodes_channel);     
+    for(int level=0;level<levels;++level) Velocity_Normalization_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels,mass_channel,flags_channel);     
+    // "normalize" saturation
+    for(int level=0;level<levels;++level) Saturation_Normalization_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,volume_channel,flags_channel);     
+}
+//######################################################################
+// Ficks_Diffusion
+//######################################################################
+template<class T,int d> void MPM_Example<T,d>::
+Ficks_Diffusion(T dt)
+{
+    const Grid<T,d>& grid=hierarchy->Lattice(0);
+    const T one_over_dx2=(T)1./(grid.dX(0)*grid.dX(1));
+    const T a=diff_coeff*dt*one_over_dx2;
+    if(!explicit_diffusion){
+
+    }
+    else{
+        for(int level=0;level<levels;++level) Explicit_Lap_Saturation_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,flags_channel,one_over_dx2);        
+    }
+    
+
+}
+//######################################################################
+// Non_Ficks_Diffusion
+//######################################################################
+template<class T,int d> void MPM_Example<T,d>::
+Non_Ficks_Diffusion(T dt)
+{
+
 }
 //######################################################################
 // Update_Constitutive_Model_State
@@ -285,7 +332,7 @@ Apply_Explicit_Force(const T dt)
                     for(int v=0;v<d;++v) {
                         hierarchy->Channel(0,f_channels(v))(current_node._data)-=(V0_P_FT*weight_grad)(v);
                         hierarchy->Channel(0,f_channels(v))(current_node._data)+=gravity(v)*p.mass*weight;}}}}}    
-    for(int level=0;level<levels;++level) Explicit_Force_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),f_channels,velocity_channels,velocity_star_channels,mass_channel,valid_nodes_channel,dt);
+    for(int level=0;level<levels;++level) Explicit_Force_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),f_channels,velocity_channels,velocity_star_channels,mass_channel,flags_channel,dt);
 }
 //######################################################################
 // Grid_Based_Collision
@@ -293,7 +340,7 @@ Apply_Explicit_Force(const T dt)
 template<class T,int d> void MPM_Example<T,d>::
 Grid_Based_Collison()
 {   
-    for(int level=0;level<levels;++level) Grid_Based_Collision_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels,collide_nodes_channel,valid_nodes_channel,barriers);
+    for(int level=0;level<levels;++level) Grid_Based_Collision_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels,collide_nodes_channel,flags_channel,barriers);
 }
 //######################################################################
 // Estimate_Particle_Volumes

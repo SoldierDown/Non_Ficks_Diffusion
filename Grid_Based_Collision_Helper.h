@@ -25,20 +25,20 @@ class Grid_Based_Collision_Helper
     using T_Barrier             = MPM_Plane_Barrier<T,d>;
   public:
     Grid_Based_Collision_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& velocity_star_channels,
-                T Struct_type::* collide_nodes_channel,T Struct_type::* valid_nodes_channel,Array<T_Barrier> barriers)
-    {Run(allocator,blocks,velocity_star_channels,collide_nodes_channel,valid_nodes_channel,barriers);}
+                T Struct_type::* collide_nodes_channel,unsigned Struct_type::* flags_channel,Array<T_Barrier> barriers)
+    {Run(allocator,blocks,velocity_star_channels,collide_nodes_channel,flags_channel,barriers);}
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& velocity_star_channels,
-                T Struct_type::* collide_nodes_channel,T Struct_type::* valid_nodes_channel,Array<T_Barrier> barriers) const
+                T Struct_type::* collide_nodes_channel,unsigned Struct_type::* flags_channel,Array<T_Barrier> barriers) const
     {
         auto collide_nodes=allocator.template Get_Const_Array<Struct_type,T>(collide_nodes_channel);
-        auto valid_nodes=allocator.template Get_Const_Array<Struct_type,T>(valid_nodes_channel);
+        auto valid_nodes=allocator.template Get_Const_Array<Struct_type,unsigned>(flags_channel);
         auto grid_based_collision_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                 for(int id=0;id<barriers.size();++id){
                     TV normal_vector=barriers(id).normal; T mu=barriers(id).mu;
-                        if(valid_nodes(offset)>(T).5
+                        if((valid_nodes(offset)&Node_Active)
                     &&(collide_nodes(offset)==((T)id+(T)1.)||collide_nodes(offset)==(T)3.)){
                     TV vel=TV();
                     for(int v=0;v<d;++v) vel(v)=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset);

@@ -29,7 +29,7 @@ class Traverse_Helper
         auto traverse_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(c(offset)>(T)1.5) Log::cout<<"FOUNDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"<<c(offset)<<std::endl;
+                Log::cout<<c(offset)<<std::endl;
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,traverse_helper);
     }
