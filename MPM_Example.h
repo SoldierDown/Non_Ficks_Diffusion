@@ -14,6 +14,7 @@
 #include <nova/Tools/Arrays/Array.h>
 #include "MPM_Data.h"
 #include "MPM_Particle.h"
+#include "MPM_Plane_Barrier.h"
 
 namespace Nova{
 
@@ -41,6 +42,7 @@ class MPM_Example: public Example<T,d>
     using Base                      = Example<T,d>;
     using T_INDEX                   = Vector<int,d>;
     using T_Particle                = MPM_Particle<T,d>;
+    using T_Barrier                 = MPM_Plane_Barrier<T,d>;
     using Struct_type               = MPM_Data<T>;
     using Flags_type                = typename Struct_type::Flags_type;
     using Allocator_type            = SPGrid::SPGrid_Allocator<Struct_type,d>;
@@ -59,6 +61,7 @@ class MPM_Example: public Example<T,d>
     Range<T,d> domain;
     Range<T,d> bbox;
     Array<T_Particle> particles;
+    Array<T_Barrier> barriers;
     Array<int> simulated_particles;
     Array<int> invalid_particles;
     Array<int> valid_grid_indices;

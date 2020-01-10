@@ -14,7 +14,7 @@ struct MPM_Data
 {
     typedef T_FLAGS Flags_type;
 
-    T_FLAGS flags;
+    T_FLAGS         flags;
     T ch0;          // mass
     T ch1;          // X-velocity
     T ch2;          // Y-velocity
@@ -27,7 +27,7 @@ struct MPM_Data
     T ch9;          // Z-force
     T ch10;         // valid nodes
     T ch11;         // collide nodes
-    T ch12;
+    T ch12;         
     T ch13;
     T ch14;
 };
