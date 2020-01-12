@@ -30,11 +30,11 @@ class Explicit_Force_Helper
              T Struct_type::* mass_channel,unsigned Struct_type::* flags_channel,const T dt) const
     {
         auto mass=allocator.template Get_Const_Array<Struct_type,T>(mass_channel);
-        auto valid_nodes=allocator.template Get_Const_Array<Struct_type,unsigned>(flags_channel);
+        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(flags_channel);
         auto explicit_velocity_update_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(valid_nodes(offset)&Node_Active) 
+                if(flags(offset)&Node_Saturated) 
                 for(int v=0;v<d;++v){
                     allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)=allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)
                                                                                                         +dt/mass(offset)*allocator.template Get_Array<Struct_type,T>(f_channels(v))(offset);

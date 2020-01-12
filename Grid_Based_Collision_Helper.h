@@ -38,7 +38,7 @@ class Grid_Based_Collision_Helper
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                 for(int id=0;id<barriers.size();++id){
                     TV normal_vector=barriers(id).normal; T mu=barriers(id).mu;
-                        if((valid_nodes(offset)&Node_Active)
+                        if((valid_nodes(offset)&Node_Saturated)
                     &&(collide_nodes(offset)==((T)id+(T)1.)||collide_nodes(offset)==(T)3.)){
                     TV vel=TV();
                     for(int v=0;v<d;++v) vel(v)=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset);

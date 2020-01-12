@@ -34,23 +34,21 @@ class Explicit_Lap_Saturation_Helper
     {
         auto saturation=allocator.template Get_Const_Array<Struct_type,T>(saturation_channel);
         auto lap_saturation=allocator.template Get_Array<Struct_type,T>(lap_saturation_channel);
-        auto valid_nodes=allocator.template Get_Const_Array<Struct_type,unsigned>(flags_channel);
+        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(flags_channel);
         uint64_t face_neighbor_offsets[Topology_Helper::number_of_faces_per_cell];
         Topology_Helper::Face_Neighbor_Offsets(face_neighbor_offsets);
         auto explicit_lap_saturation_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(valid_nodes(offset)&Node_Active){
+                if(flags(offset)&Node_Saturated){
                     for(int face=0;face<Topology_Helper::number_of_faces_per_cell;++face){
                         int64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
-                        if(valid_nodes(neighbor_offset)&Node_Active) lap_saturation(offset)+=one_over_dx2*(saturation(neighbor_offset)-saturation(offset));}}}
+                        if(flags(neighbor_offset)&Node_Active) lap_saturation(offset)+=one_over_dx2*(saturation(neighbor_offset)-saturation(offset));}}}
         };
 
-        for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next()){
+        for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
             uint64_t offset=iterator.Offset();
             explicit_lap_saturation_helper(offset);}
-
-        // SPGrid_Computations::Run_Parallel_Blocks(blocks,explicit_lap_saturation_helper);        
     }
 
 };
