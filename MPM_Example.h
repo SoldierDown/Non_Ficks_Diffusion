@@ -78,6 +78,9 @@ class MPM_Example: public Example<T,d>
 
     // Hydrogel variables
     T diff_coeff;
+    T tau;
+    T Fc;
+    bool FICKS;
     bool explicit_diffusion;
 
     // Hydrogel channel
@@ -85,6 +88,7 @@ class MPM_Example: public Example<T,d>
     T Struct_type::* lap_saturation_channel;
     T Struct_type::* void_mass_fluid_channel;
     T Struct_type::* volume_channel;
+    T Struct_type::* div_Qc_channel;
 
     MPM_Example();
 

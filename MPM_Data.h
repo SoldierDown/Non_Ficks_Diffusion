@@ -32,6 +32,7 @@ struct MPM_Data
     T ch12;         // lap_saturation
     T ch13;         // void_mass_fluid
     T ch14;         // volume
+    T ch15;         // div_Qc
 };
 }
 #endif

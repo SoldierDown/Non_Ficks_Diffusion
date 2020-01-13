@@ -15,6 +15,7 @@
 #include "Grid_Based_Collision_Helper.h"
 #include "Saturation_Normalization_Helper.h"
 #include "Explicit_Lap_Saturation_Helper.h"
+#include "Div_Qc_Normalization_Helper.h"
 #include "Flag_Helper.h"
 
 using namespace Nova;
@@ -27,6 +28,8 @@ MPM_Example()
     :Base(),hierarchy(nullptr)
 {
     diff_coeff=(T)1e-3;
+    tau=(T)1.;
+    Fc=(T)0.;
     gravity=-TV::Axis_Vector(1)*(T)0.;
     flip=(T).9;
     explicit_diffusion=true;
@@ -83,6 +86,7 @@ Reset_Grid_Based_Variables()
         Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),lap_saturation_channel);
         Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),void_mass_fluid_channel);
         Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),volume_channel);
+        Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_Qc_channel);
         for(int v=0;v<d;++v) {
             Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels(v));
             Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels(v));
@@ -227,12 +231,16 @@ Rasterize()
                     // rasterize fluid mass
                     hierarchy->Channel(0,saturation_channel)(current_node._data)+=weight*p.mass_fluid;
                     // rasterize full fluid mass
-                    hierarchy->Channel(0,void_mass_fluid_channel)(current_node._data)+=weight*fluid_density*p.volume_fraction_0*p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();}}}}
+                    hierarchy->Channel(0,void_mass_fluid_channel)(current_node._data)+=weight*fluid_density*p.volume_fraction_0*p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
+                    
+                    // Non-Ficks
+                    if(!FICKS&&!explicit_diffusion){ hierarchy->Channel(0,div_Qc_channel)(current_node._data)+=weight*p.div_Qc*p.volume;
+                        hierarchy->Channel(0,volume_channel)(current_node._data)+=weight*p.volume;}}}}}
     // normalize weights for velocity (to conserve momentum)
     for(int level=0;level<levels;++level) Velocity_Normalization_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels,mass_channel,flags_channel);     
     // "normalize" saturation and set up surroundings
     for(int level=0;level<levels;++level) Saturation_Normalization_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel,flags_channel);     
-    // for(int level=0;level<levels;++level) Flag_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),flags_channel);     
+    if(!FICKS&&!explicit_diffusion) for(int level=0;level<levels;++level) Div_Qc_Normalization_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_Qc_channel,volume,flags_channel);     
 
 }
 //######################################################################
@@ -272,7 +280,28 @@ Ficks_Diffusion(T dt)
 template<class T,int d> void MPM_Example<T,d>::
 Non_Ficks_Diffusion(T dt)
 {
-
+    const T one_over_dx2=(T)1./(grid.dX(0)*grid.dX(1));
+    if(explicit_diffusion){
+        for(int level=0;level<levels;++level) Explicit_Lap_Saturation_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,flags_channel,one_over_dx2);        
+#pragma omp parallel for
+        for(unsigned i=0;i<simulated_particles.size();++i){
+            const int id=simulated_particles(i); 
+            T_Particle &p=particles(id);
+            T_INDEX closest_node=grid.Closest_Node(p.X); 
+            T p_lap_saturation=(T)0.;
+            for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){
+                T_INDEX current_node=closest_node+iterator.Index();
+                if(grid.Node_Indices().Inside(current_node)){
+                    const TV current_node_location=grid.Node(current_node);
+                    T weight=N2(p.X-current_node_location);
+                    p_lap_saturation+=weight*hierarchy->Channel(0,lap_saturation_channel)(current_node._data);}}
+                p.div_Qc=(tau-dt)/tau*p.div_Qc-dt/tau*diff_coeff*((T)1.-Fc)*p_lap_saturation;
+                p.saturation+=dt*(diff_coeff*Fc*p_lap_saturation-p.div_Qc);
+                p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);}
+    }
+    else{
+        
+    }
 }
 //######################################################################
 // Update_Constitutive_Model_State

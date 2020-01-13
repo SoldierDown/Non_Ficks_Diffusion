@@ -27,6 +27,7 @@ public:
     T mass_fluid;
     T saturation;
     T volume_fraction_0;
+    T div_Qc;
     
     // Constitutive model
     MPM_Constitutive_Model<T,d> constitutive_model;
@@ -49,6 +50,7 @@ public:
         mass_fluid=(T)0.;
         saturation=(T)0.;
         volume_fraction_0=(T)0.;
+        div_Qc=(T)0.;
     }
 };
 }
