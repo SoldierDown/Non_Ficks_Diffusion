@@ -9,6 +9,8 @@
 #include <nova/SPGrid/Core/SPGrid_Allocator.h>
 #include <nova/SPGrid/Tools/SPGrid_Threading_Helper.h>
 #include <nova/Tools/Vectors/Vector.h>
+#include "MPM_Flags.h"
+
 
 namespace Nova{
 template<class Struct_type,class T,int d>

@@ -17,6 +17,9 @@
 #include "Explicit_Lap_Saturation_Helper.h"
 #include "Div_Qc_Normalization_Helper.h"
 #include "Flag_Helper.h"
+#include "MPM_Flags.h"
+#include "MPM_CG_System.h"
+#include "MPM_CG_Vector.h"
 
 using namespace Nova;
 using namespace SPGrid;
@@ -27,11 +30,13 @@ template<class T,int d> MPM_Example<T,d>::
 MPM_Example()
     :Base(),hierarchy(nullptr)
 {
-    diff_coeff=(T)1e-3;
+    
+    diff_coeff=(T)1;
     tau=(T)1.;
     Fc=(T)0.;
     gravity=-TV::Axis_Vector(1)*(T)0.;
     flip=(T).9;
+    FICKS=false;
     explicit_diffusion=true;
     flags_channel                           = &Struct_type::flags;
     mass_channel                            = &Struct_type::ch0;
@@ -50,6 +55,7 @@ MPM_Example()
     lap_saturation_channel                  = &Struct_type::ch12;
     void_mass_fluid_channel                 = &Struct_type::ch13;
     volume_channel                          = &Struct_type::ch14;
+    div_Qc_channel                          = &Struct_type::ch15;
 }
 //######################################################################
 // Destructor
@@ -76,6 +82,8 @@ Initialize()
 template<class T,int d> void MPM_Example<T,d>::
 Reset_Grid_Based_Variables()
 {
+    Log::cout<<"Before Reset_Grid_Based_Variables"<<std::endl;
+    for(int level=0;level<levels;++level) Flag_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),flags_channel);
     // clear mass, velocity and force channels
     for(int level=0;level<levels;++level){
         Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),collide_nodes_channel);
@@ -91,6 +99,10 @@ Reset_Grid_Based_Variables()
             Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels(v));
             Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels(v));
             Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),f_channels(v));}} 
+
+    Log::cout<<"After Reset_Grid_Based_Variables"<<std::endl;
+    for(int level=0;level<levels;++level) Flag_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),flags_channel);
+        
 
 }
 //######################################################################
@@ -149,6 +161,7 @@ Rasterize_Voxels(const Range<T,d>& bbox)
 template<class T,int d> void MPM_Example<T,d>::
 Initialize_SPGrid()
 {
+
     using Hierarchy_Initializer     = Grid_Hierarchy_Initializer<Struct_type,T,d>;
 
     Compute_Bounding_Box(bbox);
@@ -178,7 +191,7 @@ Populate_Simulated_Particles()
     for(int i=0;i<particles.size();++i)
         if(particles(i).valid)
             simulated_particles.Append(i);
-    std::cout<<"simulated particles: "<<simulated_particles.size()<<std::endl;
+    Log::cout<<"\nSimulated particles: "<<simulated_particles.size()<<std::endl;
 }
 //######################################################################
 // Max_Particle_Velocity
@@ -210,6 +223,7 @@ Limit_Dt(T& dt,const T time)
 template<class T,int d> void MPM_Example<T,d>::
 Rasterize()
 {
+    // for(int level=0;level<levels;++level) Flag_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),flags_channel);
     const T fluid_density=(T)1.;
     const Grid<T,d>& grid=hierarchy->Lattice(0);
 #pragma omp parallel for
@@ -217,11 +231,9 @@ Rasterize()
         for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){T_INDEX current_node=closest_node+iterator.Index();
             if(grid.Node_Indices().Inside(current_node)){
                 const TV current_node_location=grid.Node(current_node);T weight=N2(p.X-current_node_location);
-                if(weight>(T)0.){       
-                    // assert(hierarchy->Channel(0,flags_channel)(current_node._data)&Node_Active);                              
+                if(weight>(T)0.){                                    
                     hierarchy->Channel(0,mass_channel)(current_node._data)+=weight*p.mass;
                     hierarchy->Channel(0,flags_channel)(current_node._data)|=Node_Saturated;
-                    // hierarchy->Channel(0,valid_nodes_channel)(current_node._data)=(T)1.;
                     T cnt=(T)0.;
                     for(int id=0;id<barriers.size();++id) if(current_node_location.Dot_Product(barriers(id).normal)<barriers(id).surface) cnt=((T)id+(T)1.);
                     hierarchy->Channel(0,collide_nodes_channel)(current_node._data)=cnt;                 
@@ -236,11 +248,13 @@ Rasterize()
                     // Non-Ficks
                     if(!FICKS&&!explicit_diffusion){ hierarchy->Channel(0,div_Qc_channel)(current_node._data)+=weight*p.div_Qc*p.volume;
                         hierarchy->Channel(0,volume_channel)(current_node._data)+=weight*p.volume;}}}}}
+    
+    // for(int level=0;level<levels;++level) Flag_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),flags_channel);
     // normalize weights for velocity (to conserve momentum)
     for(int level=0;level<levels;++level) Velocity_Normalization_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels,mass_channel,flags_channel);     
     // "normalize" saturation and set up surroundings
     for(int level=0;level<levels;++level) Saturation_Normalization_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel,flags_channel);     
-    if(!FICKS&&!explicit_diffusion) for(int level=0;level<levels;++level) Div_Qc_Normalization_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_Qc_channel,volume,flags_channel);     
+    if(!FICKS&&!explicit_diffusion) for(int level=0;level<levels;++level) Div_Qc_Normalization_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_Qc_channel,volume_channel,flags_channel);     
 
 }
 //######################################################################
@@ -249,6 +263,7 @@ Rasterize()
 template<class T,int d> void MPM_Example<T,d>::
 Ficks_Diffusion(T dt)
 {
+    Log::cout<<"Fick's Diffusion"<<std::endl;
     const Grid<T,d>& grid=hierarchy->Lattice(0);
     const T one_over_dx2=(T)1./(grid.dX(0)*grid.dX(1));
     const T a=diff_coeff*dt*one_over_dx2;
@@ -271,8 +286,6 @@ Ficks_Diffusion(T dt)
                 p_lap_saturation+=weight*hierarchy->Channel(0,lap_saturation_channel)(current_node._data);}}
             p.saturation+=dt*diff_coeff*p_lap_saturation;
             p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);}
-    
-
 }
 //######################################################################
 // Non_Ficks_Diffusion
@@ -280,6 +293,7 @@ Ficks_Diffusion(T dt)
 template<class T,int d> void MPM_Example<T,d>::
 Non_Ficks_Diffusion(T dt)
 {
+    const Grid<T,d>& grid=hierarchy->Lattice(0);
     const T one_over_dx2=(T)1./(grid.dX(0)*grid.dX(1));
     if(explicit_diffusion){
         for(int level=0;level<levels;++level) Explicit_Lap_Saturation_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,flags_channel,one_over_dx2);        
@@ -322,7 +336,7 @@ template<class T,int d> void MPM_Example<T,d>::
 Update_Particle_Velocities_And_Positions(const T dt)
 {
     Apply_Force(dt);
-
+    const T fluid_density=(T)1.;
     Array<Array<int> > remove_indices(threads);
     const Grid<T,d>& grid=hierarchy->Lattice(0);
 #pragma omp parallel for
@@ -350,12 +364,12 @@ Update_Particle_Velocities_And_Positions(const T dt)
             p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
             p.V=V_flip*flip+V_pic*(1-flip);
             p.X+=V_pic*dt;
+            p.mass_fluid=fluid_density*p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant()*p.volume_fraction_0*p.saturation;
+            p.mass=p.mass_solid+p.mass_fluid;
         if(!grid.domain.Inside(p.X)) p.valid=false;
     }
     
-    for(int level=0;level<levels;++level) Traverse_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,flags_channel);        
-
-    for(int level=0;level<levels;++level) Clear<Struct_type,unsigned,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),flags_channel);
+    // for(int level=0;level<levels;++level) Traverse_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,flags_channel);        
 }
 //######################################################################
 // Apply_Force

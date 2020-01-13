@@ -8,6 +8,7 @@
 #include <nova/SPGrid/Core/SPGrid_Allocator.h>
 #include <nova/SPGrid/Tools/SPGrid_Threading_Helper.h>
 #include <nova/Tools/Vectors/Vector.h>
+#include "MPM_Flags.h"
 
 namespace Nova{
 template<class Struct_type,class T,int d>
@@ -33,7 +34,7 @@ class Div_Qc_Normalization_Helper
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
                 if(flags(offset)&Node_Saturated)
-                    if(volume(offset)>(T)1.e-7) div_Qc(offset)/=volume(offset);
+                    if(volume(offset)!=(T)0.) div_Qc(offset)/=volume(offset);
                 
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,div_qc_normalization_helper);

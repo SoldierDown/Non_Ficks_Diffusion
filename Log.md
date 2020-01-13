@@ -22,3 +22,9 @@
 - Flag  
 - Barrier  
 - Parser  
+
+01/13/2020  
+##### Summary  
+- Channel  
+- MPM_Krylov_System/Vector: Array or Channel   
+- OpenGL viewer  

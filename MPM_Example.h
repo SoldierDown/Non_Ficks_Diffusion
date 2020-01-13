@@ -15,7 +15,7 @@
 #include "MPM_Data.h"
 #include "MPM_Particle.h"
 #include "MPM_Plane_Barrier.h"
-#include "MPM_Krylov_Vector.h"
+
 namespace Nova{
 
 template<class T> void
