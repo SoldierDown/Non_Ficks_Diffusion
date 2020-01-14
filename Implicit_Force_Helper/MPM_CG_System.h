@@ -8,26 +8,44 @@
 
 #include <nova/Tools/Krylov_Solvers/Krylov_System_Base.h>
 #include <nova/Dynamics/Hierarchy/Grid_Hierarchy.h>
+
+#include <nova/Tools/Matrices/Matrix_2x2.h>
+#include <nova/Tools/Matrices/Matrix_3x3.h>
+#include <nova/Tools/Matrices/Diagonal_Matrix.h>
+#include <nova/Tools/Matrices/Symmetric_Matrix_2x2.h>
+#include <nova/Tools/Matrices/Symmetric_Matrix_3x3.h>
+
 #include "MPM_CG_Vector.h"
-#include "Clear_Non_Active_Helper.h"
-#include "Convergence_Norm_Helper.h"
-#include "Inner_Product_Helper.h"
-#include "Multiply_Helper.h"
+
 #include "MPM_Flags.h"
 
 namespace Nova{
-template<class Struct_type,class Multigrid_struct_type,class T,int d>
+template<class Struct_type,class T,int d>
 class MPM_CG_System: public Krylov_System_Base<T>
 {
     using Base                      = Krylov_System_Base<T>;
     using Vector_Base               = Krylov_Vector_Base<T>;
     using Channel_Vector            = Vector<T Struct_type::*,d>;
     using Hierarchy                 = Grid_Hierarchy<Struct_type,T,d>;
-
+    
   public:
     Hierarchy& hierarchy;
     Channel_Vector channel;
+    
+    T Struct_type::* mat00_channel;
+    T Struct_type::* mat01_channel;
+    T Struct_type::* mat02_channel;
+    T Struct_type::* mat10_channel;
+    T Struct_type::* mat11_channel;
+    T Struct_type::* mat12_channel;
+    T Struct_type::* mat20_channel;
+    T Struct_type::* mat21_channel;
+    T Struct_type::* mat22_channel;
+
     const int boundary_smoothing_iterations,interior_smoothing_iterations,bottom_smoothing_iterations;
+
+    const bool trapezoidal;
+    T dt;
 
     MPM_CG_System(Hierarchy& hierarchy_input,Channel_Vector& channel_input,
               const int boundary_smoothing_iterations_input,const int interior_smoothing_iterations_input,
@@ -47,9 +65,16 @@ class MPM_CG_System: public Krylov_System_Base<T>
         Channel_Vector x_channel         = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(x).channel;
         Channel_Vector result_channel    = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(result).channel;
         
+        Force();
+
         for(int level=0;level<hierarchy.Levels();++level)
             Multiply_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),x_channel,result_channel,(unsigned)Node_Saturated);
         
+    }
+
+    void Force()
+    {
+
     }
 
     void Project(Vector_Base& v) const

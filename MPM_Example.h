@@ -56,6 +56,8 @@ class MPM_Example: public Example<T,d>
 
     T flip;
     T cfl;
+    T solver_tolerance;
+    int solver_iterations;
     int levels,threads;
     T_INDEX counts;
     Range<T,d> domain;
@@ -71,10 +73,12 @@ class MPM_Example: public Example<T,d>
 
     unsigned Struct_type::* flags_channel;
     T Struct_type::* mass_channel;
-    T Struct_type::* collide_nodes_channel;
+    //T Struct_type::* collide_nodes_channel;
     Channel_Vector velocity_channels;
     Channel_Vector velocity_star_channels;
     Channel_Vector f_channels;
+
+
 
     // Hydrogel variables
     T diff_coeff;
@@ -89,6 +93,8 @@ class MPM_Example: public Example<T,d>
     T Struct_type::* void_mass_fluid_channel;
     T Struct_type::* volume_channel;
     T Struct_type::* div_Qc_channel;
+    T Struct_type::* ficks_rhs_channel;
+
 
     MPM_Example();
 
