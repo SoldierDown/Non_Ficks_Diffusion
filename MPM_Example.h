@@ -95,6 +95,12 @@ class MPM_Example: public Example<T,d>
     T Struct_type::* div_Qc_channel;
     T Struct_type::* diffusion_rhs_channel;
 
+    T Struct_type::* q_channel;
+    T Struct_type::* s_channel;
+    T Struct_type::* r_channel;
+    T Struct_type::* k_channel;
+    T Struct_type::* z_channel;
+
 
     MPM_Example();
 

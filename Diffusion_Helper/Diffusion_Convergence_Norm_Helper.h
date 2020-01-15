@@ -32,9 +32,8 @@ class Diffusion_Convergence_Norm_Helper
 #pragma omp parallel for reduction(max:max_value)
         for(int b=0;b<blocks.second;b++){uint64_t offset=blocks.first[b];
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&mask) max_value=std::max(max_value,Nova::sqr(std::fabs(data(offset))));}
-
-        result=std::sqrt(std::max(result,max_value));
+                if(flags(offset)&mask) max_value=std::max(max_value,std::fabs(data(offset)));}
+        result=std::max(result,max_value);
     }
 };
 }

@@ -9,6 +9,7 @@
 #include <nova/Dynamics/Utilities/SPGrid_Flags.h>
 #include <nova/SPGrid/Core/SPGrid_Allocator.h>
 #include <nova/SPGrid/Tools/SPGrid_Threading_Helper.h>
+#include <nova/SPGrid/Tools/SPGrid_Block_Iterator.h>
 
 namespace Nova{
 template<class Struct_type,class T,int d>
@@ -18,13 +19,14 @@ class Diffusion_Multiply_Helper
     using Allocator_type            = SPGrid::SPGrid_Allocator<Struct_type,d>;
     using Flag_array_mask           = typename Allocator_type::template Array_mask<unsigned>;
     using Topology_Helper       = Grid_Topology_Helper<Flag_array_mask>;
+    using Block_Iterator        = SPGrid::SPGrid_Block_Iterator<Flag_array_mask>;
 
   public:
-    Diffusion_Multiply_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* x_channel,T Struct_type::* result_channel,
+    Diffusion_Multiply_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* x_channel,T Struct_type::*& result_channel,
                             const bool FICKS,const T a,const T four_a_plus_one,const T coeff1)
     {Run(allocator,blocks,x_channel,result_channel,FICKS,a,four_a_plus_one,coeff1);}
 
-    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* x_channel,T Struct_type::* result_channel,
+    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* x_channel,T Struct_type::*& result_channel,
                 const bool FICKS,const T a,const T four_a_plus_one,const T coeff1) const
     {
         if(FICKS){
@@ -43,7 +45,11 @@ class Diffusion_Multiply_Helper
                         if(flags(neighbor_offset)&Node_Saturated) result(offset)-=a*x(neighbor_offset); }
                         }}
         };
-        SPGrid_Computations::Run_Parallel_Blocks(blocks,ficks_diffusion_multiply_helper);}
+        // SPGrid_Computations::Run_Parallel_Blocks(blocks,ficks_diffusion_multiply_helper);
+        for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
+            uint64_t offset=iterator.Offset();
+            ficks_diffusion_multiply_helper(offset);}
+        }
         
         else{
         auto x=allocator.template Get_Const_Array<Struct_type,T>(x_channel);
@@ -60,7 +66,7 @@ class Diffusion_Multiply_Helper
                         int64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
                         if(flags(neighbor_offset)&Node_Saturated) result(offset)-=coeff1*x(neighbor_offset); }
                         
-                        Log::cout<<result(offset)-x(offset)<<std::endl;
+                        // Log::cout<<result(offset)-x(offset)<<std::endl;
                 }
             }
         };

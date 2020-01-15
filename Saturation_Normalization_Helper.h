@@ -20,11 +20,11 @@ class Saturation_Normalization_Helper
 
   public:
     Saturation_Normalization_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-                                  T Struct_type::*& saturation_channel,T Struct_type::* void_mass_fluid_channel ,unsigned Struct_type::* flags_channel)
+                                  T Struct_type::* saturation_channel,T Struct_type::* void_mass_fluid_channel ,unsigned Struct_type::* flags_channel)
     {Run(allocator,blocks,saturation_channel,void_mass_fluid_channel,flags_channel);}
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-             T Struct_type::*& saturation_channel,T Struct_type::* void_mass_fluid_channel ,unsigned Struct_type::* flags_channel) const
+             T Struct_type::* saturation_channel,T Struct_type::* void_mass_fluid_channel ,unsigned Struct_type::* flags_channel) const
     {
         auto saturation=allocator.template Get_Array<Struct_type,T>(saturation_channel);
         auto void_mass_fluid=allocator.template Get_Const_Array<Struct_type,T>(void_mass_fluid_channel);

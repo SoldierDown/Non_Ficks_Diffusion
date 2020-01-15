@@ -21,11 +21,11 @@ class Div_Qc_Normalization_Helper
 
   public:
     Div_Qc_Normalization_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-                                  T Struct_type::*& div_Qc_channel,T Struct_type::* volume_channel ,unsigned Struct_type::* flags_channel)
+                                  T Struct_type::* div_Qc_channel,T Struct_type::* volume_channel ,unsigned Struct_type::* flags_channel)
     {Run(allocator,blocks,div_Qc_channel,volume_channel,flags_channel);}
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-             T Struct_type::*& div_Qc_channel,T Struct_type::* volume_channel ,unsigned Struct_type::* flags_channel) const
+             T Struct_type::* div_Qc_channel,T Struct_type::* volume_channel ,unsigned Struct_type::* flags_channel) const
     {
         auto div_Qc=allocator.template Get_Array<Struct_type,T>(div_Qc_channel);
         auto volume=allocator.template Get_Const_Array<Struct_type,T>(volume_channel);

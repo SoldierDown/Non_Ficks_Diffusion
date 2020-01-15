@@ -34,6 +34,12 @@ struct MPM_Data
     T ch14;         // volume
     T ch15;         // div_Qc
     
+    T ch16;         // q
+    T ch17;         // s
+    T ch18;         // r
+    T ch19;         // k
+    T ch20;         // z
+
     // Matrix components
     // T ch16;         // (0,0)
     // T ch17;         // (0,1)

@@ -28,7 +28,7 @@ class Explicit_Force_Helper
     {Run(allocator,blocks,f_channels,velocity_channels,velocity_star_channels,mass_channel,flags_channel,dt);}
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-             Channel_Vector& f_channels,Channel_Vector velocity_channels,Channel_Vector& velocity_star_channels,
+             Channel_Vector f_channels,Channel_Vector velocity_channels,Channel_Vector& velocity_star_channels,
              T Struct_type::* mass_channel,unsigned Struct_type::* flags_channel,const T dt) const
     {
         auto mass=allocator.template Get_Const_Array<Struct_type,T>(mass_channel);

@@ -26,11 +26,11 @@ class Explicit_Lap_Saturation_Helper
 
   public:
     Explicit_Lap_Saturation_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-                                  T Struct_type::* saturation_channel,T Struct_type::*& lap_saturation_channel,unsigned Struct_type::* flags_channel,const T one_over_dx2)
+                                  T Struct_type::* saturation_channel,T Struct_type::* lap_saturation_channel,unsigned Struct_type::* flags_channel,const T one_over_dx2)
     {Run(allocator,blocks,saturation_channel,lap_saturation_channel,flags_channel,one_over_dx2);}
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-                                  T Struct_type::* saturation_channel,T Struct_type::*& lap_saturation_channel,unsigned Struct_type::* flags_channel,const T one_over_dx2) const
+                                  T Struct_type::* saturation_channel,T Struct_type::* lap_saturation_channel,unsigned Struct_type::* flags_channel,const T one_over_dx2) const
     {
         auto saturation=allocator.template Get_Const_Array<Struct_type,T>(saturation_channel);
         auto lap_saturation=allocator.template Get_Array<Struct_type,T>(lap_saturation_channel);

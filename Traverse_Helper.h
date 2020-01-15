@@ -28,14 +28,17 @@ class Traverse_Helper
     {
         auto c=allocator.template Get_Const_Array<Struct_type,T>(channel);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(flags_channel);
-        auto traverse_helper=[&](uint64_t offset)
+        int cnt=0;
+        auto traverse_helper=[&](uint64_t offset,int& cnt)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Node_Saturated) Log::cout<<c(offset)<<std::endl;
+                if(flags(offset)&Node_Saturated) {Log::cout<<c(offset)<<std::endl;
+                    if(c(offset)<(T)0.) cnt++;}
         };
         for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
             uint64_t offset=iterator.Offset();
-            traverse_helper(offset);}
+            traverse_helper(offset,cnt);}
+        Log::cout<<"Negative: "<<cnt<<std::endl;
     }
 };
 }

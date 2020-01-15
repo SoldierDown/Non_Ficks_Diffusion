@@ -85,9 +85,9 @@ class Diffusion_CG_System: public Krylov_System_Base<T>
         T result=(T)0.;
 
         for(int level=0;level<hierarchy.Levels();++level)
-            Diffusion_Inner_Product_Helper<Base_struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v_channel,
+            Diffusion_Convergence_Norm_Helper<Base_struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
                                                   v_channel,result,(unsigned)Node_Saturated);
-        return std::sqrt(result);
+        return result;
     }
 
     void Apply_Preconditioner(const Vector_Base& r,Vector_Base& z) const
