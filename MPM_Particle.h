@@ -32,6 +32,8 @@ public:
     // Constitutive model
     MPM_Constitutive_Model<T,d> constitutive_model;
 
+    Matrix<T,d> scp;
+
     MPM_Particle()
     {Initialize();}
 
@@ -51,6 +53,7 @@ public:
         saturation=(T)0.;
         volume_fraction_0=(T)0.;
         div_Qc=(T)0.;
+        scp=Matrix<T,d>();
     }
 };
 }

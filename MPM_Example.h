@@ -17,6 +17,85 @@
 #include "MPM_Plane_Barrier.h"
 
 namespace Nova{
+template<class T>
+static T N2(const T x)
+{
+    if(fabs(x)<(T).5) return (T).75-Nova_Utilities::Sqr(x);
+    else if(fabs(x)<(T)1.5) return (T).5*Nova_Utilities::Sqr((T)1.5-fabs(x));
+    else return (T)0.;
+}
+template<class T,int d>
+inline T N2(const Vector<T,d>& X,const Vector<T,d> one_over_dX)
+{
+    T value=(T)1.;
+    for(int axis=0;axis<d;++axis) value*=N2(X(axis)*one_over_dX(axis));
+    return value;
+}
+template<class T>
+static T dN2(const T x)
+{
+    T sign=x>=(T)0.?(T)1.:(T)-1.;
+    if(fabs(x)<(T).5) return -(T)2.*x;
+    else if(fabs(x)<(T)1.5) return x-(T)1.5*sign;
+    else return (T)0.;  
+}
+template<class T,int d>
+inline T dN2(const Vector<T,d> X,const int axis,const Vector<T,d> one_over_dX)
+{
+    T value=(T)1.;
+    for(int v=0;v<d;++v) 
+        if(v==axis) value*=one_over_dX(v)*dN2(X(v)*one_over_dX(v));
+        else value*=N2(X(v)*one_over_dX(v));
+    return value;
+}
+template<class T,int d>
+inline Vector<T,d> dN2(const Vector<T,d>& X,const Vector<T,d> one_over_dX)
+{
+    Vector<T,d> value=Vector<T,d>();
+    for(int axis=0;axis<d;++axis) value(axis)=dN2(X,axis,one_over_dX);
+    return value;
+}
+
+
+
+template<class T,int d>
+static T N3(const T x)
+{
+    if(fabs(x)<(T)1.) return (T).5*Nova_Utilities::Cube(fabs(x))-Nova_Utilities::Sqr(x)+(T)two_thirds;
+    else if(fabs(x)<(T)2.) return (T)-one_sixth*Nova_Utilities::Cube(fabs(x))+Nova_Utilities::Sqr(x)-(T)2.*fabs(x)+(T)four_thirds;
+    else return (T)0.;
+}
+template<class T,int d>
+inline T N3(const Vector<T,d>& X,const Vector<T,d> one_over_dX)
+{
+    T value=(T)1.;
+    for(int axis=0;axis<d;++axis) value*=N3(X(axis)*one_over_dX(axis));
+    return value;
+}
+template<class T>
+static T dN3(const T x)
+{
+    T sign=x>=(T)0.?(T)1.:(T)-1.;
+    if(fabs(x)<(T)1.) return (T)1.5*Nova_Utilities::Sqr(x)*sign-(T)2.*x;
+    else if(fabs(x)<(T)2.) return (T)-.5*Nova_Utilities::Sqr(x)*sign+(T)2.*x-(T)2.*sign;
+    else return (T)0.;  
+}
+template<class T,int d>
+inline T dN3(const Vector<T,d> X,const int axis,const Vector<T,d> one_over_dX)
+{
+    T value=(T)1.;
+    for(int v=0;v<d;++v) 
+        if(v==axis) value*=one_over_dX(v)*dN3(X(v)*one_over_dX(v));
+        else value*=N3(X(v)*one_over_dX(v));
+    return value;
+}
+template<class T,int d>
+inline Vector<T,d> dN3(const Vector<T,d>& X,const Vector<T,d> one_over_dX)
+{
+    Vector<T,d> value=Vector<T,d>();
+    for(int axis=0;axis<d;++axis) value(axis)=dN3(X,axis,one_over_dX);
+    return value;
+}
 
 template<class T> void
 Vector_To_Flag(Vector<int,2> current_node)
@@ -35,6 +114,7 @@ Vector_To_Flag(Vector<int,3> current_node)
     using Flag_array_mask           = typename Allocator_type::template Array_mask<unsigned>;
     std::cout<<Flag_array_mask::Linear_Offset(current_node(0),current_node(1),current_node(2))<<std::endl;
 }
+
 template<class T,int d>
 class MPM_Example: public Example<T,d>
 {
@@ -99,104 +179,11 @@ class MPM_Example: public Example<T,d>
     Channel_Vector q_channels;
     Channel_Vector s_channels;
     Channel_Vector r_channels;
-    Channel_Vector k_channels;
     Channel_Vector z_channels;
-
-    // matrix
-    T Struct_type::* mat00_channel;
-    T Struct_type::* mat01_channel;
-    T Struct_type::* mat02_channel;
-    T Struct_type::* mat10_channel;
-    T Struct_type::* mat11_channel;
-    T Struct_type::* mat12_channel;
-    T Struct_type::* mat20_channel;
-    T Struct_type::* mat21_channel;
-    T Struct_type::* mat22_channel;
 
     MPM_Example();
 
     ~MPM_Example();
-
-    static T N2(const T x)
-    {
-        if(fabs(x)<(T).5) return (T).75-Nova_Utilities::Sqr(x);
-        else if(fabs(x)<(T)1.5) return (T).5*Nova_Utilities::Sqr((T)1.5-fabs(x));
-        else return (T)0.;
-    }
-
-    inline T N2(const TV& X)
-    {
-        const Grid<T,d>& grid=hierarchy->Lattice(0);T value=(T)1.;
-        for(int axis=0;axis<d;++axis) value*=N2(X(axis)*grid.one_over_dX(axis));
-        return value;
-    }
-
-    static T dN2(const T x)
-    {
-        int sign=x>=0?1:-1;
-        if(fabs(x)<(T).5) return -(T)2.*x;
-        else if(fabs(x)<(T)1.5) return x-(T)1.5*sign;
-        else return (T)0.;  
-    }
-
-    inline T dN2(const TV X, const int axis)
-    {
-        const Grid<T,d>& grid=hierarchy->Lattice(0);T value=(T)1.;
-        for(int v=0;v<d;++v) 
-            if(v==axis) value*=grid.one_over_dX(v)*dN2(X(v)*grid.one_over_dX(v));
-            else value*=N2(X(v)*grid.one_over_dX(v));
-        return value;
-    }
-
-    inline TV dN2(const TV& X)
-    {
-        TV value=TV();
-        for(int axis=0;axis<d;++axis) value(axis)=dN2(X,axis);
-        return value;
-    }
-
-
-
-
-
-    static T N3(const T x)
-    {
-        if(fabs(x)<(T)1.) return (T).5*Nova_Utilities::Cube(fabs(x))-Nova_Utilities::Sqr(x)+(T)two_thirds;
-        else if(fabs(x)<(T)2.) return (T)-one_sixth*Nova_Utilities::Cube(fabs(x))+Nova_Utilities::Sqr(x)-(T)2.*fabs(x)+(T)four_thirds;
-        else return (T)0.;
-    }
-
-    inline T N3(const TV& X)
-    {
-        const Grid<T,d>& grid=hierarchy->Lattice(0);T value=(T)1.;
-        for(int axis=0;axis<d;++axis) value*=N3(X(axis)*grid.one_over_dX(axis));
-        return value;
-    }
-
-    static T dN3(const T x)
-    {
-        int sign=x>=0?1:-1;
-        if(fabs(x)<(T)1.) return (T)1.5*Nova_Utilities::Sqr(x)*sign-(T)2.*x;
-        else if(fabs(x)<(T)2.) return (T)-.5*Nova_Utilities::Sqr(x)*sign+(T)2.*x-(T)2.*sign;
-        else return (T)0.;  
-    }
-
-    inline T dN3(const TV X, const int axis)
-    {
-        const Grid<T,d>& grid=hierarchy->Lattice(0);T value=(T)1.;
-        for(int v=0;v<d;++v) 
-            if(v==axis) value*=grid.one_over_dX(v)*dN3(X(v)*grid.one_over_dX(v));
-            else value*=N3(X(v)*grid.one_over_dX(v));
-        return value;
-    }
-
-    inline TV dN3(const TV& X)
-    {
-        TV value=TV();
-        for(int axis=0;axis<d;++axis) value(axis)=dN3(X,axis);
-        return value;
-    }
-
 
 
 //######################################################################
@@ -214,7 +201,7 @@ class MPM_Example: public Example<T,d>
     void Non_Ficks_Diffusion(T dt);
     void Apply_Force(const T dt);
     void Apply_Explicit_Force(const T dt);
-    void Grid_Based_Collison();
+    void Grid_Based_Collison(const bool detect_collision);
     T    Max_Particle_Velocity() const;
     void Limit_Dt(T& dt,const T time) override;
     void Test();

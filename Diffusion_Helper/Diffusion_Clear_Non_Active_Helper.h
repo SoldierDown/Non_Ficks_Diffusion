@@ -19,7 +19,7 @@ class Diffusion_Clear_Non_Active_Helper
     using Flag_array_mask           = typename Allocator_type::template Array_mask<unsigned>;
 
   public:
-    Diffusion_Clear_Non_Active_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::*& channel)
+    Diffusion_Clear_Non_Active_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* channel)
     {Run(allocator,blocks,channel);}
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::*& channel) const

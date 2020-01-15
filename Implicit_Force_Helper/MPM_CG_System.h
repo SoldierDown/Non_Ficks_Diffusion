@@ -8,7 +8,7 @@
 
 #include <nova/Tools/Krylov_Solvers/Krylov_System_Base.h>
 #include <nova/Dynamics/Hierarchy/Grid_Hierarchy.h>
-
+#include <nova/SPGrid/Tools/SPGrid_Clear.h>
 #include <nova/Tools/Matrices/Matrix_2x2.h>
 #include <nova/Tools/Matrices/Matrix_3x3.h>
 #include <nova/Tools/Matrices/Diagonal_Matrix.h>
@@ -16,8 +16,13 @@
 #include <nova/Tools/Matrices/Symmetric_Matrix_3x3.h>
 
 #include "MPM_CG_Vector.h"
-
-#include "MPM_Flags.h"
+#include "Clear_Non_Active_Helper.h"
+#include "Convergence_Norm_Helper.h"
+#include "Inner_Product_Helper.h"
+#include "Multiply_Helper.h"
+#include "../MPM_Example.h"
+#include "../MPM_Particle.h"
+#include "../MPM_Flags.h"
 
 namespace Nova{
 template<class Struct_type,class T,int d>
@@ -27,35 +32,22 @@ class MPM_CG_System: public Krylov_System_Base<T>
     using Vector_Base               = Krylov_Vector_Base<T>;
     using Channel_Vector            = Vector<T Struct_type::*,d>;
     using Hierarchy                 = Grid_Hierarchy<Struct_type,T,d>;
-    
+    using TV                        = Vector<T,d>;
+    using T_INDEX                   = Vector<int,d>;
+    using T_Particle                = MPM_Particle<T,d>;
+    using T_Range_Iterator          = Range_Iterator<d,T_INDEX>;
+
   public:
     Hierarchy& hierarchy;
-    Channel_Vector channel;
-    
-    // Channel_Matrix
-    T Struct_type::* mat00_channel;
-    T Struct_type::* mat01_channel;
-    T Struct_type::* mat02_channel;
-    T Struct_type::* mat10_channel;
-    T Struct_type::* mat11_channel;
-    T Struct_type::* mat12_channel;
-    T Struct_type::* mat20_channel;
-    T Struct_type::* mat21_channel;
-    T Struct_type::* mat22_channel;
+    Array<T_Particle>& particles;
+    Array<int> simulated_particles;
+    T Struct_type::* mass_channel;
+    const T trapezoidal;
+    const T dt;
 
-    const int boundary_smoothing_iterations,interior_smoothing_iterations,bottom_smoothing_iterations;
-
-    const bool trapezoidal;
-    T dt;
-
-    MPM_CG_System(Hierarchy& hierarchy_input,Channel_Vector& channel_input,
-              const int boundary_smoothing_iterations_input,const int interior_smoothing_iterations_input,
-              const int bottom_smoothing_iterations_input)
-        :Base(true,false),hierarchy(hierarchy_input),channel(channel_input),
-        boundary_smoothing_iterations(boundary_smoothing_iterations_input),
-        interior_smoothing_iterations(interior_smoothing_iterations_input),bottom_smoothing_iterations(bottom_smoothing_iterations_input)
+    MPM_CG_System(Hierarchy& hierarchy_input,Array<int>& simulated_particles_input,Array<T_Particle>& particles_input,T Struct_type::* mass_channel_input,const T trapezoidal_input,const T dt_input)
+        :Base(true,false),hierarchy(hierarchy_input),simulated_particles(simulated_particles_input),particles(particles_input),mass_channel(mass_channel_input),trapezoidal(trapezoidal_input),dt(dt_input)
     {}
-
     ~MPM_CG_System() {}
 
     void Set_Boundary_Conditions(Vector_Base& v) const {}
@@ -63,19 +55,44 @@ class MPM_CG_System: public Krylov_System_Base<T>
 
     void Multiply(const Vector_Base& x,Vector_Base& result) const
     {
-        Channel_Vector x_channel         = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(x).channel;
-        Channel_Vector result_channel    = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(result).channel;
-        
-        Force();
-
+        Channel_Vector& x_channels           = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(x).channel;
+        Channel_Vector& result_channels      = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(result).channel;
+        Force(result_channels,x_channels);
+        const T scaled_dt_squared=dt*dt/((T)2.+trapezoidal);
         for(int level=0;level<hierarchy.Levels();++level)
-            Multiply_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),x_channel,result_channel,(unsigned)Node_Saturated);
-        
+            Multiply_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),x_channels,result_channels,mass_channel,scaled_dt_squared,(unsigned)Node_Saturated);
     }
-
-    void Force()
+    
+    void Force(Channel_Vector f,const Channel_Vector x) const
     {
-
+        const Grid<T,d>& grid=hierarchy.Lattice(0);
+        const TV one_over_dX=grid.one_over_dX;
+    #pragma omp parallel for
+        for(int i=0;i<simulated_particles.size();++i){
+            int id=simulated_particles(i); T_Particle& p=particles(id);
+            Matrix<T,d> tmp_mat=Matrix<T,d>();
+            T_INDEX closest_node=grid.Closest_Node(p.X); 
+            for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){
+                T_INDEX current_node=closest_node+iterator.Index();
+                if(grid.Node_Indices().Inside(current_node)){
+                    const TV current_node_location=grid.Node(current_node); TV weight_grad=dN2<T,d>(p.X-current_node_location,one_over_dX);
+                    tmp_mat+=Matrix<T,d>::Outer_Product(current_node_location,weight_grad);}}
+            Matrix<T,d> F=p.constitutive_model.Fe; const T kp=(T)1e4; const T saturation=p.saturation; const T eta=p.constitutive_model.eta;
+            tmp_mat=F.Times_Transpose(p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F))
+                                        -eta*kp*saturation*Times_Cofactor_Matrix_Derivative(F,tmp_mat.Transpose_Times(F)));
+            p.scp=p.volume*tmp_mat;}
+        
+        for(int level=0;level<hierarchy.Levels();++level) for(int v=0;v<d;++v) SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),f(v));  
+        
+        for(int i=0;i<simulated_particles.size();++i){
+            int id=simulated_particles(i); T_Particle& p=particles(id);
+            T_INDEX closest_node=grid.Closest_Node(p.X); 
+            for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){
+                T_INDEX current_node=closest_node+iterator.Index();
+                if(grid.Node_Indices().Inside(current_node)){
+                    const TV current_node_location=grid.Node(current_node); TV weight_grad=dN2<T,d>(p.X-current_node_location,one_over_dX);
+                    TV tmp_vec=p.scp.Transpose_Times(weight_grad); 
+                    for(int v=0;v<d;++v) hierarchy.Channel(0,f(v))(current_node._data)+=tmp_vec(v);}}}
     }
 
     void Project(Vector_Base& v) const

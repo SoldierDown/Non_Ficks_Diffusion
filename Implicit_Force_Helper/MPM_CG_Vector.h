@@ -12,7 +12,7 @@
 #include <nova/Tools/Krylov_Solvers/Krylov_Vector_Base.h>
 #include <nova/Tools/Log/Debug_Utilities.h>
 #include <cassert>
-#include "MPM_Flags.h"
+#include "../MPM_Flags.h"
 
 namespace Nova{
 template<class Struct_type,class T,int d>

@@ -22,11 +22,11 @@ class Diffusion_Multiply_Helper
     using Block_Iterator        = SPGrid::SPGrid_Block_Iterator<Flag_array_mask>;
 
   public:
-    Diffusion_Multiply_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* x_channel,T Struct_type::*& result_channel,
+    Diffusion_Multiply_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* x_channel,T Struct_type::* result_channel,
                             const bool FICKS,const T a,const T four_a_plus_one,const T coeff1)
     {Run(allocator,blocks,x_channel,result_channel,FICKS,a,four_a_plus_one,coeff1);}
 
-    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* x_channel,T Struct_type::*& result_channel,
+    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* x_channel,T Struct_type::* result_channel,
                 const bool FICKS,const T a,const T four_a_plus_one,const T coeff1) const
     {
         if(FICKS){

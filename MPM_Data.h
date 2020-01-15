@@ -50,25 +50,6 @@ struct MPM_Data
     T ch27;         // k-x
     T ch28;         // k-y
     T ch29;         // k-z
-    T ch30;         // z-x
-    T ch31;         // z-y
-    T ch32;         // z-z
-
-    // implicit update for velocity: 6*2 or 6*3 
-    // matrix 4 or 9
-    // 16 or 27 in total
-
-    // matrix components
-    T ch33;         // (0,0)
-    T ch34;         // (0,1)
-    T ch35;         // (0,2)
-    T ch36;         // (1,0)
-    T ch37;         // (1,1)
-    T ch38;         // (1,2)
-    T ch39;         // (2,0)
-    T ch40;         // (2,1)
-    T ch41;         // (2,2)
-
 };
 }
 #endif
