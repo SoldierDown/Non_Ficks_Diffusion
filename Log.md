@@ -28,3 +28,8 @@
 - Channel  
 - MPM_Krylov_System/Vector: Array or Channel   
 - OpenGL viewer  
+
+01/15/2020  
+##### Summary  
+- Channel_Matrix?  
+- CG: Precondition  

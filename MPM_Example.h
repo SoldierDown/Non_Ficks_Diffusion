@@ -87,20 +87,31 @@ class MPM_Example: public Example<T,d>
     bool FICKS;
     bool explicit_diffusion;
 
-    // Hydrogel channel
+    // Hydrogel channels
     T Struct_type::* saturation_channel;
     T Struct_type::* lap_saturation_channel;
     T Struct_type::* void_mass_fluid_channel;
     T Struct_type::* volume_channel;
     T Struct_type::* div_Qc_channel;
-    T Struct_type::* diffusion_rhs_channel;
 
-    T Struct_type::* q_channel;
-    T Struct_type::* s_channel;
-    T Struct_type::* r_channel;
-    T Struct_type::* k_channel;
-    T Struct_type::* z_channel;
+    // Krylov solver channels
+    Channel_Vector rhs_channels;
+    Channel_Vector q_channels;
+    Channel_Vector s_channels;
+    Channel_Vector r_channels;
+    Channel_Vector k_channels;
+    Channel_Vector z_channels;
 
+    // matrix
+    T Struct_type::* mat00_channel;
+    T Struct_type::* mat01_channel;
+    T Struct_type::* mat02_channel;
+    T Struct_type::* mat10_channel;
+    T Struct_type::* mat11_channel;
+    T Struct_type::* mat12_channel;
+    T Struct_type::* mat20_channel;
+    T Struct_type::* mat21_channel;
+    T Struct_type::* mat22_channel;
 
     MPM_Example();
 

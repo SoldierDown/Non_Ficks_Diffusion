@@ -32,6 +32,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
     Hierarchy& hierarchy;
     Channel_Vector channel;
     
+    // Channel_Matrix
     T Struct_type::* mat00_channel;
     T Struct_type::* mat01_channel;
     T Struct_type::* mat02_channel;

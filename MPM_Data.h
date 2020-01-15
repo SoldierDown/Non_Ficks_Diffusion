@@ -25,31 +25,50 @@ struct MPM_Data
     T ch7;          // X-force
     T ch8;          // Y-force
     T ch9;          // Z-force
-    T ch10;         // ficks_rhs
-    
-    // Hydrogel channels
-    T ch11;         // saturation
-    T ch12;         // lap_saturation
-    T ch13;         // void_mass_fluid
-    T ch14;         // volume
-    T ch15;         // div_Qc
-    
-    T ch16;         // q
-    T ch17;         // s
-    T ch18;         // r
-    T ch19;         // k
-    T ch20;         // z
 
-    // Matrix components
-    // T ch16;         // (0,0)
-    // T ch17;         // (0,1)
-    // T ch18;         // (0,2)
-    // T ch19;         // (1,0)
-    // T ch20;         // (1,1)
-    // T ch21;         // (1,2)
-    // T ch22;         // (2,0)
-    // T ch23;         // (2,1)
-    // T ch24;         // (2,2)
+
+    // Hydrogel channels
+    T ch10;         // saturation
+    T ch11;         // lap_saturation
+    T ch12;         // void_mass_fluid
+    T ch13;         // volume
+    T ch14;         // div_Qc
+
+    T ch15;         // rhs-x
+    T ch16;         // rhs-y
+    T ch17;         // rhs-z
+
+    T ch18;         // q-x
+    T ch19;         // q-y
+    T ch20;         // q-z
+    T ch21;         // s-x
+    T ch22;         // s-y
+    T ch23;         // s-z
+    T ch24;         // r-x
+    T ch25;         // r-y
+    T ch26;         // r-z
+    T ch27;         // k-x
+    T ch28;         // k-y
+    T ch29;         // k-z
+    T ch30;         // z-x
+    T ch31;         // z-y
+    T ch32;         // z-z
+
+    // implicit update for velocity: 6*2 or 6*3 
+    // matrix 4 or 9
+    // 16 or 27 in total
+
+    // matrix components
+    T ch33;         // (0,0)
+    T ch34;         // (0,1)
+    T ch35;         // (0,2)
+    T ch36;         // (1,0)
+    T ch37;         // (1,1)
+    T ch38;         // (1,2)
+    T ch39;         // (2,0)
+    T ch40;         // (2,1)
+    T ch41;         // (2,2)
+
 };
 }
 #endif

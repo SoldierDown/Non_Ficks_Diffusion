@@ -24,9 +24,9 @@ class MPM_CG_Vector: public Krylov_Vector_Base<T>
     
   public:
     Hierarchy_type& hierarchy;
-    Channel_Vector  channel;
+    Channel_Vector&  channel;
 
-    MPM_CG_Vector(Hierarchy_type& hierarchy_input,Channel_Vector channel_input)
+    MPM_CG_Vector(Hierarchy_type& hierarchy_input,Channel_Vector& channel_input)
         :hierarchy(hierarchy_input),channel(channel_input)
     {}
 

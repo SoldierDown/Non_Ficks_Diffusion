@@ -35,7 +35,7 @@ class Diffusion_CG_System: public Krylov_System_Base<T>
         :Base(true,false),hierarchy(hierarchy_input),FICKS(FICKS_input),a((T)0.),four_a_plus_one((T)0.),coeff1((T)0.)
     {}
 
-    ~Diffusion_CG_System() {}
+    ~Diffusion_CG_System(){}
 
     void Set_Boundary_Conditions(Vector_Base& v) const {}
     void Project_Nullspace(Vector_Base& v) const {}
