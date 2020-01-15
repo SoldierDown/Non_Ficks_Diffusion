@@ -21,17 +21,18 @@ class Saturation_Clamp_Heler
     using Block_Iterator        = SPGrid::SPGrid_Block_Iterator<Flag_array_mask>;
 
   public:
-    Saturation_Clamp_Heler(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::*& saturation_channel,unsigned Struct_type::* flags_channel)
-    {Run(allocator,blocks,saturation_channel,flags_channel);}
+    Saturation_Clamp_Heler(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* new_saturation_channel,T Struct_type::*& saturation_channel,unsigned Struct_type::* flags_channel)
+    {Run(allocator,blocks,new_saturation_channel,saturation_channel,flags_channel);}
 
-    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::*& saturation_channel,unsigned Struct_type::* flags_channel) const
+    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* new_saturation_channel,T Struct_type::*& saturation_channel,unsigned Struct_type::* flags_channel) const
     {
         auto saturation=allocator.template Get_Array<Struct_type,T>(saturation_channel);
+        auto new_saturation=allocator.template Get_Const_Array<Struct_type,T>(new_saturation_channel);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(flags_channel);
         auto saturation_clamp_heler=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Node_Saturated) saturation(offset)=Nova_Utilities::Clamp(saturation(offset),(T)0.,(T)1.);
+                if(flags(offset)&Node_Saturated) saturation(offset)=Nova_Utilities::Clamp(new_saturation(offset),(T)0.,(T)1.);
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,saturation_clamp_heler);
     }

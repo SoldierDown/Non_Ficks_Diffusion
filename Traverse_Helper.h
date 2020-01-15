@@ -28,17 +28,14 @@ class Traverse_Helper
     {
         auto c=allocator.template Get_Const_Array<Struct_type,T>(channel);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(flags_channel);
-        int cnt=0;
-        auto traverse_helper=[&](uint64_t offset,int& cnt)
+        auto traverse_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Node_Active) if(c(offset)>(T)0.) cnt++;
+                if(flags(offset)&Node_Saturated) Log::cout<<c(offset)<<std::endl;
         };
         for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
             uint64_t offset=iterator.Offset();
-            traverse_helper(offset,cnt);}
-        Log::cout<<"Non zero entries: "<<cnt<<std::endl;
-        // SPGrid_Computations::Run_Parallel_Blocks(blocks,traverse_helper);
+            traverse_helper(offset);}
     }
 };
 }

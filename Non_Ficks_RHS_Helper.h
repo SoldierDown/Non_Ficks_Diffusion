@@ -27,15 +27,15 @@ class Non_Ficks_RHS_Helper
 
   public:
     Non_Ficks_RHS_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-                                  T Struct_type::* saturation_channel,T Struct_type::* div_Qc_channel,T Struct_type::*& rhs_channel,unsigned Struct_type::* flags_channel,const T coeff1,const T coeff2)
-    {Run(allocator,blocks,saturation_channel,div_Qc_channel,rhs_channel,flags_channel,coeff1,coeff2);}
+                                  T Struct_type::* saturation_channel,T Struct_type::* div_Qc_channel,T Struct_type::*& diffusion_rhs_channel,unsigned Struct_type::* flags_channel,const T coeff1,const T coeff2)
+    {Run(allocator,blocks,saturation_channel,div_Qc_channel,diffusion_rhs_channel,flags_channel,coeff1,coeff2);}
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-                T Struct_type::* saturation_channel,T Struct_type::* div_Qc_channel,T Struct_type::*& rhs_channel,unsigned Struct_type::* flags_channel,const T coeff1,const T coeff2) const
+                T Struct_type::* saturation_channel,T Struct_type::* div_Qc_channel,T Struct_type::*& diffusion_rhs_channel,unsigned Struct_type::* flags_channel,const T coeff1,const T coeff2) const
     {
         auto saturation=allocator.template Get_Const_Array<Struct_type,T>(saturation_channel);
         auto div_Qc=allocator.template Get_Const_Array<Struct_type,T>(div_Qc_channel);
-        auto rhs=allocator.template Get_Array<Struct_type,T>(rhs_channel);
+        auto rhs=allocator.template Get_Array<Struct_type,T>(diffusion_rhs_channel);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(flags_channel);
         uint64_t face_neighbor_offsets[Topology_Helper::number_of_faces_per_cell];
         Topology_Helper::Face_Neighbor_Offsets(face_neighbor_offsets);

@@ -39,13 +39,6 @@ class Saturation_Normalization_Helper
             }
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,saturation_normalization_helper);
-        auto clamp_helper=[&](uint64_t offset)
-        {
-            for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Node_Saturated) saturation(offset)=Nova_Utilities::Clamp(saturation(offset),(T)0.,(T)1.);
-            
-        };
-        SPGrid_Computations::Run_Parallel_Blocks(blocks,clamp_helper);
     }
 };
 }

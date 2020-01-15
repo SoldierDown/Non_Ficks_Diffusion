@@ -18,22 +18,24 @@ class Diffusion_Inner_Product_Helper
 
   public:
     Diffusion_Inner_Product_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* channel1,
-                         T Struct_type::* channel2,double& result,const unsigned mask)
+                         T Struct_type::* channel2,T& result,const unsigned mask)
     {Run(allocator,blocks,channel1,channel2,result,mask);}
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* channel1,
-             T Struct_type::* channel2,double& result,const unsigned mask) const
+             T Struct_type::* channel2,T& result,const unsigned mask) const
     {
         auto data1=allocator.template Get_Const_Array<Struct_type,T>(channel1);
         auto data2=allocator.template Get_Const_Array<Struct_type,T>(channel2);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        double temp_result=0;
+        T temp_result=(T)0.;
 
 #pragma omp parallel for reduction(+:temp_result)
         for(int b=0;b<blocks.second;b++){uint64_t offset=blocks.first[b];
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&mask) temp_result+=data1(offset)*data2(offset);}
-
+                if(flags(offset)&mask) temp_result+=data1(offset)*data2(offset);
+                
+        }
+        Log::cout<<"tmp result: "<<temp_result<<std::endl;
         result+=temp_result;
     }
 };

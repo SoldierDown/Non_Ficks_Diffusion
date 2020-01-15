@@ -30,7 +30,7 @@ class Diffusion_Clear_Non_Active_Helper
         auto diffusion_clear_non_active_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(!(flags(offset)&Node_Saturated)) data(offset)=(T)1.;
+                if((flags(offset)&Node_Active)&&(!(flags(offset)&Node_Saturated))) data(offset)=(T)1.;
         };
 
         SPGrid_Computations::Run_Parallel_Blocks(blocks,diffusion_clear_non_active_helper);

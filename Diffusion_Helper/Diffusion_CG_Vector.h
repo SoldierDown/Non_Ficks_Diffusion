@@ -86,7 +86,7 @@ class Diffusion_CG_Vector: public Krylov_Vector_Base<T>
 
         for(int level=0;level<hierarchy.Levels();++level)
             SPGrid::Masked_Scalar_Multiply<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
-                                                            bv_channel,c,channel,(unsigned)Cell_Type_Interior);
+                                                            bv_channel,c,channel,(unsigned)Node_Saturated);
     }
 
     void Copy(const T c1,const Base& bv1,const Base& bv2)
@@ -100,7 +100,7 @@ class Diffusion_CG_Vector: public Krylov_Vector_Base<T>
 
         for(int level=0;level<hierarchy.Levels();++level)
             SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),c1,bv1_channel,
-                                                  bv2_channel,channel,(unsigned)Cell_Type_Interior);
+                                                  bv2_channel,channel,(unsigned)Node_Saturated);
     }
 };
 }

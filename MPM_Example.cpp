@@ -36,9 +36,9 @@ template<class T,int d> MPM_Example<T,d>::
 MPM_Example()
     :Base(),hierarchy(nullptr)
 {
-    solver_tolerance=(T)1.e-7;
+    solver_tolerance=(T)1e-7;
     solver_iterations=10000;
-    diff_coeff=(T)1;
+    diff_coeff=(T)1e3;
     tau=(T)1.;
     Fc=(T)0.;
     gravity=-TV::Axis_Vector(1)*(T)0.;
@@ -56,7 +56,7 @@ MPM_Example()
     f_channels(0)                           = &Struct_type::ch7;
     f_channels(1)                           = &Struct_type::ch8;
     if(d==3) f_channels(2)                  = &Struct_type::ch9;
-    ficks_rhs_channel                       = &Struct_type::ch10;
+    diffusion_rhs_channel                   = &Struct_type::ch10;
     // collide_nodes_channel                   = &Struct_type::ch10;
     // Hydrogel channels
     saturation_channel                      = &Struct_type::ch11;
@@ -108,7 +108,7 @@ Reset_Grid_Based_Variables()
     for(int level=0;level<levels;++level){
         //Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),collide_nodes_channel);
         Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),mass_channel);
-        Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),ficks_rhs_channel);
+        Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),diffusion_rhs_channel);
         
         // Clear hydrogel channels
         Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);
@@ -270,7 +270,6 @@ Rasterize()
                     hierarchy->Channel(0,saturation_channel)(current_node._data)+=weight*p.mass_fluid;
                     // rasterize full fluid mass
                     hierarchy->Channel(0,void_mass_fluid_channel)(current_node._data)+=weight*fluid_density*p.volume_fraction_0*p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
-                    
                     // Non-Ficks
                     if(!FICKS&&!explicit_diffusion){ hierarchy->Channel(0,div_Qc_channel)(current_node._data)+=weight*p.div_Qc*p.volume;
                         hierarchy->Channel(0,volume_channel)(current_node._data)+=weight*p.volume;}}}}}
@@ -279,10 +278,11 @@ Rasterize()
     for(int level=0;level<levels;++level) Velocity_Normalization_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels,mass_channel,flags_channel);     
     // "normalize" saturation and set up surroundings
     for(int level=0;level<levels;++level) Saturation_Normalization_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel,flags_channel);     
-    if(!FICKS&&!explicit_diffusion) for(int level=0;level<levels;++level) Div_Qc_Normalization_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_Qc_channel,volume_channel,flags_channel);     
-    Log::cout<<"After After Rasterize"<<std::endl;
+    // clamp saturation
+    for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,saturation_channel,flags_channel);     
+    if(!FICKS&&!explicit_diffusion) for(int level=0;level<levels;++level) Div_Qc_Normalization_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_Qc_channel,volume_channel,flags_channel);         
     for(int level=0;level<levels;++level) Traverse_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,flags_channel);     
-    
+
 }
 //######################################################################
 // Ficks_Diffusion
@@ -295,8 +295,6 @@ Ficks_Diffusion(T dt)
     const T one_over_dx2=(T)1./(grid.dX(0)*grid.dX(1));
     const T a=diff_coeff*dt*one_over_dx2;
     const T four_a_plus_one=(T)4.*a+(T)1.;
-    Log::cout<<"After After Rasterize"<<std::endl;
-    for(int level=0;level<levels;++level) Traverse_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,flags_channel);     
     if(!explicit_diffusion){
     Diffusion_CG_System<Struct_type,T,d>* ficks_diffusion_system;
     ficks_diffusion_system=new Diffusion_CG_System<Struct_type,T,d>(*hierarchy,FICKS);
@@ -305,19 +303,15 @@ Ficks_Diffusion(T dt)
     Conjugate_Gradient<T> cg;
     Krylov_Solver<T>* solver_fd=(Krylov_Solver<T>*)&cg;
     // set up rhs
-    for(int level=0;level<levels;++level) Ficks_RHS_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,ficks_rhs_channel,flags_channel,a);
-    Diffusion_CG_Vector<Struct_type,T,d> saturation_fd(*hierarchy,saturation_channel),rhs_fd(*hierarchy,ficks_rhs_channel),solver_q_fd(*hierarchy,saturation_channel),
-                                                solver_s_fd(*hierarchy,saturation_channel),solver_r_fd(*hierarchy,saturation_channel),solver_k_fd(*hierarchy,saturation_channel),solver_z_fd(*hierarchy,saturation_channel);         
-    Log::cout<<"Before Solve"<<std::endl;
-    for(int level=0;level<levels;++level) Traverse_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,flags_channel);     
-    solver_fd->Solve(*ficks_diffusion_system,saturation_fd,rhs_fd,solver_q_fd,solver_s_fd,solver_r_fd,solver_k_fd,solver_z_fd,solver_tolerance,0,solver_iterations);
-    Log::cout<<"After Solve"<<std::endl;
-    for(int level=0;level<levels;++level) Traverse_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,flags_channel);     
+    for(int level=0;level<levels;++level) Ficks_RHS_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,diffusion_rhs_channel,flags_channel,a);
+    // reuse void_mass_channel
+    for(int level=0;level<levels;++level) Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),void_mass_fluid_channel);
+    Diffusion_CG_Vector<Struct_type,T,d> saturation_fd(*hierarchy,saturation_channel),rhs_fd(*hierarchy,diffusion_rhs_channel),solver_q_fd(*hierarchy,void_mass_fluid_channel),
+                                                solver_s_fd(*hierarchy,void_mass_fluid_channel),solver_r_fd(*hierarchy,void_mass_fluid_channel),solver_k_fd(*hierarchy,void_mass_fluid_channel),solver_z_fd(*hierarchy,void_mass_fluid_channel);         
+     solver_fd->Solve(*ficks_diffusion_system,saturation_fd,rhs_fd,solver_q_fd,solver_s_fd,solver_r_fd,solver_k_fd,solver_z_fd,solver_tolerance,0,solver_iterations);
     // Clamp saturation
-    for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,flags_channel);
-
-    
-    }
+    for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_fd.channel,saturation_channel,flags_channel);
+}
 
     for(int level=0;level<levels;++level) Explicit_Lap_Saturation_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,flags_channel,one_over_dx2);        
 #pragma omp parallel for
@@ -364,25 +358,27 @@ Non_Ficks_Diffusion(T dt)
                     p_lap_saturation+=weight*hierarchy->Channel(0,lap_saturation_channel)(current_node._data);}}
                 p.div_Qc=(tau-dt)/tau*p.div_Qc-dt/tau*diff_coeff*((T)1.-Fc)*p_lap_saturation;
                 p.saturation+=dt*(diff_coeff*Fc*p_lap_saturation-p.div_Qc);
-                p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);}
-    }
+                p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);}}
+
     else{
     Diffusion_CG_System<Struct_type,T,d>* non_ficks_diffusion_system;
     non_ficks_diffusion_system=new Diffusion_CG_System<Struct_type,T,d>(*hierarchy,FICKS);
     non_ficks_diffusion_system->coeff1=coeff1;
     Conjugate_Gradient<T> cg;
     Krylov_Solver<T>* solver_nfd=(Krylov_Solver<T>*)&cg;
+    solver_nfd->print_residuals=true;
     // set up rhs
-    for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,div_Qc_channel,ficks_rhs_channel,flags_channel,coeff1,coeff2);
-    Diffusion_CG_Vector<Struct_type,T,d> saturation_nfd(*hierarchy,saturation_channel),rhs_nfd(*hierarchy,ficks_rhs_channel),solver_q_nfd(*hierarchy,saturation_channel),
-                                                solver_s_nfd(*hierarchy,saturation_channel),solver_r_nfd(*hierarchy,saturation_channel),solver_k_nfd(*hierarchy,saturation_channel),solver_z_nfd(*hierarchy,saturation_channel);         
-    Log::cout<<"Before Solve"<<std::endl;
-    for(int level=0;level<levels;++level) Traverse_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,flags_channel);     
+    for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,div_Qc_channel,diffusion_rhs_channel,flags_channel,coeff1,coeff2);
+    // reuse void_mass_channel
+    for(int level=0;level<levels;++level) Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),void_mass_fluid_channel);
+    Diffusion_CG_Vector<Struct_type,T,d> saturation_nfd(*hierarchy,saturation_channel),rhs_nfd(*hierarchy,diffusion_rhs_channel),solver_q_nfd(*hierarchy,void_mass_fluid_channel),
+                                                solver_s_nfd(*hierarchy,void_mass_fluid_channel),solver_r_nfd(*hierarchy,void_mass_fluid_channel),solver_k_nfd(*hierarchy,void_mass_fluid_channel),solver_z_nfd(*hierarchy,void_mass_fluid_channel);         
+        
     solver_nfd->Solve(*non_ficks_diffusion_system,saturation_nfd,rhs_nfd,solver_q_nfd,solver_s_nfd,solver_r_nfd,solver_k_nfd,solver_z_nfd,solver_tolerance,0,solver_iterations);
-    Log::cout<<"After Solve"<<std::endl;
-    for(int level=0;level<levels;++level) Traverse_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,flags_channel);     
+
     // Clamp saturation
-    for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,flags_channel);        
+    for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_nfd.channel,saturation_channel,flags_channel);        
+    
     for(int level=0;level<levels;++level) Explicit_Lap_Saturation_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,flags_channel,one_over_dx2);        
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
@@ -399,7 +395,7 @@ Non_Ficks_Diffusion(T dt)
             p.saturation+=coeff1/one_over_dx2*p_lap_saturation-coeff2*p.div_Qc;
             p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);
             p.div_Qc=-coeff3*p_lap_saturation+coeff4*p.div_Qc;}  
-    }
+    }    
 }
 //######################################################################
 // Update_Constitutive_Model_State

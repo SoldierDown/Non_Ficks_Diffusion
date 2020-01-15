@@ -93,7 +93,7 @@ class MPM_Example: public Example<T,d>
     T Struct_type::* void_mass_fluid_channel;
     T Struct_type::* volume_channel;
     T Struct_type::* div_Qc_channel;
-    T Struct_type::* ficks_rhs_channel;
+    T Struct_type::* diffusion_rhs_channel;
 
 
     MPM_Example();
