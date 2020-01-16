@@ -45,8 +45,8 @@ class MPM_CG_System: public Krylov_System_Base<T>
     const T trapezoidal;
     const T dt;
 
-    MPM_CG_System(Hierarchy& hierarchy_input,Array<int>& simulated_particles_input,Array<T_Particle>& particles_input,T Struct_type::* mass_channel_input,const T trapezoidal_input,const T dt_input)
-        :Base(true,false),hierarchy(hierarchy_input),simulated_particles(simulated_particles_input),particles(particles_input),mass_channel(mass_channel_input),trapezoidal(trapezoidal_input),dt(dt_input)
+    MPM_CG_System(Hierarchy& hierarchy_input,Array<int>& simulated_particles_input,Array<T_Particle>& particles_input,const T trapezoidal_input,const T dt_input)
+        :Base(true,false),hierarchy(hierarchy_input),simulated_particles(simulated_particles_input),particles(particles_input),trapezoidal(trapezoidal_input),dt(dt_input)
     {}
     ~MPM_CG_System() {}
 
@@ -58,16 +58,16 @@ class MPM_CG_System: public Krylov_System_Base<T>
         Channel_Vector& x_channels           = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(x).channel;
         Channel_Vector& result_channels      = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(result).channel;
         Force(result_channels,x_channels);
-        const T scaled_dt_squared=dt*dt/((T)2.+trapezoidal);
+        const T scaled_dt_squared=dt*dt/((T)1.+trapezoidal);
         for(int level=0;level<hierarchy.Levels();++level)
-            Multiply_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),x_channels,result_channels,mass_channel,scaled_dt_squared,(unsigned)Node_Saturated);
+            Multiply_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),x_channels,result_channels,scaled_dt_squared,(unsigned)Node_Saturated);
     }
     
-    void Force(Channel_Vector f,const Channel_Vector x) const
+    void Force(Channel_Vector& f,const Channel_Vector& x) const
     {
         const Grid<T,d>& grid=hierarchy.Lattice(0);
         const TV one_over_dX=grid.one_over_dX;
-    #pragma omp parallel for
+#pragma omp parallel for
         for(int i=0;i<simulated_particles.size();++i){
             int id=simulated_particles(i); T_Particle& p=particles(id);
             Matrix<T,d> tmp_mat=Matrix<T,d>();
@@ -82,7 +82,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
                                         -eta*kp*saturation*Times_Cofactor_Matrix_Derivative(F,tmp_mat.Transpose_Times(F)));
             p.scp=p.volume*tmp_mat;}
         
-        for(int level=0;level<hierarchy.Levels();++level) for(int v=0;v<d;++v) SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),f(v));  
+        for(int level=0;level<hierarchy.Levels();++level) for(int v=0;v<d;++v) SPGrid::Masked_Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),f(v),(unsigned)Node_Saturated);  
         
         for(int i=0;i<simulated_particles.size();++i){
             int id=simulated_particles(i); T_Particle& p=particles(id);
@@ -97,38 +97,36 @@ class MPM_CG_System: public Krylov_System_Base<T>
 
     void Project(Vector_Base& v) const
     {
-        Channel_Vector v_channel         = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(v).channel;
+        Channel_Vector& v_channels              = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(v).channel;
 
-        for(int level=0;level<hierarchy.Levels();++level) for(int v=0;v<d;++v)
-            Clear_Non_Active_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v_channel(v));
+        for(int level=0;level<hierarchy.Levels();++level)
+            Clear_Non_Active_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v_channels);
     }
 
+    // why is it double
     double Inner_Product(const Vector_Base& v1,const Vector_Base& v2) const
     {
         const Hierarchy& v1_hierarchy           = MPM_CG_Vector<Struct_type,T,d>::Hierarchy(v1);
         const Hierarchy& v2_hierarchy           = MPM_CG_Vector<Struct_type,T,d>::Hierarchy(v2);
-        Channel_Vector const v1_channel         = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(v1).channel;
-        Channel_Vector const v2_channel         = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(v2).channel;
+        Channel_Vector const v1_channels        = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(v1).channel;
+        Channel_Vector const v2_channels        = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(v2).channel;
         assert(&hierarchy == &v1_hierarchy);
         assert(&hierarchy == &v2_hierarchy);
 
-        double result=0;
-
-        for(int level=0;level<hierarchy.Levels();++level) for(int v=0;v<d;++v)
-            Inner_Product_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v1_channel(v),
-                                                  v2_channel(v),result,(unsigned)Node_Saturated);
-
+        double result=(T)0.;
+        for(int level=0;level<hierarchy.Levels();++level)
+            Inner_Product_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v1_channels,v2_channels,result,(unsigned)Node_Saturated);
         return result;
     }
 
     T Convergence_Norm(const Vector_Base& v) const
     {
-        Channel_Vector v_channel         = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(v).channel;
+        Channel_Vector& v_channels              = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(v).channel;
         T max_value=(T)0.;
 
-        for(int level=0;level<hierarchy.Levels();++level) 
+        for(int level=0;level<hierarchy.Levels();++level)
             Convergence_Norm_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
-                                                     v_channel,max_value,(unsigned)Node_Saturated);
+                                                     v_channels,max_value,(unsigned)Node_Saturated);
 
         return max_value;
     }

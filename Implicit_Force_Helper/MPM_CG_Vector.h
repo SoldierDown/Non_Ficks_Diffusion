@@ -90,8 +90,8 @@ class MPM_CG_Vector: public Krylov_Vector_Base<T>
     {
         const Hierarchy_type& bv1_hierarchy     = MPM_CG_Vector::Hierarchy(bv1);
         const Hierarchy_type& bv2_hierarchy     = MPM_CG_Vector::Hierarchy(bv2);
-        Channel_Vector bv1_channel              = Cg_Vector(bv1).channel;
-        Channel_Vector bv2_channel              = Cg_Vector(bv2).channel;
+        Channel_Vector& bv1_channel             = Cg_Vector(bv1).channel;
+        Channel_Vector& bv2_channel             = Cg_Vector(bv2).channel;
         assert(&hierarchy == &bv1_hierarchy);
         assert(&hierarchy == &bv2_hierarchy);
 

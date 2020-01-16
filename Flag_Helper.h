@@ -23,15 +23,15 @@ class Flag_Helper
     using Block_Iterator        = SPGrid::SPGrid_Block_Iterator<Flag_array_mask>;
 
   public:
-    Flag_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,unsigned Struct_type::* flags_channel)
-    {Run(allocator,blocks,flags_channel);}
+    Flag_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks)
+    {Run(allocator,blocks);}
 
-    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,unsigned Struct_type::* flags_channel) const
+    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks) const
     {
         int n_active=0;
         int n_saturated=0;
         int n_both=0;
-        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(flags_channel);
+        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto active_counter=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))

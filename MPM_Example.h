@@ -181,6 +181,8 @@ class MPM_Example: public Example<T,d>
     Channel_Vector r_channels;
     Channel_Vector z_channels;
 
+    T Struct_type::* collide_nodes_channel;
+
     MPM_Example();
 
     ~MPM_Example();
@@ -192,6 +194,7 @@ class MPM_Example: public Example<T,d>
     void Initialize_SPGrid();
     void Initialize();
     void Reset_Grid_Based_Variables();
+    void Reset_Solver_Channels();
     void Populate_Simulated_Particles();
     void Rasterize();
     void Update_Constitutive_Model_State();

@@ -33,3 +33,7 @@
 ##### Summary  
 - Channel_Matrix?  
 - CG: Precondition  
+
+01/16/2020  
+##### Summary  
+- Rasterize in parallel 

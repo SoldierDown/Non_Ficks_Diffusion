@@ -31,14 +31,9 @@ class Velocity_Normalization_Helper
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(flags_channel);
         auto velocity_normalization_helper=[&](uint64_t offset)
         {
-            for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Node_Saturated) 
-                for(int v=0;v<d;++v){
+            for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
+                if(flags(offset)&Node_Saturated) for(int v=0;v<d;++v)
                     allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)/=mass(offset);
-                    // T velocity=allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset);
-                    // Vector<int,d> index(Flag_array_mask::LinearToCoord(offset));
-            }
-                }
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,velocity_normalization_helper);
     }

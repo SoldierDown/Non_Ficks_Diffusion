@@ -68,7 +68,7 @@ class Diffusion_CG_System: public Krylov_System_Base<T>
         assert(&hierarchy == &v1_hierarchy);
         assert(&hierarchy == &v2_hierarchy);
 
-        T result=(T)0;
+        double result=(T)0;
 
         for(int level=0;level<hierarchy.Levels();++level)
             Diffusion_Inner_Product_Helper<Base_struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v1_channel,

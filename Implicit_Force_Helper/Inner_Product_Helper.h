@@ -15,26 +15,28 @@ class Inner_Product_Helper
     using Flags_type                = typename Struct_type::Flags_type;
     using Allocator_type            = SPGrid::SPGrid_Allocator<Struct_type,d>;
     using Flag_array_mask           = typename Allocator_type::template Array_mask<unsigned>;
-
+    using Topology_Helper           = Grid_Topology_Helper<Flag_array_mask>;
+    using Block_Iterator            = SPGrid::SPGrid_Block_Iterator<Flag_array_mask>;
+    using Channel_Vector            = Vector<T Struct_type::*,d>;
   public:
-    Inner_Product_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* channel1,
-                         T Struct_type::* channel2,double& result,const unsigned mask)
-    {Run(allocator,blocks,channel1,channel2,result,mask);}
+    Inner_Product_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector channels1,
+                         Channel_Vector channels2,double& result,const unsigned mask)
+    {Run(allocator,blocks,channels1,channels2,result,mask);}
 
-    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* channel1,
-             T Struct_type::* channel2,double& result,const unsigned mask) const
+    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector channels1,
+             Channel_Vector channels2,double& result,const unsigned mask) const
     {
-        auto data1=allocator.template Get_Const_Array<Struct_type,T>(channel1);
-        auto data2=allocator.template Get_Const_Array<Struct_type,T>(channel2);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        double temp_result=0;
-
-#pragma omp parallel for reduction(+:temp_result)
-        for(int b=0;b<blocks.second;b++){uint64_t offset=blocks.first[b];
+        double tmp_result=(T)0.;
+        auto inner_product_helper=[&](uint64_t offset, double& tmp_result)
+        {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&mask) temp_result+=data1(offset)*data2(offset);}
-
-        result+=temp_result;
+                if(flags(offset)&mask) for(int v=0;v<d;++v) 
+                  tmp_result+= allocator.template Get_Array<Struct_type,T>(channels1(v))(offset)*allocator.template Get_Array<Struct_type,T>(channels2(v))(offset) ;
+        };
+        for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
+            uint64_t offset=iterator.Offset();
+            inner_product_helper(offset,result);}
     }
 };
 }

@@ -22,6 +22,8 @@
 #include "Non_Ficks_RHS_Helper.h"
 #include "MPM_RHS_Helper.h"
 #include "Saturation_Clamp_Helper.h"
+#include "Channel_Vector_Norm_Helper.h"
+#include "Compare_Helper.h"
 #include "MPM_Flags.h"
 
 #include <nova/SPGrid/Tools/SPGrid_Arithmetic.h>
@@ -45,12 +47,12 @@ MPM_Example()
 {
     solver_tolerance=(T)1e-7;
     solver_iterations=10000;
-    diff_coeff=(T)1.;
-    tau=(T)1.;
+    diff_coeff=(T)0.;
+    tau=(T)0.;
     Fc=(T)0.;
-    gravity=-TV::Axis_Vector(1)*(T)0.;
+    gravity=TV::Axis_Vector(1)*(T)-2.;
     flip=(T).9;
-    FICKS=false;
+    FICKS=true;
     explicit_diffusion=false;
      
     flags_channel                           = &Struct_type::flags;
@@ -91,7 +93,7 @@ MPM_Example()
     z_channels(1)                           = &Struct_type::ch28;
     if(d==3) z_channels(2)                  = &Struct_type::ch29;
 
-
+    collide_nodes_channel                   = &Struct_type::ch30;
 }
 //######################################################################
 // Destructor
@@ -127,6 +129,10 @@ Reset_Grid_Based_Variables()
         Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),void_mass_fluid_channel);
         Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),volume_channel);
         Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_Qc_channel);
+
+        Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),collide_nodes_channel);
+
+    
         
         for(int v=0;v<d;++v) {
             Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),rhs_channels(v));
@@ -137,6 +143,19 @@ Reset_Grid_Based_Variables()
             Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels(v));
             Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels(v));
             Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),f_channels(v));}} 
+
+}
+//######################################################################
+// Reset_Solver_Channels
+//######################################################################
+template<class T,int d> void MPM_Example<T,d>::
+Reset_Solver_Channels()
+{
+    for(int level=0;level<levels;++level) for(int v=0;v<d;++v){
+        Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),q_channels(v));
+        Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channels(v));
+        Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),s_channels(v));
+        Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),z_channels(v));}
 
 }
 //######################################################################
@@ -155,7 +174,7 @@ Compute_Bounding_Box(Range<T,d>& bbox)
         TV& current_min_corner=min_corner_per_thread(tid);
         TV& current_max_corner=max_corner_per_thread(tid);
         for(int v=0;v<d;++v){
-            T dd=(T)3./counts(v);
+            T dd=(T)4./counts(v);
             current_min_corner(v)=std::min(current_min_corner(v),p.X(v)-dd);
             current_max_corner(v)=std::max(current_max_corner(v),p.X(v)+dd);}}
 
@@ -246,7 +265,6 @@ Max_Particle_Velocity() const
 template<class T,int d> void MPM_Example<T,d>::
 Limit_Dt(T& dt,const T time)
 {
-    Log::cout<<"************************************\nSHOULD NOT APPEAR!\n************************************"<<std::endl;
 }
 //######################################################################
 // Rasterize
@@ -257,7 +275,8 @@ Rasterize()
     const T fluid_density=(T)1.;
     const Grid<T,d>& grid=hierarchy->Lattice(0);
     const TV one_over_dX=grid.one_over_dX;
-#pragma omp parallel for
+// get wrong when running in parallel
+// #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){ const int id=simulated_particles(i); T_Particle& p=particles(id); T_INDEX closest_node=grid.Closest_Node(p.X);
         for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){T_INDEX current_node=closest_node+iterator.Index();
             if(grid.Node_Indices().Inside(current_node)){
@@ -265,9 +284,9 @@ Rasterize()
                 if(weight>(T)0.){                                    
                     hierarchy->Channel(0,mass_channel)(current_node._data)+=weight*p.mass;
                     hierarchy->Channel(0,flags_channel)(current_node._data)|=Node_Saturated;
-                    // T cnt=(T)0.;
-                    // for(int id=0;id<barriers.size();++id) if(current_node_location.Dot_Product(barriers(id).normal)<barriers(id).surface) cnt=((T)id+(T)1.);
-                    // hierarchy->Channel(0,collide_nodes_channel)(current_node._data)=cnt;                 
+                    T cnt=(T)0.;
+                    for(int id=0;id<barriers.size();++id) if(current_node_location.Dot_Product(barriers(id).normal)<barriers(id).surface) cnt=((T)id+(T)1.);
+                    hierarchy->Channel(0,collide_nodes_channel)(current_node._data)=cnt;                 
                     for(int v=0;v<d;++v) hierarchy->Channel(0,velocity_channels(v))(current_node._data)+=weight*p.mass*p.V(v);
                     
                     // hydrogel
@@ -278,7 +297,7 @@ Rasterize()
                     // Non-Ficks
                     if(!FICKS&&!explicit_diffusion){ hierarchy->Channel(0,div_Qc_channel)(current_node._data)+=weight*p.div_Qc*p.volume;
                         hierarchy->Channel(0,volume_channel)(current_node._data)+=weight*p.volume;}}}}}
-    for(int level=0;level<levels;++level) Flag_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),flags_channel);
+    for(int level=0;level<levels;++level) Flag_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level));
     // normalize weights for velocity (to conserve momentum)
     for(int level=0;level<levels;++level) Velocity_Normalization_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels,mass_channel,flags_channel);     
     // "normalize" saturation and set up surroundings
@@ -308,7 +327,8 @@ Ficks_Diffusion(T dt)
     Krylov_Solver<T>* solver_fd=(Krylov_Solver<T>*)&cg;
     // set up rhs
     for(int level=0;level<levels;++level) Ficks_RHS_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,rhs_channels(0),flags_channel,a);
-    
+    // reset solver channels
+    Reset_Solver_Channels();
     Diffusion_CG_Vector<Struct_type,T,d> saturation_fd(*hierarchy,saturation_channel),rhs_fd(*hierarchy,rhs_channels(0)),solver_q_fd(*hierarchy,q_channels(0)),
                                                 solver_s_fd(*hierarchy,s_channels(0)),solver_r_fd(*hierarchy,r_channels(0)),solver_k_fd(*hierarchy,z_channels(0)),solver_z_fd(*hierarchy,z_channels(0));         
     
@@ -375,13 +395,13 @@ Non_Ficks_Diffusion(T dt)
     solver_nfd->print_residuals=true;
     // set up rhs
     for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,div_Qc_channel,rhs_channels(0),flags_channel,coeff1,coeff2);
-
+    // reset solver channels
+    Reset_Solver_Channels();
     Diffusion_CG_Vector<Struct_type,T,d> saturation_nfd(*hierarchy,saturation_channel),rhs_nfd(*hierarchy,rhs_channels(0)),solver_q_nfd(*hierarchy,q_channels(0)),
                                                 solver_s_nfd(*hierarchy,s_channels(0)),solver_r_nfd(*hierarchy,r_channels(0)),solver_k_nfd(*hierarchy,z_channels(0)),solver_z_nfd(*hierarchy,z_channels(0));         
         
     solver_nfd->Solve(non_ficks_diffusion_system,saturation_nfd,rhs_nfd,solver_q_nfd,solver_s_nfd,solver_r_nfd,solver_k_nfd,solver_z_nfd,solver_tolerance,0,solver_iterations);
 
-    for(int level=0;level<levels;++level) Traverse_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,saturation_nfd.channel,flags_channel);
 
     // Clamp saturation
     for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_nfd.channel,saturation_channel,flags_channel);        
@@ -461,16 +481,21 @@ template<class T,int d> void MPM_Example<T,d>::
 Apply_Force(const T dt)
 {
     Apply_Explicit_Force(dt);
-    Grid_Based_Collison(false);
+    Grid_Based_Collison(true);
+    if(true){
     Conjugate_Gradient<T> cg;
     Krylov_Solver<T>* solver=(Krylov_Solver<T>*)&cg;
-    MPM_CG_System<Struct_type,T,d> mpm_system(*hierarchy,simulated_particles,particles,mass_channel,(T)1.,dt);
+    MPM_CG_System<Struct_type,T,d> mpm_system(*hierarchy,simulated_particles,particles,(T)1.,dt);
     mpm_system.use_preconditioner=false;
     // set rhs here
     for(int level=0;level<levels;++level) MPM_RHS_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),rhs_channels,velocity_star_channels);     
+    // clear channels
+    Reset_Solver_Channels();
     MPM_CG_Vector<Struct_type,T,d> solver_vp(*hierarchy,velocity_star_channels),solver_rhs(*hierarchy,rhs_channels),solver_q(*hierarchy,q_channels),solver_s(*hierarchy,s_channels),solver_r(*hierarchy,r_channels),solver_k(*hierarchy,z_channels),solver_z(*hierarchy,z_channels);
-    
+
     solver->Solve(mpm_system,solver_vp,solver_rhs,solver_q,solver_s,solver_r,solver_k,solver_z,solver_tolerance,0,solver_iterations);
+    }
+
 }
 //######################################################################
 // Apply_Explicit_Force
@@ -504,7 +529,7 @@ Apply_Explicit_Force(const T dt)
 template<class T,int d> void MPM_Example<T,d>::
 Grid_Based_Collison(const bool detect_collision)
 {   
-    // if(detect_collision) for(int level=0;level<levels;++level) Grid_Based_Collision_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels,collide_nodes_channel,flags_channel,barriers);
+    if(detect_collision) for(int level=0;level<levels;++level) Grid_Based_Collision_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels,collide_nodes_channel,flags_channel,barriers);
 }
 //######################################################################
 // Estimate_Particle_Volumes
@@ -533,7 +558,7 @@ Register_Options()
     Base::Register_Options();
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
-    parse_args->Add_Double_Argument("-cfl",(T).1,"CFL number.");
+    parse_args->Add_Double_Argument("-cfl",(T)0.1,"CFL number.");
     if(d==2) parse_args->Add_Vector_2D_Argument("-size",Vector<double,2>(32.),"n","Grid resolution");
     else if(d==3) parse_args->Add_Vector_3D_Argument("-size",Vector<double,3>(32.),"n","Grid resolution");
 }
@@ -568,7 +593,7 @@ Parse_Options()
     threads=parse_args->Get_Integer_Value("-threads");
     omp_set_num_threads(threads);
     Base::test_number=parse_args->Get_Integer_Value("-test_number");
-    cfl=(T)parse_args->Get_Double_Value("-cfl");
+    cfl=parse_args->Get_Double_Value("-cfl");
     levels=parse_args->Get_Integer_Value("-levels");
     if(d==2){auto cell_counts_2d=parse_args->Get_Vector_2D_Value("-size");for(int v=0;v<d;++v) counts(v)=cell_counts_2d(v);}
     else{auto cell_counts_3d=parse_args->Get_Vector_3D_Value("-size");for(int v=0;v<d;++v) counts(v)=cell_counts_3d(v);}

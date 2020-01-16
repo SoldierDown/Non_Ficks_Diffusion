@@ -50,6 +50,7 @@ struct MPM_Data
     T ch27;         // k-x
     T ch28;         // k-y
     T ch29;         // k-z
+    T ch30;         // collide nodes
 };
 }
 #endif
