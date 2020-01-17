@@ -47,10 +47,10 @@ MPM_Example()
 {
     solver_tolerance=(T)1e-7;
     solver_iterations=10000;
-    diff_coeff=(T)0.;
-    tau=(T)0.;
+    diff_coeff=(T).1;
+    tau=(T)1.;
     Fc=(T)0.;
-    gravity=TV::Axis_Vector(1)*(T)-2.;
+    gravity=TV::Axis_Vector(1)*(T)0.;
     flip=(T).9;
     FICKS=true;
     explicit_diffusion=false;
@@ -349,9 +349,10 @@ Ficks_Diffusion(T dt)
             if(grid.Node_Indices().Inside(current_node)){
                 const TV current_node_location=grid.Node(current_node);
                 T weight=N2<T,d>(p.X-current_node_location,one_over_dX);
-                p_lap_saturation+=weight*hierarchy->Channel(0,lap_saturation_channel)(current_node._data);}}
+                if(weight>(T)0.) p_lap_saturation+=weight*hierarchy->Channel(0,lap_saturation_channel)(current_node._data);}}
             p.saturation+=dt*diff_coeff*p_lap_saturation;
             p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);}
+    Log::cout<<"Fick's Diffusion finished"<<std::endl;
 }
 //######################################################################
 // Non_Ficks_Diffusion
@@ -469,8 +470,8 @@ Update_Particle_Velocities_And_Positions(const T dt)
             p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
             p.V=V_flip*flip+V_pic*((T)1.-flip);
             p.X+=V_pic*dt;
-            // p.mass_fluid=fluid_density*p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant()*p.volume_fraction_0*p.saturation;
-            // p.mass=p.mass_solid+p.mass_fluid;
+            p.mass_fluid=fluid_density*p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant()*p.volume_fraction_0*p.saturation;
+            p.mass=p.mass_solid+p.mass_fluid;
         if(!grid.domain.Inside(p.X)) p.valid=false;
     }        
 }
@@ -514,10 +515,7 @@ Apply_Explicit_Force(const T dt)
         const T mu=p.constitutive_model.mu; const T lambda=p.constitutive_model.lambda; 
         const T J=p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
         Matrix<T,d> extra_sigma=eta*k_p*saturation*I*J;
-        Matrix<T,d> V0_P_FT=(P.Times_Transpose(F)-extra_sigma)*V0;
-        
-        V0_P_FT=P.Times_Transpose(F)*V0;
-        
+        Matrix<T,d> V0_P_FT=(P.Times_Transpose(F)-extra_sigma)*V0;        
         T_INDEX closest_node=grid.Closest_Node(p.X);
         for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){T_INDEX current_node=closest_node+iterator.Index();
             if(grid.Node_Indices().Inside(current_node)){const TV current_node_location=grid.Node(current_node);T weight=N2<T,d>(p.X-current_node_location,one_over_dX);

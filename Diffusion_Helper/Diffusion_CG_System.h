@@ -92,19 +92,6 @@ class Diffusion_CG_System: public Krylov_System_Base<T>
 
     void Apply_Preconditioner(const Vector_Base& r,Vector_Base& z) const
     {
-        // T Base_struct_type::* r_channel         = Diffusion_CG_Vector<Base_struct_type,T,d>::Cg_Vector(r).channel;
-        // T Base_struct_type::* z_channel         = Diffusion_CG_Vector<Base_struct_type,T,d>::Cg_Vector(z).channel;
-
-        // multigrid_solver.Initialize_Right_Hand_Side(r_channel);
-        // multigrid_solver.Initialize_Guess();
-        // multigrid_solver.V_Cycle(boundary_smoothing_iterations,interior_smoothing_iterations,bottom_smoothing_iterations);
-
-        // // clear z
-        // for(int level=0;level<hierarchy.Levels();++level)
-        //     SPGrid::Clear<Base_struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),z_channel);
-
-        // // copy u from multigrid hierarchy
-        // multigrid_solver.Copy_Channel_Values(z_channel,multigrid_solver.u_channel,false);
     }
 };
 }

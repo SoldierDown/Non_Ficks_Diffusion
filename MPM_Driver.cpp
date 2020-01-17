@@ -21,8 +21,8 @@ Initialize()
         example.Initialize();
         example.Reset_Grid_Based_Variables();
         example.Rasterize();
-        // if(example.FICKS) example.Ficks_Diffusion(dt);
-        // else example.Non_Ficks_Diffusion(dt);
+        if(example.FICKS) example.Ficks_Diffusion(dt);
+        else example.Non_Ficks_Diffusion(dt);
         example.Estimate_Particle_Volumes();
         example.Update_Constitutive_Model_State();
         example.Update_Particle_Velocities_And_Positions(dt);
@@ -107,8 +107,8 @@ Advance_Step(const T dt)
     example.Initialize_SPGrid();
     example.Reset_Grid_Based_Variables();
     example.Rasterize();
-    // if(example.FICKS) example.Ficks_Diffusion(dt);
-    // else example.Non_Ficks_Diffusion(dt);
+    if(example.FICKS) example.Ficks_Diffusion(dt);
+    else example.Non_Ficks_Diffusion(dt);
     example.Update_Constitutive_Model_State();
     example.Update_Particle_Velocities_And_Positions(dt);
 }

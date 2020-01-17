@@ -275,10 +275,10 @@ class Standard_Tests: public MPM_Example<T,d>
                     p.X=random.Get_Uniform_Vector(block);
                     p.V=TV();
                     p.constitutive_model.Compute_Lame_Parameters(E,nu);
-                    p.constitutive_model.eta=(T)0.;
+                    p.constitutive_model.eta=(T)0.01;
                     p.constitutive_model.plastic=false;
                     p.saturation=(T)0.;
-                    p.volume_fraction_0=(T)0.;
+                    p.volume_fraction_0=(T).7;
                     p.mass_solid=solid_density*area_per_particle*((T)1.-p.volume_fraction_0);
                     p.mass_fluid=fluid_density*p.saturation*area_per_particle*p.volume_fraction_0;
                     p.mass=p.mass_solid+p.mass_fluid;
