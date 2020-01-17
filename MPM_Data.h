@@ -28,29 +28,25 @@ struct MPM_Data
 
 
     // Hydrogel channels
-    T ch10;         // saturation
-    T ch11;         // lap_saturation
-    T ch12;         // void_mass_fluid
-    T ch13;         // volume
-    T ch14;         // div_Qc
+    T ch10;         // collide nodes
 
-    T ch15;         // rhs-x
-    T ch16;         // rhs-y
-    T ch17;         // rhs-z
+    T ch11;         // rhs-x
+    T ch12;         // rhs-y
+    T ch13;         // rhs-z
 
-    T ch18;         // q-x
-    T ch19;         // q-y
-    T ch20;         // q-z
-    T ch21;         // s-x
-    T ch22;         // s-y
-    T ch23;         // s-z
-    T ch24;         // r-x
-    T ch25;         // r-y
-    T ch26;         // r-z
-    T ch27;         // k-x
-    T ch28;         // k-y
-    T ch29;         // k-z
-    T ch30;         // collide nodes
+    T ch14;         // q-x
+    T ch15;         // q-y
+    T ch16;         // q-z
+    T ch17;         // s-x
+    T ch18;         // s-y
+    T ch19;         // s-z
+    T ch20;         // r-x
+    T ch21;         // r-y
+    T ch22;         // r-z
+    T ch23;         // k-x
+    T ch24;         // k-y
+    T ch25;         // k-z
+
 };
 }
 #endif

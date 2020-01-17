@@ -29,7 +29,7 @@ class Clear_Non_Active_Helper
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& v_channels,Array<T_Barrier> barriers) const
     {
-        auto collide_nodes=allocator.template Get_Const_Array<Struct_type,T>(&Struct_type::ch30);
+        auto collide_nodes=allocator.template Get_Const_Array<Struct_type,T>(&Struct_type::ch10);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto clear_non_active_helper=[&](uint64_t offset)
         {

@@ -150,26 +150,10 @@ class MPM_Example: public Example<T,d>
 
     unsigned Struct_type::* flags_channel;
     T Struct_type::* mass_channel;
-    //T Struct_type::* collide_nodes_channel;
     Channel_Vector velocity_channels;
     Channel_Vector velocity_star_channels;
     Channel_Vector f_channels;
 
-
-
-    // Hydrogel variables
-    T diff_coeff;
-    T tau;
-    T Fc;
-    bool FICKS;
-    bool explicit_diffusion;
-
-    // Hydrogel channels
-    T Struct_type::* saturation_channel;
-    T Struct_type::* lap_saturation_channel;
-    T Struct_type::* void_mass_fluid_channel;
-    T Struct_type::* volume_channel;
-    T Struct_type::* div_Qc_channel;
 
     // Krylov solver channels
     Channel_Vector rhs_channels;
@@ -197,8 +181,6 @@ class MPM_Example: public Example<T,d>
     void Update_Constitutive_Model_State();
     void Update_Particle_Velocities_And_Positions(const T dt);
     void Estimate_Particle_Volumes();
-    void Ficks_Diffusion(T dt);
-    void Non_Ficks_Diffusion(T dt);
     void Apply_Force(const T dt);
     void Apply_Explicit_Force(const T dt);
     void Grid_Based_Collison(const bool detect_collision);
