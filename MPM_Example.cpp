@@ -446,7 +446,7 @@ Update_Particle_Velocities_And_Positions(const T dt)
     Array<Array<int> > remove_indices(threads);
     const Grid<T,d>& grid=hierarchy->Lattice(0);
     const TV one_over_dX=grid.one_over_dX;
-#pragma omp parallel for
+//#pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i); 
         T_Particle &p=particles(id);
@@ -464,13 +464,13 @@ Update_Particle_Velocities_And_Positions(const T dt)
                         delta_V_grid(v)=hierarchy->Channel(0,velocity_star_channels(v))(current_node._data)-hierarchy->Channel(0,velocity_channels(v))(current_node._data);}
                     V_pic+=weight*V_grid; 
                     V_flip+=weight*delta_V_grid;
-                    grad_Vp+=Matrix<T,d>::Outer_Product(weight_grad,V_grid);}}}
+                    grad_Vp+=Matrix<T,d>::Outer_Product(V_grid,weight_grad);}}}
 
             p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
             p.V=V_flip*flip+V_pic*((T)1.-flip);
             p.X+=V_pic*dt;
-            p.mass_fluid=fluid_density*p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant()*p.volume_fraction_0*p.saturation;
-            p.mass=p.mass_solid+p.mass_fluid;
+            // p.mass_fluid=fluid_density*p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant()*p.volume_fraction_0*p.saturation;
+            // p.mass=p.mass_solid+p.mass_fluid;
         if(!grid.domain.Inside(p.X)) p.valid=false;
     }        
 }
@@ -485,15 +485,17 @@ Apply_Force(const T dt)
     if(true){
     Conjugate_Gradient<T> cg;
     Krylov_Solver<T>* solver=(Krylov_Solver<T>*)&cg;
-    MPM_CG_System<Struct_type,T,d> mpm_system(*hierarchy,simulated_particles,particles,(T)1.,dt);
+    MPM_CG_System<Struct_type,T,d> mpm_system(*hierarchy,simulated_particles,particles,barriers,(T)0.,dt);
     mpm_system.use_preconditioner=false;
     // set rhs here
     for(int level=0;level<levels;++level) MPM_RHS_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels,rhs_channels);     
     // clear channels
     Reset_Solver_Channels();
     MPM_CG_Vector<Struct_type,T,d> solver_vp(*hierarchy,velocity_star_channels),solver_rhs(*hierarchy,rhs_channels),solver_q(*hierarchy,q_channels),solver_s(*hierarchy,s_channels),solver_r(*hierarchy,r_channels),solver_k(*hierarchy,z_channels),solver_z(*hierarchy,z_channels);
-
-    solver->Solve(mpm_system,solver_vp,solver_rhs,solver_q,solver_s,solver_r,solver_k,solver_z,solver_tolerance,0,solver_iterations);}
+    solver->Solve(mpm_system,solver_vp,solver_rhs,solver_q,solver_s,solver_r,solver_k,solver_z,solver_tolerance,0,solver_iterations);
+    for(int level=0;level<levels;++level) for(int v=0;v<d;++v) Compare_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels(v),solver_vp.channel(v));     
+    
+    }
 
 }
 //######################################################################
@@ -504,7 +506,7 @@ Apply_Explicit_Force(const T dt)
 {
     const Grid<T,d>& grid=hierarchy->Lattice(0);
     const TV one_over_dX=grid.one_over_dX;
-#pragma omp parallel for
+// #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){const int id=simulated_particles(i); T_Particle &p=particles(id); T V0=p.volume;
         Matrix<T,d> P=p.constitutive_model.P(),F=p.constitutive_model.Fe;
         Matrix<T,d> I=Matrix<T,d>::Identity_Matrix();
@@ -513,6 +515,9 @@ Apply_Explicit_Force(const T dt)
         const T J=p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
         Matrix<T,d> extra_sigma=eta*k_p*saturation*I*J;
         Matrix<T,d> V0_P_FT=(P.Times_Transpose(F)-extra_sigma)*V0;
+        
+        V0_P_FT=P.Times_Transpose(F)*V0;
+        
         T_INDEX closest_node=grid.Closest_Node(p.X);
         for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){T_INDEX current_node=closest_node+iterator.Index();
             if(grid.Node_Indices().Inside(current_node)){const TV current_node_location=grid.Node(current_node);T weight=N2<T,d>(p.X-current_node_location,one_over_dX);

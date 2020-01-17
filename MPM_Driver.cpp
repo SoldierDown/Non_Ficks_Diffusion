@@ -21,8 +21,8 @@ Initialize()
         example.Initialize();
         example.Reset_Grid_Based_Variables();
         example.Rasterize();
-        if(example.FICKS) example.Ficks_Diffusion(dt);
-        else example.Non_Ficks_Diffusion(dt);
+        // if(example.FICKS) example.Ficks_Diffusion(dt);
+        // else example.Non_Ficks_Diffusion(dt);
         example.Estimate_Particle_Volumes();
         example.Update_Constitutive_Model_State();
         example.Update_Particle_Velocities_And_Positions(dt);
@@ -64,9 +64,7 @@ Advance_To_Target_Time(const T target_time)
         example.Populate_Simulated_Particles(); // add only valid particles to array
         T max_v=example.Max_Particle_Velocity();
         Log::Scope scope("SUBSTEP","substep "+std::to_string(substep));
-//        T dt=Compute_Dt(time,target_time);
         T dt=std::max(min_dt,std::min(max_dt,cfl*dx_min/std::max(max_v,(T)1e-2)));
-        // dt/=(T)10.;
         // Example<T,d>::Clamp_Time_Step_With_Target_Time(time,target_time,dt,done);
         if(target_time-time<dt*1.001){
             dt=target_time-time;
@@ -79,8 +77,7 @@ Advance_To_Target_Time(const T target_time)
         Advance_Step(dt);
         if(!done) example.Write_Substep("END Substep",substep,0);
         time+=dt;
-        Log::cout<<"time: "<<time<<std::endl;
-        ;}
+        Log::cout<<"time: "<<time<<std::endl;}
 }
 //######################################################################
 // Simulate_To_Frame
@@ -110,8 +107,8 @@ Advance_Step(const T dt)
     example.Initialize_SPGrid();
     example.Reset_Grid_Based_Variables();
     example.Rasterize();
-    if(example.FICKS) example.Ficks_Diffusion(dt);
-    else example.Non_Ficks_Diffusion(dt);
+    // if(example.FICKS) example.Ficks_Diffusion(dt);
+    // else example.Non_Ficks_Diffusion(dt);
     example.Update_Constitutive_Model_State();
     example.Update_Particle_Velocities_And_Positions(dt);
 }

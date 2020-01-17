@@ -19,12 +19,12 @@ class Inner_Product_Helper
     using Block_Iterator            = SPGrid::SPGrid_Block_Iterator<Flag_array_mask>;
     using Channel_Vector            = Vector<T Struct_type::*,d>;
   public:
-    Inner_Product_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector channels1,
-                         Channel_Vector channels2,double& result,const unsigned mask)
+    Inner_Product_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector channels1,Channel_Vector channels2,
+                          double& result,const unsigned mask)
     {Run(allocator,blocks,channels1,channels2,result,mask);}
 
-    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector channels1,
-             Channel_Vector channels2,double& result,const unsigned mask) const
+    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector channels1,Channel_Vector channels2,
+                          double& result,const unsigned mask) const
     {
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto mass=allocator.template Get_Const_Array<Struct_type,T>(&Struct_type::ch0);

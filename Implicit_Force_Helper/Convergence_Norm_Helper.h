@@ -28,19 +28,19 @@ class Convergence_Norm_Helper
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
              Channel_Vector channels,T& result,const unsigned mask) const
     {
+        result=(T)0.;
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        T max_value=(T)0.;
-        auto convergence_norm_helper=[&](uint64_t offset)
+        auto convergence_norm_helper=[&](uint64_t offset,T& result)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
                 if(flags(offset)&mask) for(int v=0;v<d;++v) 
-                  max_value=std::max(max_value,std::fabs(allocator.template Get_Array<Struct_type,T>(channels(v))(offset)));
+                  result+=Nova_Utilities::Sqr(allocator.template Get_Array<Struct_type,T>(channels(v))(offset));
         };
 
         for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
             uint64_t offset=iterator.Offset();
-            convergence_norm_helper(offset);}
-        result=std::max(result,max_value);
+            convergence_norm_helper(offset,result);}
+            result=std::sqrt(result);
     }
 };
 }

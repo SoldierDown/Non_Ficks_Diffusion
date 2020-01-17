@@ -21,6 +21,7 @@
 #include "Convergence_Norm_Helper.h"
 #include "Inner_Product_Helper.h"
 #include "Multiply_Helper.h"
+#include "../MPM_Plane_Barrier.h"
 #include "../MPM_Example.h"
 #include "../MPM_Particle.h"
 #include "../MPM_Flags.h"
@@ -37,16 +38,18 @@ class MPM_CG_System: public Krylov_System_Base<T>
     using T_INDEX                   = Vector<int,d>;
     using T_Particle                = MPM_Particle<T,d>;
     using T_Range_Iterator          = Range_Iterator<d,T_INDEX>;
+    using T_Barrier                 = MPM_Plane_Barrier<T,d>;
 
   public:
     Hierarchy& hierarchy;
     Array<T_Particle>& particles;
     Array<int>& simulated_particles;
+    Array<T_Barrier>& barriers;
     const T trapezoidal;
     const T dt;
 
-    MPM_CG_System(Hierarchy& hierarchy_input,Array<int>& simulated_particles_input,Array<T_Particle>& particles_input,const T trapezoidal_input,const T dt_input)
-        :Base(true,false),hierarchy(hierarchy_input),simulated_particles(simulated_particles_input),particles(particles_input),trapezoidal(trapezoidal_input),dt(dt_input)
+    MPM_CG_System(Hierarchy& hierarchy_input,Array<int>& simulated_particles_input,Array<T_Particle>& particles_input,Array<T_Barrier>& barriers_input,const T trapezoidal_input,const T dt_input)
+        :Base(true,false),hierarchy(hierarchy_input),simulated_particles(simulated_particles_input),particles(particles_input),barriers(barriers_input),trapezoidal(trapezoidal_input),dt(dt_input)
     {}
     ~MPM_CG_System() {}
 
@@ -68,20 +71,20 @@ class MPM_CG_System: public Krylov_System_Base<T>
         unsigned Struct_type::* flags=&Struct_type::flags;
         const Grid<T,d>& grid=hierarchy.Lattice(0);
         const TV one_over_dX=grid.one_over_dX;
-//#pragma omp parallel for
+#pragma omp parallel for
         for(int i=0;i<simulated_particles.size();++i){
             int id=simulated_particles(i); T_Particle& p=particles(id);
             Matrix<T,d> tmp_mat;
-            int cnt=0;
             T_INDEX closest_node=grid.Closest_Node(p.X); 
             for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){
                 T_INDEX current_node=closest_node+iterator.Index();
-                if(grid.Node_Indices().Inside(current_node))                    
-                    if(hierarchy.Channel(0,flags)(current_node._data)&Node_Saturated){
-                        const TV current_node_location=grid.Node(current_node); 
-                        TV weight_grad=dN2<T,d>(p.X-current_node_location,one_over_dX), v_vec;
+                if(grid.Node_Indices().Inside(current_node)){       
+                    const TV current_node_location=grid.Node(current_node);
+                    T weight=N2<T,d>(p.X-current_node_location,one_over_dX);                                
+                    if(weight>(T)0.){
+                        TV weight_grad=dN2<T,d>(p.X-current_node_location,one_over_dX),v_vec;
                         for(int v=0;v<d;++v) v_vec(v)=hierarchy.Channel(0,x(v))(current_node._data);
-                        tmp_mat+=Matrix<T,d>::Outer_Product(v_vec,weight_grad);}}
+                        tmp_mat+=Matrix<T,d>::Outer_Product(weight_grad,v_vec);}}}
             Matrix<T,d> F=p.constitutive_model.Fe; const T kp=(T)1e4; const T saturation=p.saturation; const T eta=p.constitutive_model.eta;
             tmp_mat=F.Times_Transpose(p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F)));//-eta*kp*saturation*Times_Cofactor_Matrix_Derivative(F,tmp_mat.Transpose_Times(F)));
             p.scp=p.volume*tmp_mat;}
@@ -92,13 +95,13 @@ class MPM_CG_System: public Krylov_System_Base<T>
             T_INDEX closest_node=grid.Closest_Node(p.X); 
             for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){
                 T_INDEX current_node=closest_node+iterator.Index();
-                if(grid.Node_Indices().Inside(current_node))
-                    if(hierarchy.Channel(0,flags)(current_node._data)&Node_Saturated){
-                        const TV current_node_location=grid.Node(current_node);
-                        T weight=N2<T,d>(p.X-current_node_location,one_over_dX);
+                if(grid.Node_Indices().Inside(current_node)){
+                    const TV current_node_location=grid.Node(current_node);
+                    T weight=N2<T,d>(p.X-current_node_location,one_over_dX);
+                    if(weight>(T)0.){
                         TV weight_grad=dN2<T,d>(p.X-current_node_location,one_over_dX);
                         TV tmp_vec=p.scp.Transpose_Times(weight_grad); 
-                        for(int v=0;v<d;++v) hierarchy.Channel(0,f(v))(current_node._data)+=tmp_vec(v);}}}
+                        for(int v=0;v<d;++v) hierarchy.Channel(0,f(v))(current_node._data)+=tmp_vec(v);}}}}
     }
 
     void Project(Vector_Base& v) const
@@ -106,10 +109,9 @@ class MPM_CG_System: public Krylov_System_Base<T>
         Channel_Vector& v_channels              = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(v).channel;
 
         for(int level=0;level<hierarchy.Levels();++level)
-            Clear_Non_Active_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v_channels);
+            Clear_Non_Active_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v_channels,barriers);
     }
 
-    // why is it double
     double Inner_Product(const Vector_Base& v1,const Vector_Base& v2) const
     {
         const Hierarchy& v1_hierarchy           = MPM_CG_Vector<Struct_type,T,d>::Hierarchy(v1);
@@ -129,12 +131,12 @@ class MPM_CG_System: public Krylov_System_Base<T>
     T Convergence_Norm(const Vector_Base& v) const
     {
         Channel_Vector& v_channels              = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(v).channel;
-        T max_value=(T)0.;
+        T result=(T)0.;
 
         for(int level=0;level<hierarchy.Levels();++level)
             Convergence_Norm_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
-                                                     v_channels,max_value,(unsigned)Node_Saturated);
-        return max_value;
+                                                     v_channels,result,(unsigned)Node_Saturated);
+        return result;
     }
 
     void Apply_Preconditioner(const Vector_Base& r,Vector_Base& z) const

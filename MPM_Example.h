@@ -49,15 +49,12 @@ inline T dN2(const Vector<T,d> X,const int axis,const Vector<T,d> one_over_dX)
     return value;
 }
 template<class T,int d>
-inline Vector<T,d> dN2(const Vector<T,d>& X,const Vector<T,d> one_over_dX)
+inline Vector<T,d> dN2(const Vector<T,d> X,const Vector<T,d> one_over_dX)
 {
     Vector<T,d> value=Vector<T,d>();
     for(int axis=0;axis<d;++axis) value(axis)=dN2(X,axis,one_over_dX);
     return value;
 }
-
-
-
 template<class T,int d>
 static T N3(const T x)
 {
@@ -66,7 +63,7 @@ static T N3(const T x)
     else return (T)0.;
 }
 template<class T,int d>
-inline T N3(const Vector<T,d>& X,const Vector<T,d> one_over_dX)
+inline T N3(const Vector<T,d> X,const Vector<T,d> one_over_dX)
 {
     T value=(T)1.;
     for(int axis=0;axis<d;++axis) value*=N3(X(axis)*one_over_dX(axis));
@@ -90,7 +87,7 @@ inline T dN3(const Vector<T,d> X,const int axis,const Vector<T,d> one_over_dX)
     return value;
 }
 template<class T,int d>
-inline Vector<T,d> dN3(const Vector<T,d>& X,const Vector<T,d> one_over_dX)
+inline Vector<T,d> dN3(const Vector<T,d> X,const Vector<T,d> one_over_dX)
 {
     Vector<T,d> value=Vector<T,d>();
     for(int axis=0;axis<d;++axis) value(axis)=dN3(X,axis,one_over_dX);

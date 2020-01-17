@@ -24,16 +24,17 @@ class Compare_Helper
     Compare_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* channel1,T Struct_type::* channel2)
     {Run(allocator,blocks,channel1,channel2);}
 
-    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::*channel1,T Struct_type::* channel2) const
+    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* channel1,T Struct_type::* channel2) const
     {
         auto c1=allocator.template Get_Const_Array<Struct_type,T>(channel1);
         auto c2=allocator.template Get_Const_Array<Struct_type,T>(channel2);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        T l2_norm;
+        T l2_norm=(T)0.;;
         auto compare_helper=[&](uint64_t offset, T& l2_norm)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Node_Saturated) l2_norm+=fabs(Nova_Utilities::Sqr(c1(offset)-c2(offset)));
+                if(flags(offset)&Node_Saturated) 
+                    l2_norm+=fabs(Nova_Utilities::Sqr(c1(offset)-c2(offset)));
         };
         for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
             uint64_t offset=iterator.Offset();
