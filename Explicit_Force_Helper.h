@@ -23,16 +23,14 @@ class Explicit_Force_Helper
 
   public:
     Explicit_Force_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-                                  Channel_Vector f_channels,Channel_Vector velocity_channels,Channel_Vector& velocity_star_channels,
-                                  T Struct_type::* mass_channel,unsigned Struct_type::* flags_channel,const T dt)
-    {Run(allocator,blocks,f_channels,velocity_channels,velocity_star_channels,mass_channel,flags_channel,dt);}
+                                  Channel_Vector f_channels,Channel_Vector velocity_channels,Channel_Vector& velocity_star_channels,const T dt)
+    {Run(allocator,blocks,f_channels,velocity_channels,velocity_star_channels,dt);}
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-             Channel_Vector f_channels,Channel_Vector velocity_channels,Channel_Vector& velocity_star_channels,
-             T Struct_type::* mass_channel,unsigned Struct_type::* flags_channel,const T dt) const
+             Channel_Vector f_channels,Channel_Vector velocity_channels,Channel_Vector& velocity_star_channels,const T dt) const
     {
-        auto mass=allocator.template Get_Const_Array<Struct_type,T>(mass_channel);
-        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(flags_channel);
+        auto mass=allocator.template Get_Const_Array<Struct_type,T>(&Struct_type::ch0);
+        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto explicit_velocity_update_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
@@ -40,9 +38,6 @@ class Explicit_Force_Helper
                 for(int v=0;v<d;++v){
                     allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)=allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)
                                                                                                         +dt/mass(offset)*allocator.template Get_Array<Struct_type,T>(f_channels(v))(offset);
-                // Log::cout<<"vi: "<<allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)
-                // <<", dt/mass: "<< dt/mass(offset) <<", fi: "<< allocator.template Get_Array<Struct_type,T>(f_channels(v))(offset)
-                // <<", v*i: "<<allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)<<std::endl;
             }}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,explicit_velocity_update_helper);        

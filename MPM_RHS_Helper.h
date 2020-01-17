@@ -22,10 +22,10 @@ class MPM_RHS_Helper
     using Flag_array_mask       = typename Allocator_type::template Array_mask<unsigned>;
 
   public:
-    MPM_RHS_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& rhs_channels,Channel_Vector velocity_star_channels)
-    {Run(allocator,blocks,rhs_channels,velocity_star_channels);}
+    MPM_RHS_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector velocity_star_channels,Channel_Vector& rhs_channels)
+    {Run(allocator,blocks,velocity_star_channels,rhs_channels);}
 
-    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& rhs_channels,Channel_Vector& velocity_star_channels) const
+    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector velocity_star_channels,Channel_Vector& rhs_channels) const
     {
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto mpm_rhs_helper=[&](uint64_t offset)

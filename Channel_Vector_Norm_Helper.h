@@ -21,12 +21,12 @@ class Channel_Vector_Norm_Helper
     using Block_Iterator        = SPGrid::SPGrid_Block_Iterator<Flag_array_mask>;
 
   public:
-    Channel_Vector_Norm_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector channel_vector,unsigned Struct_type::* flags_channel)
-    {Run(allocator,blocks,channel_vector,flags_channel);}
+    Channel_Vector_Norm_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector channel_vector)
+    {Run(allocator,blocks,channel_vector);}
 
-    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector channel_vector,unsigned Struct_type::* flags_channel) const
+    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector channel_vector) const
     {
-        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(flags_channel);
+        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         T result=(T)0.;
         auto channel_vector_norm_helper=[&](uint64_t offset,T& result)
         {

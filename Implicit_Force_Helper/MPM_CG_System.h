@@ -9,6 +9,7 @@
 #include <nova/Tools/Krylov_Solvers/Krylov_System_Base.h>
 #include <nova/Dynamics/Hierarchy/Grid_Hierarchy.h>
 #include <nova/SPGrid/Tools/SPGrid_Clear.h>
+#include <nova/SPGrid/Core/SPGrid_Allocator.h>
 #include <nova/Tools/Matrices/Matrix_2x2.h>
 #include <nova/Tools/Matrices/Matrix_3x3.h>
 #include <nova/Tools/Matrices/Diagonal_Matrix.h>
@@ -40,8 +41,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
   public:
     Hierarchy& hierarchy;
     Array<T_Particle>& particles;
-    Array<int> simulated_particles;
-    T Struct_type::* mass_channel;
+    Array<int>& simulated_particles;
     const T trapezoidal;
     const T dt;
 
@@ -65,34 +65,40 @@ class MPM_CG_System: public Krylov_System_Base<T>
     
     void Force(Channel_Vector& f,const Channel_Vector& x) const
     {
+        unsigned Struct_type::* flags=&Struct_type::flags;
         const Grid<T,d>& grid=hierarchy.Lattice(0);
         const TV one_over_dX=grid.one_over_dX;
-#pragma omp parallel for
+//#pragma omp parallel for
         for(int i=0;i<simulated_particles.size();++i){
             int id=simulated_particles(i); T_Particle& p=particles(id);
-            Matrix<T,d> tmp_mat=Matrix<T,d>();
+            Matrix<T,d> tmp_mat;
+            int cnt=0;
             T_INDEX closest_node=grid.Closest_Node(p.X); 
             for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){
                 T_INDEX current_node=closest_node+iterator.Index();
-                if(grid.Node_Indices().Inside(current_node)){
-                    const TV current_node_location=grid.Node(current_node); TV weight_grad=dN2<T,d>(p.X-current_node_location,one_over_dX);
-                    tmp_mat+=Matrix<T,d>::Outer_Product(current_node_location,weight_grad);}}
+                if(grid.Node_Indices().Inside(current_node))                    
+                    if(hierarchy.Channel(0,flags)(current_node._data)&Node_Saturated){
+                        const TV current_node_location=grid.Node(current_node); 
+                        TV weight_grad=dN2<T,d>(p.X-current_node_location,one_over_dX), v_vec;
+                        for(int v=0;v<d;++v) v_vec(v)=hierarchy.Channel(0,x(v))(current_node._data);
+                        tmp_mat+=Matrix<T,d>::Outer_Product(v_vec,weight_grad);}}
             Matrix<T,d> F=p.constitutive_model.Fe; const T kp=(T)1e4; const T saturation=p.saturation; const T eta=p.constitutive_model.eta;
-            tmp_mat=F.Times_Transpose(p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F))
-                                        -eta*kp*saturation*Times_Cofactor_Matrix_Derivative(F,tmp_mat.Transpose_Times(F)));
+            tmp_mat=F.Times_Transpose(p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F)));//-eta*kp*saturation*Times_Cofactor_Matrix_Derivative(F,tmp_mat.Transpose_Times(F)));
             p.scp=p.volume*tmp_mat;}
-        
-        for(int level=0;level<hierarchy.Levels();++level) for(int v=0;v<d;++v) SPGrid::Masked_Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),f(v),(unsigned)Node_Saturated);  
+        for(int level=0;level<hierarchy.Levels();++level) for(int v=0;v<d;++v) SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),f(v));  
         
         for(int i=0;i<simulated_particles.size();++i){
             int id=simulated_particles(i); T_Particle& p=particles(id);
             T_INDEX closest_node=grid.Closest_Node(p.X); 
             for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){
                 T_INDEX current_node=closest_node+iterator.Index();
-                if(grid.Node_Indices().Inside(current_node)){
-                    const TV current_node_location=grid.Node(current_node); TV weight_grad=dN2<T,d>(p.X-current_node_location,one_over_dX);
-                    TV tmp_vec=p.scp.Transpose_Times(weight_grad); 
-                    for(int v=0;v<d;++v) hierarchy.Channel(0,f(v))(current_node._data)+=tmp_vec(v);}}}
+                if(grid.Node_Indices().Inside(current_node))
+                    if(hierarchy.Channel(0,flags)(current_node._data)&Node_Saturated){
+                        const TV current_node_location=grid.Node(current_node);
+                        T weight=N2<T,d>(p.X-current_node_location,one_over_dX);
+                        TV weight_grad=dN2<T,d>(p.X-current_node_location,one_over_dX);
+                        TV tmp_vec=p.scp.Transpose_Times(weight_grad); 
+                        for(int v=0;v<d;++v) hierarchy.Channel(0,f(v))(current_node._data)+=tmp_vec(v);}}}
     }
 
     void Project(Vector_Base& v) const
@@ -114,6 +120,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
         assert(&hierarchy == &v2_hierarchy);
 
         double result=(T)0.;
+
         for(int level=0;level<hierarchy.Levels();++level)
             Inner_Product_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v1_channels,v2_channels,result,(unsigned)Node_Saturated);
         return result;
@@ -127,7 +134,6 @@ class MPM_CG_System: public Krylov_System_Base<T>
         for(int level=0;level<hierarchy.Levels();++level)
             Convergence_Norm_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
                                                      v_channels,max_value,(unsigned)Node_Saturated);
-
         return max_value;
     }
 

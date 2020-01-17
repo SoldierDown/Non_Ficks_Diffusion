@@ -20,15 +20,13 @@ class Velocity_Normalization_Helper
     using Flag_array_mask       = typename Allocator_type::template Array_mask<unsigned>;
 
   public:
-    Velocity_Normalization_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-                                  Channel_Vector& velocity_channels,T Struct_type::* mass_channel,unsigned Struct_type::* flags_channel)
-    {Run(allocator,blocks,velocity_channels,mass_channel,flags_channel);}
+    Velocity_Normalization_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& velocity_channels)
+    {Run(allocator,blocks,velocity_channels);}
 
-    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-             Channel_Vector& velocity_channels,T Struct_type::* mass_channel,unsigned Struct_type::* flags_channel) const
+    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& velocity_channels) const
     {
-        auto mass=allocator.template Get_Const_Array<Struct_type,T>(mass_channel);
-        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(flags_channel);
+        auto mass=allocator.template Get_Const_Array<Struct_type,T>(&Struct_type::ch0);
+        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto velocity_normalization_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
@@ -38,11 +36,10 @@ class Velocity_Normalization_Helper
         SPGrid_Computations::Run_Parallel_Blocks(blocks,velocity_normalization_helper);
     }
 
-    void Min_Max(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-             Channel_Vector& velocity_channels,T Struct_type::* mass_channel,unsigned Struct_type::* flags_channel) const
+    void Min_Max(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& velocity_channels) const
     {
-        auto mass=allocator.template Get_Const_Array<Struct_type,T>(mass_channel);
-        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(flags_channel);
+        auto mass=allocator.template Get_Const_Array<Struct_type,T>(&Struct_type::ch0);
+        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto min_max_helper=[&](uint64_t offset)
         {
             T min_mass=FLT_MAX, max_mass=-FLT_MAX;

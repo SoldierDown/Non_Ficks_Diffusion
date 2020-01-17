@@ -95,7 +95,7 @@ class MPM_CG_Vector: public Krylov_Vector_Base<T>
         assert(&hierarchy == &bv1_hierarchy);
         assert(&hierarchy == &bv2_hierarchy);
 
-        for(int level=0;level<hierarchy.Levels();++level) for(int v=0;v<d;v++)
+        for(int level=0;level<hierarchy.Levels();++level) for(int v=0;v<d;++v)
             SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),c1,bv1_channel(v),
                                                   bv2_channel(v),channel(v),(unsigned)Node_Saturated);
     }

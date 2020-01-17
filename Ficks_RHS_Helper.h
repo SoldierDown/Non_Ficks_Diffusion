@@ -27,15 +27,14 @@ class Ficks_RHS_Helper
 
   public:
     Ficks_RHS_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-                                  T Struct_type::* saturation_channel,T Struct_type::* rhs_channel,unsigned Struct_type::* flags_channel,const T a)
-    {Run(allocator,blocks,saturation_channel,rhs_channel,flags_channel,a);}
+                                  T Struct_type::* saturation_channel,T Struct_type::* rhs_channel,const T a)
+    {Run(allocator,blocks,saturation_channel,rhs_channel,a);}
 
-    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-                                  T Struct_type::* saturation_channel,T Struct_type::* rhs_channel,unsigned Struct_type::* flags_channel,const T a) const
+    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* saturation_channel,T Struct_type::* rhs_channel,const T a) const
     {
         auto saturation=allocator.template Get_Const_Array<Struct_type,T>(saturation_channel);
         auto rhs=allocator.template Get_Array<Struct_type,T>(rhs_channel);
-        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(flags_channel);
+        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         uint64_t face_neighbor_offsets[Topology_Helper::number_of_faces_per_cell];
         Topology_Helper::Face_Neighbor_Offsets(face_neighbor_offsets);
         auto ficks_rhs_helper=[&](uint64_t offset)
