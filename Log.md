@@ -37,3 +37,8 @@
 01/16/2020  
 ##### Summary  
 - Rasterize in parallel 
+
+01/17/2020  
+##### Summary  
+- delete remote branch:  
+`git push origin --delete <branch name> `
