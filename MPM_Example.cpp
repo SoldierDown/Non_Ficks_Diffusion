@@ -52,7 +52,7 @@ MPM_Example()
     Fc=(T)0.;
     gravity=TV::Axis_Vector(1)*(T)0.;
     flip=(T).9;
-    FICKS=true;
+    FICKS=false;
     explicit_diffusion=false;
      
     flags_channel                           = &Struct_type::flags;
@@ -189,7 +189,7 @@ Compute_Bounding_Box(Range<T,d>& bbox)
     
     for(int v=0;v<d;++v){ 
         bbox.min_corner(v)=std::max((T)0.,bbox.min_corner(v));
-        bbox.max_corner(v)=std::min((T)1.,bbox.max_corner(v));}
+        bbox.max_corner(v)=std::min((T)5.,bbox.max_corner(v));}
     Log::cout<<bbox.min_corner<<bbox.max_corner<<std::endl;
 }
 //######################################################################
@@ -447,7 +447,7 @@ Update_Particle_Velocities_And_Positions(const T dt)
     Array<Array<int> > remove_indices(threads);
     const Grid<T,d>& grid=hierarchy->Lattice(0);
     const TV one_over_dX=grid.one_over_dX;
-//#pragma omp parallel for
+#pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i); 
         T_Particle &p=particles(id);
@@ -494,9 +494,7 @@ Apply_Force(const T dt)
     Reset_Solver_Channels();
     MPM_CG_Vector<Struct_type,T,d> solver_vp(*hierarchy,velocity_star_channels),solver_rhs(*hierarchy,rhs_channels),solver_q(*hierarchy,q_channels),solver_s(*hierarchy,s_channels),solver_r(*hierarchy,r_channels),solver_k(*hierarchy,z_channels),solver_z(*hierarchy,z_channels);
     solver->Solve(mpm_system,solver_vp,solver_rhs,solver_q,solver_s,solver_r,solver_k,solver_z,solver_tolerance,0,solver_iterations);
-    for(int level=0;level<levels;++level) for(int v=0;v<d;++v) Compare_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels(v),solver_vp.channel(v));     
-    
-    }
+}
 
 }
 //######################################################################
@@ -561,8 +559,8 @@ Register_Options()
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
     parse_args->Add_Double_Argument("-cfl",(T)0.1,"CFL number.");
-    if(d==2) parse_args->Add_Vector_2D_Argument("-size",Vector<double,2>(32.),"n","Grid resolution");
-    else if(d==3) parse_args->Add_Vector_3D_Argument("-size",Vector<double,3>(32.),"n","Grid resolution");
+    if(d==2) parse_args->Add_Vector_2D_Argument("-size",Vector<double,2>(100.),"n","Grid resolution");
+    else if(d==3) parse_args->Add_Vector_3D_Argument("-size",Vector<double,3>(100.),"n","Grid resolution");
 }
 //######################################################################
 // Test

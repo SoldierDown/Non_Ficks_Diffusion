@@ -10,7 +10,7 @@
 #include <nova/SPGrid/Core/SPGrid_Allocator.h>
 #include <nova/SPGrid/Tools/SPGrid_Threading_Helper.h>
 #include <nova/Dynamics/Hierarchy/Grid_Topology_Helper.h>
-#include <nova/SPGrid/Tools/SPGrid_Block_Iterator.h>
+// #include <nova/SPGrid/Tools/SPGrid_Block_Iterator.h>
 #include <nova/Tools/Vectors/Vector.h>
 #include "MPM_Flags.h"
 
@@ -23,7 +23,7 @@ class Non_Ficks_RHS_Helper
     using Allocator_type        = SPGrid::SPGrid_Allocator<Struct_type,d>;
     using Flag_array_mask       = typename Allocator_type::template Array_mask<unsigned>;
     using Topology_Helper       = Grid_Topology_Helper<Flag_array_mask>;
-    using Block_Iterator        = SPGrid::SPGrid_Block_Iterator<Flag_array_mask>;
+    // using Block_Iterator        = SPGrid::SPGrid_Block_Iterator<Flag_array_mask>;
 
   public:
     Non_Ficks_RHS_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
@@ -49,10 +49,7 @@ class Non_Ficks_RHS_Helper
                         if((flags(neighbor_offset)&Node_Active)&&(!(flags(neighbor_offset)&Node_Saturated))) 
                             rhs(offset)+=coeff1*saturation(neighbor_offset);}}}
         };
-
-        for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
-            uint64_t offset=iterator.Offset();
-            non_ficks_rhs_helper(offset);}
+        SPGrid_Computations::Run_Parallel_Blocks(blocks,non_ficks_rhs_helper);
     }
 
 };

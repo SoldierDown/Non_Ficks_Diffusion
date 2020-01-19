@@ -34,9 +34,8 @@ class Traverse_Helper
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
                 if(flags(offset)&Node_Saturated) if(c1(offset)!=c2(offset))  Log::cout<<"\n**********NOT EQUAL!**********\n"<<c1(offset)-c2(offset)<<std::endl;
         };
-        for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
-            uint64_t offset=iterator.Offset();
-            traverse_helper(offset);}
+        
+        SPGrid_Computations::Run_Parallel_Blocks(blocks,traverse_helper);
     }
 };
 }

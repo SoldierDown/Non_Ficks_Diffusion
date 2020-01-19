@@ -45,12 +45,8 @@ class Diffusion_Multiply_Helper
                         if(flags(neighbor_offset)&Node_Saturated) result(offset)-=a*x(neighbor_offset); }
                         }}
         };
-        // SPGrid_Computations::Run_Parallel_Blocks(blocks,ficks_diffusion_multiply_helper);
-        for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
-            uint64_t offset=iterator.Offset();
-            ficks_diffusion_multiply_helper(offset);}
+        SPGrid_Computations::Run_Parallel_Blocks(blocks,ficks_diffusion_multiply_helper);
         }
-        
         else{
         auto x=allocator.template Get_Const_Array<Struct_type,T>(x_channel);
         auto result=allocator.template Get_Array<Struct_type,T>(result_channel);
@@ -64,11 +60,7 @@ class Diffusion_Multiply_Helper
                 if(flags(offset)&Node_Saturated){ result(offset)=(1.+4.*coeff1)*x(offset);
                     for(int face=0;face<Topology_Helper::number_of_faces_per_cell;++face){
                         int64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
-                        if(flags(neighbor_offset)&Node_Saturated) result(offset)-=coeff1*x(neighbor_offset); }
-                        
-                        // Log::cout<<result(offset)-x(offset)<<std::endl;
-                }
-            }
+                        if(flags(neighbor_offset)&Node_Saturated) result(offset)-=coeff1*x(neighbor_offset);}}}
         };
 
         SPGrid_Computations::Run_Parallel_Blocks(blocks,non_ficks_diffusion_multiply_helper);}

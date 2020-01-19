@@ -30,12 +30,10 @@ class Diffusion_Inner_Product_Helper
         double temp_result=(T)0.;
 
 #pragma omp parallel for reduction(+:temp_result)
-        for(int b=0;b<blocks.second;b++){uint64_t offset=blocks.first[b];
+        for(int b=0;b<blocks.second;b++){
+            uint64_t offset=blocks.first[b];
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&mask) {temp_result+=data1(offset)*data2(offset);
-                    // Log::cout<<"1: "<<data1(offset)<<", 2: "<<data2(offset)<<", temp: "<<temp_result<<std::endl;
-                }
-        }
+                if(flags(offset)&mask) temp_result+=data1(offset)*data2(offset);}
         result+=temp_result;
     }
 };

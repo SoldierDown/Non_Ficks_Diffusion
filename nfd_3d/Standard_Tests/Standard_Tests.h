@@ -39,31 +39,49 @@ class Standard_Tests: public MPM_Example<T,d>
         Base::Parse_Options();
         output_directory="nfd_3d_"+std::to_string(test_number);
 
-        domain.min_corner=TV();domain.max_corner=TV(1);
+        domain.min_corner=TV();domain.max_corner=TV({5.,5.,5.});
     }
 //######################################################################
     void Initialize_Particles(int test_case) override
     {
         Log::Scope scope("Initialize_Particles");
-
-        const T mass_density=(T)2.;
-        const int number_of_particles=200;
-        const Range<T,d> block(TV({.3,.7,.4}),TV({.7,.9,.6}));
-        const T block_area=block.Size();
-        const T area_per_particle=block_area/number_of_particles;
-
-        const T E=100,nu=0.4;
-        Random_Numbers<T> random;
-        random.Set_Seed(0);
-
-        particles.resize(number_of_particles);
-        for(int i=0;i<number_of_particles;++i){
-            particles(i).X=random.Get_Uniform_Vector(block);
-            particles(i).mass=mass_density*area_per_particle;
-            particles(i).constitutive_model.Compute_Lame_Parameters(E,nu);
+        switch (test_case)
+        {
+        case 1:{
+            Random_Numbers<T> random;
+            random.Set_Seed(0);
+            {
+                const T solid_density=(T)10.;
+                const T fluid_density=(T)1.;
+                const int number_of_particles=40000;
+                const Range<T,d> block(TV({2.4,2.4,2.49}),TV({2.6,2.6,2.51}));
+                const T block_area=block.Area();
+                const T area_per_particle=block_area/number_of_particles;
+                std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
+                const T E=(T)100.,nu=(T).4;
+                for(int i=0;i<number_of_particles;++i){
+                    T_Particle p;
+                    p.X=random.Get_Uniform_Vector(block);
+                    p.V=TV();
+                    p.constitutive_model.Compute_Lame_Parameters(E,nu);
+                    p.constitutive_model.eta=(T)1.;
+                    p.constitutive_model.plastic=false;
+                    p.saturation=(T)0.;
+                    p.volume_fraction_0=(T).7;
+                    p.mass_solid=solid_density*area_per_particle*((T)1.-p.volume_fraction_0);
+                    p.mass_fluid=fluid_density*p.saturation*area_per_particle*p.volume_fraction_0;
+                    p.mass=p.mass_solid+p.mass_fluid;
+                    particles.Append(p);
+                }  
+            }
         }
-    }
-//######################################################################
+    break;
+
+    default:
+        break;
+    }}
 };
+//######################################################################
 }
+
 #endif

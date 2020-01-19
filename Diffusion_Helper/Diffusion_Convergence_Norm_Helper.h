@@ -27,13 +27,14 @@ class Diffusion_Convergence_Norm_Helper
     {
         auto data=allocator.template Get_Const_Array<Struct_type,T>(channel);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        T max_value=0;
-
-#pragma omp parallel for reduction(max:max_value)
-        for(int b=0;b<blocks.second;b++){uint64_t offset=blocks.first[b];
+        T temp_result=(T)0.;
+#pragma omp parallel for reduction(+:temp_result)
+        for(int b=0;b<blocks.second;b++){
+            uint64_t offset=blocks.first[b];
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&mask) max_value=std::max(max_value,std::fabs(data(offset)));}
-        result=std::max(result,max_value);
+                if(flags(offset)&mask) temp_result+=Nova_Utilities::Sqr(data(offset));}
+        result+=temp_result;
+        result=std::sqrt(result);
     }
 };
 }

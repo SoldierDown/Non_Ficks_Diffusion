@@ -28,19 +28,14 @@ class Convergence_Norm_Helper
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
              Channel_Vector channels,T& result,const unsigned mask) const
     {
-        result=(T)0.;
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        auto convergence_norm_helper=[&](uint64_t offset,T& result)
-        {
+        double temp_result=(T)0.;
+#pragma omp parallel for reduction(+:temp_result)
+        for(int b=0;b<blocks.second;b++){
+            uint64_t offset=blocks.first[b];
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&mask) for(int v=0;v<d;++v) 
-                  result+=Nova_Utilities::Sqr(allocator.template Get_Array<Struct_type,T>(channels(v))(offset));
-        };
-
-        for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
-            uint64_t offset=iterator.Offset();
-            convergence_norm_helper(offset,result);}
-            result=std::sqrt(result);
+                if(flags(offset)&mask) for(int v=0;v<d;++v) temp_result+=Nova_Utilities::Sqr(allocator.template Get_Const_Array<Struct_type,T>(channels(v))(offset));}
+        result=std::sqrt(temp_result);
     }
 };
 }
