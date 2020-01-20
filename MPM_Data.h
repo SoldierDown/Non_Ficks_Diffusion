@@ -37,7 +37,6 @@ struct MPM_Data
     T ch15;         // rhs-x
     T ch16;         // rhs-y
     T ch17;         // rhs-z
-
     T ch18;         // q-x
     T ch19;         // q-y
     T ch20;         // q-z

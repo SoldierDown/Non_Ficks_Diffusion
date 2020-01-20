@@ -42,8 +42,7 @@ class Diffusion_Multiply_Helper
                 if(flags(offset)&Node_Saturated){ result(offset)=four_a_plus_one*x(offset);
                     for(int face=0;face<Topology_Helper::number_of_faces_per_cell;++face){
                         int64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
-                        if(flags(neighbor_offset)&Node_Saturated) result(offset)-=a*x(neighbor_offset); }
-                        }}
+                        if(flags(neighbor_offset)&Node_Saturated) result(offset)-=a*x(neighbor_offset);}}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,ficks_diffusion_multiply_helper);
         }

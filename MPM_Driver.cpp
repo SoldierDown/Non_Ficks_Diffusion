@@ -56,7 +56,7 @@ template<class T,int d> void MPM_Driver<T,d>::
 Advance_To_Target_Time(const T target_time)
 {
     T min_dt=(T)1e-6;
-    T max_dt=(T).005;
+    T max_dt=(T).001;
     T cfl=example.cfl;
     T dx_min=example.hierarchy->Lattice(0).dX(0);
     bool done=false;
@@ -65,6 +65,7 @@ Advance_To_Target_Time(const T target_time)
         T max_v=example.Max_Particle_Velocity();
         Log::Scope scope("SUBSTEP","substep "+std::to_string(substep));
         T dt=std::max(min_dt,std::min(max_dt,cfl*dx_min/std::max(max_v,(T)1e-2)));
+        // dt/=(T)10.;
         // Example<T,d>::Clamp_Time_Step_With_Target_Time(time,target_time,dt,done);
         if(target_time-time<dt*1.001){
             dt=target_time-time;

@@ -101,7 +101,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
                         TV weight_grad=dN2<T,d>(p.X-current_node_location,one_over_dX),v_vec;
                         for(int v=0;v<d;++v) v_vec(v)=hierarchy.Channel(0,x(v))(current_node._data);
                         tmp_mat+=Matrix<T,d>::Outer_Product(weight_grad,v_vec);}}}
-            Matrix<T,d> F=p.constitutive_model.Fe; const T kp=(T)1e4; const T saturation=p.saturation; const T eta=p.constitutive_model.eta;
+            Matrix<T,d> F=p.constitutive_model.Fe; const T kp=(T)1e4; const T saturation=p.saturation; const T eta=p.constitutive_model.eta*saturation;
             tmp_mat=F.Times_Transpose(p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F))-eta*kp*saturation*Times_Cofactor_Matrix_Derivative(F,tmp_mat.Transpose_Times(F)));
             p.scp=p.volume*tmp_mat;}
         if(print_running_time){high_resolution_clock::time_point te1=high_resolution_clock::now();

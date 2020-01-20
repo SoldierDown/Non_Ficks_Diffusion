@@ -264,18 +264,18 @@ class Standard_Tests: public MPM_Example<T,d>
             {
                 const T solid_density=(T)10.;
                 const T fluid_density=(T)1.;
-                const int number_of_particles=2000;
+                const int number_of_particles=10000;
                 const Range<T,d> block(TV({.4,.4}),TV({.6,.6}));
                 const T block_area=block.Area();
                 const T area_per_particle=block_area/number_of_particles;
                 std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
-                const T E=(T)40.,nu=(T).4;
+                const T E=(T)100.,nu=(T).4;
                 for(int i=0;i<number_of_particles;++i){
                     T_Particle p;
                     p.X=random.Get_Uniform_Vector(block);
                     p.V=TV();
                     p.constitutive_model.Compute_Lame_Parameters(E,nu);
-                    p.constitutive_model.eta=(T)0.01;
+                    p.constitutive_model.eta=(T).1;
                     p.constitutive_model.plastic=false;
                     p.saturation=(T)0.;
                     p.volume_fraction_0=(T).7;
