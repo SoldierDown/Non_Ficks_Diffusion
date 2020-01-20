@@ -9,6 +9,7 @@
 #include <nova/Tools/Random_Numbers/Random_Numbers.h>
 #include <nova/Tools/Utilities/Range.h>
 #include "../../MPM_Example.h"
+#include "../../MPM_Plane_Barrier.h"
 
 namespace Nova{
 template<class T,int d>
@@ -17,12 +18,13 @@ class Standard_Tests: public MPM_Example<T,d>
     using TV                = Vector<T,d>;
     using Base              = MPM_Example<T,d>;
     using T_Particle        = MPM_Particle<T,d>;
+    using T_Barrier         = MPM_Plane_Barrier<T,d>;
     using Struct_type       = MPM_Data<T>;
     using Hierarchy         = Grid_Hierarchy<Struct_type,T,d>;
 
   public:
     using Base::output_directory;using Base::test_number;using Base::particles;using Base::parse_args;using Base::counts;using Base::domain;
-
+    using Base::barriers;
     /****************************
      * example explanation:
      *
@@ -44,24 +46,71 @@ class Standard_Tests: public MPM_Example<T,d>
 //######################################################################
     void Initialize_Particles(int test_case) override
     {
-        Log::Scope scope("Initialize_Particles");
+        switch(test_case)
+        {
+        case 18:{
+            Random_Numbers<T> random;
+            random.Set_Seed(0);
+            T_Barrier ceiling(0.,TV({0.,-1.,0.}),TV({0.,1.,0.}),.9);
+            Base::barriers.Append(ceiling);
+            T_Barrier ground(0.,TV({0.,1.,0.}),TV({0.,1.,0.}),.1);
+            barriers.Append(ground);
 
-        const T mass_density=(T)2.;
-        const int number_of_particles=200;
-        const Range<T,d> block(TV({.3,.7,.4}),TV({.7,.9,.6}));
-        const T block_area=block.Size();
-        const T area_per_particle=block_area/number_of_particles;
+            {
+                const T mass_density=(T)2.;
+                const int number_of_particles=20000;
+                const Sphere<T,d> ball(TV({.8,.5,.5}),.1);
+                const T block_area=ball.Size();
+                const T area_per_particle=block_area/number_of_particles;
+                std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
+                const T E=(T)30.,nu=(T).4;
+                for(int i=0;i<number_of_particles;++i){
+                    T_Particle p;
+                    p.X=random.Get_Vector_In_Sphere(ball)+ball.center;
+                    p.V(0)=(T)-2.;
+                    p.V(1)=(T).1;
+                    p.mass=mass_density*area_per_particle;
+                    p.mass_solid=p.mass;
+                    p.mass_fluid=(T)0.;
+                    p.constitutive_model.Compute_Lame_Parameters(E,nu);
+                    p.constitutive_model.plastic=true;
+                    p.constitutive_model.eta=(T)0.;
+                    p.constitutive_model.stretching_yield=(T)1.01;
+                    p.constitutive_model.compression_yield=(T)0.95;
+                    p.constitutive_model.hardening_factor=(T)10.;
+                    particles.Append(p);
+                }  
+            }
 
-        const T E=100,nu=0.4;
-        Random_Numbers<T> random;
-        random.Set_Seed(0);
-
-        particles.resize(number_of_particles);
-        for(int i=0;i<number_of_particles;++i){
-            particles(i).X=random.Get_Uniform_Vector(block);
-            particles(i).mass=mass_density*area_per_particle;
-            particles(i).constitutive_model.Compute_Lame_Parameters(E,nu);
+            {
+                const T mass_density=(T)2.;
+                const int number_of_particles=20000;
+                const Sphere<T,d> ball(TV({.2,.5,.5}),.1);
+                const T block_area=ball.Size();
+                const T area_per_particle=block_area/number_of_particles;
+                std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
+                const T E=(T)30.,nu=(T).4;
+                for(int i=0;i<number_of_particles;++i){
+                    T_Particle p;
+                    p.X=random.Get_Vector_In_Sphere(ball)+ball.center;
+                    p.V(0)=(T)2.;
+                    p.V(1)=(T).1;
+                    p.mass=mass_density*area_per_particle;
+                    p.mass_solid=p.mass;
+                    p.mass_fluid=(T)0.;
+                    p.constitutive_model.Compute_Lame_Parameters(E,nu);
+                    p.constitutive_model.plastic=true;
+                    p.constitutive_model.eta=(T)0.;
+                    p.constitutive_model.stretching_yield=(T)1.01;
+                    p.constitutive_model.compression_yield=(T)0.95;
+                    p.constitutive_model.hardening_factor=(T)10.;
+                    particles.Append(p);
+                }  
+            }
+        }break;
         }
+
+        
     }
 //######################################################################
 };
