@@ -26,8 +26,6 @@ struct MPM_Data
     T ch8;          // Y-force
     T ch9;          // Z-force
 
-
-    // Hydrogel channels
     T ch10;         // collide nodes
 
     T ch11;         // rhs-x

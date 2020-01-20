@@ -144,7 +144,6 @@ class Standard_Tests: public MPM_Example<T,d>
                     p.X=random.Get_Vector_In_Sphere(ball)+ball.center;
                     p.V(0)=(T)-2.;
                     p.V(1)=(T).1;
-                    // p.V(1)=(T)-2.;
                     p.mass=mass_density*area_per_particle;
                     p.constitutive_model.Compute_Lame_Parameters(E,nu);
                     p.constitutive_model.plastic=true;
@@ -178,11 +177,8 @@ class Standard_Tests: public MPM_Example<T,d>
                     p.V(0)=(T)-2.;
                     p.V(1)=(T).1;
                     p.mass=mass_density*area_per_particle;
-                    p.mass_solid=p.mass;
-                    p.mass_fluid=(T)0.;
                     p.constitutive_model.Compute_Lame_Parameters(E,nu);
                     p.constitutive_model.plastic=true;
-                    p.constitutive_model.eta=(T)0.;
                     p.constitutive_model.stretching_yield=(T)1.01;
                     p.constitutive_model.compression_yield=(T)0.95;
                     p.constitutive_model.hardening_factor=(T)10.;
@@ -204,84 +200,11 @@ class Standard_Tests: public MPM_Example<T,d>
                     p.V(0)=(T)2.;
                     p.V(1)=(T).1;
                     p.mass=mass_density*area_per_particle;
-                    p.mass_solid=p.mass;
-                    p.mass_fluid=(T)0.;
                     p.constitutive_model.Compute_Lame_Parameters(E,nu);
                     p.constitutive_model.plastic=true;
-                    p.constitutive_model.eta=(T)0.;
                     p.constitutive_model.stretching_yield=(T)1.01;
                     p.constitutive_model.compression_yield=(T)0.95;
                     p.constitutive_model.hardening_factor=(T)10.;
-                    particles.Append(p);
-                }  
-            }
-            
-
-        }break;
-        // example 19: standard test
-        case 19:{
-            Random_Numbers<T> random;
-            random.Set_Seed(0);
-            // T_Barrier wall(0.,TV({1.,0.}),.1);
-            // Base::barriers.Append(wall);
-            // T_Barrier ground(0.,TV({0.,1.}),.1);
-            // Base::barriers.Append(ground);
-            // Base::gravity=TV();
-            {
-                const T solid_density=(T)10.;
-                const T fluid_density=(T)1.;
-                const int number_of_particles=2000;
-                const Range<T,d> block(TV({.4,.4}),TV({.6,.6}));
-                const T block_area=block.Area();
-                const T area_per_particle=block_area/number_of_particles;
-                std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
-                const T E=(T)40.,nu=(T).4;
-                for(int i=0;i<number_of_particles;++i){
-                    T_Particle p;
-                    p.X=random.Get_Uniform_Vector(block);
-                    p.V=TV();
-                    p.constitutive_model.Compute_Lame_Parameters(E,nu);
-                    p.constitutive_model.eta=(T)0.01;
-                    p.constitutive_model.plastic=false;
-                    p.saturation=(T)0.;
-                    p.volume_fraction_0=(T)0.;
-                    p.mass_solid=solid_density*area_per_particle*((T)1.-p.volume_fraction_0);
-                    p.mass_fluid=fluid_density*p.saturation*area_per_particle*p.volume_fraction_0;
-                    p.mass=p.mass_solid+p.mass_fluid;
-                    particles.Append(p);
-                }  
-            }
-            
-        }break;
-        case 20:{
-            Random_Numbers<T> random;
-            random.Set_Seed(0);
-            // T_Barrier wall(0.,TV({1.,0.}),.1);
-            // Base::barriers.Append(wall);
-            // T_Barrier ground(0.,TV({0.,1.}),.1);
-            // Base::barriers.Append(ground);
-            // Base::gravity=TV();
-            {
-                const T solid_density=(T)10.;
-                const T fluid_density=(T)1.;
-                const int number_of_particles=2000;
-                const Range<T,d> block(TV({.4,.4}),TV({.6,.6}));
-                const T block_area=block.Area();
-                const T area_per_particle=block_area/number_of_particles;
-                std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
-                const T E=(T)40.,nu=(T).4;
-                for(int i=0;i<number_of_particles;++i){
-                    T_Particle p;
-                    p.X=random.Get_Uniform_Vector(block);
-                    p.V=TV();
-                    p.constitutive_model.Compute_Lame_Parameters(E,nu);
-                    p.constitutive_model.eta=(T)0.;
-                    p.constitutive_model.plastic=false;
-                    p.saturation=(T)0.;
-                    p.volume_fraction_0=(T)0.;
-                    p.mass_solid=solid_density*area_per_particle*((T)1.-p.volume_fraction_0);
-                    p.mass_fluid=fluid_density*p.saturation*area_per_particle*p.volume_fraction_0;
-                    p.mass=p.mass_solid+p.mass_fluid;
                     particles.Append(p);
                 }  
             }

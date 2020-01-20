@@ -70,11 +70,8 @@ class Standard_Tests: public MPM_Example<T,d>
                     p.V(0)=(T)-2.;
                     p.V(1)=(T).1;
                     p.mass=mass_density*area_per_particle;
-                    p.mass_solid=p.mass;
-                    p.mass_fluid=(T)0.;
                     p.constitutive_model.Compute_Lame_Parameters(E,nu);
                     p.constitutive_model.plastic=true;
-                    p.constitutive_model.eta=(T)0.;
                     p.constitutive_model.stretching_yield=(T)1.01;
                     p.constitutive_model.compression_yield=(T)0.95;
                     p.constitutive_model.hardening_factor=(T)10.;
@@ -96,11 +93,8 @@ class Standard_Tests: public MPM_Example<T,d>
                     p.V(0)=(T)2.;
                     p.V(1)=(T).1;
                     p.mass=mass_density*area_per_particle;
-                    p.mass_solid=p.mass;
-                    p.mass_fluid=(T)0.;
                     p.constitutive_model.Compute_Lame_Parameters(E,nu);
                     p.constitutive_model.plastic=true;
-                    p.constitutive_model.eta=(T)0.;
                     p.constitutive_model.stretching_yield=(T)1.01;
                     p.constitutive_model.compression_yield=(T)0.95;
                     p.constitutive_model.hardening_factor=(T)10.;
