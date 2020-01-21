@@ -22,7 +22,6 @@ class Explicit_Lap_Saturation_Helper
     using Allocator_type        = SPGrid::SPGrid_Allocator<Struct_type,d>;
     using Flag_array_mask       = typename Allocator_type::template Array_mask<unsigned>;
     using Topology_Helper       = Grid_Topology_Helper<Flag_array_mask>;
-    // using Block_Iterator        = SPGrid::SPGrid_Block_Iterator<Flag_array_mask>;
 
   public:
     Explicit_Lap_Saturation_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
@@ -43,13 +42,10 @@ class Explicit_Lap_Saturation_Helper
                 if(flags(offset)&Node_Saturated){
                     for(int face=0;face<Topology_Helper::number_of_faces_per_cell;++face){
                         int64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
-                        if(flags(neighbor_offset)&Node_Active) {lap_saturation(offset)+=one_over_dx2*(saturation(neighbor_offset)-saturation(offset));
-                            // Log::cout<<"neighbor: "<<saturation(neighbor_offset)<<", self: "<<saturation(offset)<<std::endl;
-                        }}}}
+                        if(flags(neighbor_offset)&Node_Active) lap_saturation(offset)+=one_over_dx2*(saturation(neighbor_offset)-saturation(offset));}}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,explicit_lap_saturation_helper);
     }
-
 };
 }
 #endif

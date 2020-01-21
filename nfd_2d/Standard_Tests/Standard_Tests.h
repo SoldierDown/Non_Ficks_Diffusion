@@ -256,15 +256,10 @@ class Standard_Tests: public MPM_Example<T,d>
         case 20:{
             Random_Numbers<T> random;
             random.Set_Seed(0);
-            // T_Barrier wall(0.,TV({1.,0.}),.1);
-            // Base::barriers.Append(wall);
-            // T_Barrier ground(0.,TV({0.,1.}),.1);
-            // Base::barriers.Append(ground);
-            // Base::gravity=TV();
             {
                 const T solid_density=(T)10.;
                 const T fluid_density=(T)1.;
-                const int number_of_particles=10000;
+                const int number_of_particles=4000;
                 const Range<T,d> block(TV({.4,.4}),TV({.6,.6}));
                 const T block_area=block.Area();
                 const T area_per_particle=block_area/number_of_particles;

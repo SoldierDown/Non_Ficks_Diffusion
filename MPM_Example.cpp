@@ -47,13 +47,13 @@ MPM_Example()
 {
     solver_tolerance=(T)1e-7;
     solver_iterations=10000;
-    diff_coeff=(T)1.;
+    diff_coeff=(T)1e-3;
     tau=(T)1.;
     Fc=(T)0.;
     gravity=TV::Axis_Vector(1)*(T)0.;
     flip=(T).9;
-    FICKS=false;
-    explicit_diffusion=false;
+    FICKS=true;
+    explicit_diffusion=true;
      
     flags_channel                           = &Struct_type::flags;
     mass_channel                            = &Struct_type::ch0;
@@ -129,11 +129,8 @@ Reset_Grid_Based_Variables()
         Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),void_mass_fluid_channel);
         Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),volume_channel);
         Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_Qc_channel);
-
         Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),collide_nodes_channel);
 
-    
-        
         for(int v=0;v<d;++v) {
             Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),rhs_channels(v));
             Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),q_channels(v));
@@ -156,7 +153,6 @@ Reset_Solver_Channels()
         Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channels(v));
         Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),s_channels(v));
         Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),z_channels(v));}
-
 }
 //######################################################################
 // Compute_Bounding_Box
@@ -174,7 +170,7 @@ Compute_Bounding_Box(Range<T,d>& bbox)
         TV& current_min_corner=min_corner_per_thread(tid);
         TV& current_max_corner=max_corner_per_thread(tid);
         for(int v=0;v<d;++v){
-            T dd=(T)3./counts(v);
+            T dd=(T)5./counts(v);
             current_min_corner(v)=std::min(current_min_corner(v),p.X(v)-dd);
             current_max_corner(v)=std::max(current_max_corner(v),p.X(v)+dd);}}
 
@@ -482,7 +478,7 @@ Apply_Force(const T dt)
 {
     Apply_Explicit_Force(dt);
     Grid_Based_Collison(true);
-    if(true){
+    if(false){
     Conjugate_Gradient<T> cg;
     Krylov_Solver<T>* solver=(Krylov_Solver<T>*)&cg;
     MPM_CG_System<Struct_type,T,d> mpm_system(*hierarchy,simulated_particles,particles,barriers,(T)0.,dt);
@@ -508,7 +504,7 @@ Apply_Explicit_Force(const T dt)
     for(unsigned i=0;i<simulated_particles.size();++i){const int id=simulated_particles(i); T_Particle &p=particles(id); T V0=p.volume;
         Matrix<T,d> P=p.constitutive_model.P(),F=p.constitutive_model.Fe;
         Matrix<T,d> I=Matrix<T,d>::Identity_Matrix();
-        const T saturation=p.saturation; const T eta=p.constitutive_model.eta; const T k_p=(T)1e4;
+        const T saturation=p.saturation; const T eta=p.constitutive_model.eta*saturation; const T k_p=(T)1e4;
         const T mu=p.constitutive_model.mu; const T lambda=p.constitutive_model.lambda; 
         const T J=p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
         Matrix<T,d> extra_sigma=eta*k_p*saturation*I*J;

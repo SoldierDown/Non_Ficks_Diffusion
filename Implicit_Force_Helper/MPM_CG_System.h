@@ -115,7 +115,6 @@ class MPM_CG_System: public Krylov_System_Base<T>
         duration<double> dur2=duration_cast<duration<double> >(te2-tb2);
         Log::cout<< "Clear duration: "<<dur2.count()<<std::endl;}
       
-
         high_resolution_clock::time_point tb3=high_resolution_clock::now();
         for(int i=0;i<simulated_particles.size();++i){
             int id=simulated_particles(i); T_Particle& p=particles(id);

@@ -32,7 +32,7 @@ class Saturation_Normalization_Helper
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                 if(flags(offset)&Node_Saturated) {
                     if(void_mass_fluid(offset)!=(T)0.) saturation(offset)/=void_mass_fluid(offset);
-                }
+                    else saturation(offset)=(T)0.;}
                 else if(flags(offset)&Node_Active) saturation(offset)=(T)1.;
             }
         };
