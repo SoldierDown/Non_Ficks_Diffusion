@@ -1,7 +1,9 @@
 //!#####################################################################
 //! \file MPM_Driver.cpp
 //!#####################################################################
+#include <chrono>
 #include "MPM_Driver.h"
+using namespace std::chrono;
 using namespace Nova;
 //######################################################################
 // Constructor
@@ -20,9 +22,9 @@ Initialize()
     if(!example.restart){
         example.Initialize();
         example.Reset_Grid_Based_Variables();
+        example.Update_Particle_Weights();
+        example.Group_Particles();
         example.Rasterize();
-        // if(example.FICKS) example.Ficks_Diffusion(dt);
-        // else example.Non_Ficks_Diffusion(dt);
         example.Estimate_Particle_Volumes();
         example.Update_Constitutive_Model_State();
         example.Update_Particle_Velocities_And_Positions(dt);
@@ -38,7 +40,7 @@ Test()
 {
     example.Initialize();
     example.Reset_Grid_Based_Variables();
-    // example.Test();
+
 }
 //######################################################################
 // Execute_Main_Program
@@ -65,7 +67,6 @@ Advance_To_Target_Time(const T target_time)
         T max_v=example.Max_Particle_Velocity();
         Log::Scope scope("SUBSTEP","substep "+std::to_string(substep));
         T dt=std::max(min_dt,std::min(max_dt,cfl*dx_min/std::max(max_v,(T)1e-2)));
-        // Example<T,d>::Clamp_Time_Step_With_Target_Time(time,target_time,dt,done);
         if(target_time-time<dt*1.001){
             dt=target_time-time;
             done=true;
@@ -73,7 +74,6 @@ Advance_To_Target_Time(const T target_time)
         else if(target_time-time<(T)2.*dt){
             dt=(target_time-time)*(T).5;
         }
-        Log::cout<<"dt: "<<dt<<std::endl;
         Advance_Step(dt);
         if(!done) example.Write_Substep("END Substep",substep,0);
         time+=dt;
@@ -104,13 +104,48 @@ Simulate_To_Frame(const int target_frame)
 template<class T,int d> void MPM_Driver<T,d>::
 Advance_Step(const T dt)
 {
+    bool SHOW_RUNNING_TIME=false;
+    high_resolution_clock::time_point tb1 = high_resolution_clock::now();
     example.Initialize_SPGrid();
+    if (SHOW_RUNNING_TIME){high_resolution_clock::time_point te1 = high_resolution_clock::now();
+	duration<double> d1 = duration_cast<duration<double>>(te1 - tb1);
+	std::printf("Initialize SPGrid duration: %f\n", d1.count());}
+
+    high_resolution_clock::time_point tb2 = high_resolution_clock::now();
     example.Reset_Grid_Based_Variables();
+    if (SHOW_RUNNING_TIME){high_resolution_clock::time_point te2 = high_resolution_clock::now();
+	duration<double> d2 = duration_cast<duration<double>>(te2 - tb2);
+	std::printf("Reset Variables duration: %f\n", d2.count());}
+
+    high_resolution_clock::time_point tb8 = high_resolution_clock::now();
+    example.Update_Particle_Weights();
+    if (SHOW_RUNNING_TIME){high_resolution_clock::time_point te8 = high_resolution_clock::now();
+	duration<double> d8 = duration_cast<duration<double>>(te8 - tb8);
+	std::printf("Reset Variables duration: %f\n", d8.count());}
+
+    high_resolution_clock::time_point tb3 = high_resolution_clock::now();
+    example.Group_Particles();
+    if (SHOW_RUNNING_TIME){high_resolution_clock::time_point te3 = high_resolution_clock::now();
+	duration<double> d3 = duration_cast<duration<double>>(te3 - tb3);
+	std::printf("Group Particles duration: %f\n", d3.count());}
+
+    high_resolution_clock::time_point tb4 = high_resolution_clock::now();
     example.Rasterize();
-    // if(example.FICKS) example.Ficks_Diffusion(dt);
-    // else example.Non_Ficks_Diffusion(dt);
+    if (SHOW_RUNNING_TIME){high_resolution_clock::time_point te4 = high_resolution_clock::now();
+	duration<double> d4 = duration_cast<duration<double>>(te4 - tb4);
+	std::printf("Rasterize duration: %f\n", d4.count());}
+
+    high_resolution_clock::time_point tb5 = high_resolution_clock::now();
     example.Update_Constitutive_Model_State();
+    if (SHOW_RUNNING_TIME){high_resolution_clock::time_point te5 = high_resolution_clock::now();
+	duration<double> d5 = duration_cast<duration<double>>(te5 - tb5);
+	std::printf("Update Constitutive Model State duration: %f\n", d5.count());}
+
+    high_resolution_clock::time_point tb6 = high_resolution_clock::now();
     example.Update_Particle_Velocities_And_Positions(dt);
+    if (SHOW_RUNNING_TIME){high_resolution_clock::time_point te6 = high_resolution_clock::now();
+	duration<double> d6 = duration_cast<duration<double>>(te6 - tb6);
+	std::printf("Update Particle Velocities And Positions duration: %f\n", d6.count());}
 }
 //######################################################################
 template class Nova::MPM_Driver<float,2>;

@@ -127,9 +127,9 @@ class Standard_Tests: public MPM_Example<T,d>
         case 17:{
             Random_Numbers<T> random;
             random.Set_Seed(0);
-            T_Barrier wall(0.,TV({1.,0.}),TV({1.,0.}),.1);
+            T_Barrier wall(0.,TV({1.,0.}),TV({.1,0.}));
             barriers.Append(wall);
-            T_Barrier ground(0.,TV({0.,1.}),TV({0.,1.}),.1);
+            T_Barrier ground(0.,TV({0.,1.}),TV({0.,.1}));
             barriers.Append(ground);
             {
                 const T mass_density=(T)2.;
@@ -158,9 +158,9 @@ class Standard_Tests: public MPM_Example<T,d>
         case 18:{
             Random_Numbers<T> random;
             random.Set_Seed(0);
-            T_Barrier ceiling(0.,TV({0.,-1.}),TV({0.,1.}),.9);
-            Base::barriers.Append(ceiling);
-            T_Barrier ground(0.,TV({0.,1.}),TV({0.,1.}),.1);
+            // T_Barrier ceiling(0.,TV({0.,-1.}),TV({0.,1.}),.9);
+            // Base::barriers.Append(ceiling);
+            T_Barrier ground(0.,TV({0.,1.}),TV({0.,.1}));
             barriers.Append(ground);
 
             {

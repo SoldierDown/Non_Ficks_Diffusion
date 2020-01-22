@@ -32,14 +32,13 @@ class Grid_Based_Collision_Helper
                 T Struct_type::* collide_nodes_channel,Array<T_Barrier> barriers) const
     {
         auto collide_nodes=allocator.template Get_Const_Array<Struct_type,T>(collide_nodes_channel);
-        auto valid_nodes=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
+        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto grid_based_collision_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                 for(int id=0;id<barriers.size();++id){
                     TV normal_vector=barriers(id).normal; T mu=barriers(id).mu;
-                        if((valid_nodes(offset)&Node_Saturated)
-                    &&(collide_nodes(offset)==((T)id+(T)1.)||collide_nodes(offset)==(T)3.)){
+                    if((flags(offset)&Node_Saturated)&&(collide_nodes(offset)==(T)1.)){
                     TV vel=TV();
                     for(int v=0;v<d;++v) vel(v)=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset);
                     T projection=vel.Dot_Product(normal_vector);

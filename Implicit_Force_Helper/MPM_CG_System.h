@@ -6,6 +6,8 @@
 #ifndef __MPM_CG_System__
 #define __MPM_CG_System__
 
+#include <chrono>
+
 #include <nova/Tools/Krylov_Solvers/Krylov_System_Base.h>
 #include <nova/Dynamics/Hierarchy/Grid_Hierarchy.h>
 #include <nova/SPGrid/Tools/SPGrid_Clear.h>
@@ -25,6 +27,11 @@
 #include "../MPM_Example.h"
 #include "../MPM_Particle.h"
 #include "../MPM_Flags.h"
+#include "../Tools/Cropped_Range_Interator.h"
+#include "../Tools/Interval.h"
+#include "../Tools/Matrix_MXN.h"
+
+using namespace std::chrono;
 
 namespace Nova{
 template<class Struct_type,class T,int d>
@@ -38,6 +45,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
     using T_INDEX                   = Vector<int,d>;
     using T_Particle                = MPM_Particle<T,d>;
     using T_Range_Iterator          = Range_Iterator<d,T_INDEX>;
+    using T_Cropped_Range_Iterator  = Cropped_Range_Iterator<d,T_INDEX>;
     using T_Barrier                 = MPM_Plane_Barrier<T,d>;
 
   public:
@@ -45,11 +53,16 @@ class MPM_CG_System: public Krylov_System_Base<T>
     Array<T_Particle>& particles;
     Array<int>& simulated_particles;
     Array<T_Barrier>& barriers;
+    Array<Interval<int> >& x_intervals;
+    Matrix_MxN<Array<int> >& particle_bins;
+    
     const T trapezoidal;
     const T dt;
+    const int threads;
 
-    MPM_CG_System(Hierarchy& hierarchy_input,Array<int>& simulated_particles_input,Array<T_Particle>& particles_input,Array<T_Barrier>& barriers_input,const T trapezoidal_input,const T dt_input)
-        :Base(true,false),hierarchy(hierarchy_input),simulated_particles(simulated_particles_input),particles(particles_input),barriers(barriers_input),trapezoidal(trapezoidal_input),dt(dt_input)
+
+    MPM_CG_System(Hierarchy& hierarchy_input,Array<int>& simulated_particles_input,Array<T_Particle>& particles_input,Matrix_MxN<Array<int> >& particle_bins_input,Array<Interval<int> >& x_intervals_input,Array<T_Barrier>& barriers_input,const T trapezoidal_input,const T dt_input,const int threads_input)
+        :Base(true,false),hierarchy(hierarchy_input),simulated_particles(simulated_particles_input),particles(particles_input),particle_bins(particle_bins_input),x_intervals(x_intervals_input),barriers(barriers_input),trapezoidal(trapezoidal_input),dt(dt_input),threads(threads_input)
     {}
     ~MPM_CG_System() {}
 
@@ -61,6 +74,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
         Channel_Vector& x_channels           = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(x).channel;
         Channel_Vector& result_channels      = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(result).channel;
         Force(result_channels,x_channels);
+        
         const T scaled_dt_squared=dt*dt/((T)1.+trapezoidal);
         for(int level=0;level<hierarchy.Levels();++level)
             Multiply_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),x_channels,result_channels,scaled_dt_squared,(unsigned)Node_Saturated);
@@ -68,40 +82,42 @@ class MPM_CG_System: public Krylov_System_Base<T>
     
     void Force(Channel_Vector& f,const Channel_Vector& x) const
     {
+        high_resolution_clock::time_point tb = high_resolution_clock::now();
         unsigned Struct_type::* flags=&Struct_type::flags;
         const Grid<T,d>& grid=hierarchy.Lattice(0);
-        const TV one_over_dX=grid.one_over_dX;
 #pragma omp parallel for
         for(int i=0;i<simulated_particles.size();++i){
-            int id=simulated_particles(i); T_Particle& p=particles(id);
-            Matrix<T,d> tmp_mat;
-            T_INDEX closest_node=grid.Closest_Node(p.X); 
-            for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){
-                T_INDEX current_node=closest_node+iterator.Index();
-                if(grid.Node_Indices().Inside(current_node)){       
-                    const TV current_node_location=grid.Node(current_node);
-                    T weight=N2<T,d>(p.X-current_node_location,one_over_dX);                                
+            int id=simulated_particles(i); T_Particle& p=particles(id); Matrix<T,d> tmp_mat;
+            T_INDEX& closest_node=p.closest_node; 
+            for(T_Range_Iterator iterator(T_INDEX(-1),T_INDEX(1));iterator.Valid();iterator.Next()){
+                T_INDEX dindex=iterator.Index(); T_INDEX current_node=closest_node+dindex;
+                if(grid.Node_Indices().Inside(current_node)){ T weight=p.Weight(dindex);                         
                     if(weight>(T)0.){
-                        TV weight_grad=dN2<T,d>(p.X-current_node_location,one_over_dX),v_vec;
+                        TV weight_grad=p.Weight_Gradient(dindex),v_vec;
                         for(int v=0;v<d;++v) v_vec(v)=hierarchy.Channel(0,x(v))(current_node._data);
                         tmp_mat+=Matrix<T,d>::Outer_Product(weight_grad,v_vec);}}}
             Matrix<T,d> F=p.constitutive_model.Fe;
             tmp_mat=F.Times_Transpose(p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F)));
             p.scp=p.volume*tmp_mat;}
-        for(int level=0;level<hierarchy.Levels();++level) for(int v=0;v<d;++v) SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),f(v));  
         
-        for(int i=0;i<simulated_particles.size();++i){
-            int id=simulated_particles(i); T_Particle& p=particles(id);
-            T_INDEX closest_node=grid.Closest_Node(p.X); 
-            for(T_Range_Iterator iterator(T_INDEX(-2),T_INDEX(2));iterator.Valid();iterator.Next()){
-                T_INDEX current_node=closest_node+iterator.Index();
-                if(grid.Node_Indices().Inside(current_node)){
-                    const TV current_node_location=grid.Node(current_node);
-                    T weight=N2<T,d>(p.X-current_node_location,one_over_dX);
-                    if(weight>(T)0.){
-                        TV weight_grad=dN2<T,d>(p.X-current_node_location,one_over_dX);
-                        TV tmp_vec=p.scp.Transpose_Times(weight_grad); 
-                        for(int v=0;v<d;++v) hierarchy.Channel(0,f(v))(current_node._data)+=tmp_vec(v);}}}}
+        for(int level=0;level<hierarchy.Levels();++level) for(int v=0;v<d;++v) SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),f(v));  
+ 
+#pragma omp parallel for
+    for(int tid_process=0;tid_process<threads;++tid_process){
+        const Interval<int>& thread_x_interval=x_intervals(tid_process);
+        for(int tid_collect=0;tid_collect<threads;++tid_collect){
+            const Array<int>& index=particle_bins(tid_process,tid_collect);
+            for(int i=0;i<index.size();++i){
+                T_Particle& p=particles(index(i));T_INDEX& closest_node=p.closest_node;
+                const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_node(0),thread_x_interval.max_corner-closest_node(0));
+        for(T_Cropped_Range_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval);iterator.Valid();iterator.Next()){ 
+            T_INDEX dindex=iterator.Index();T_INDEX current_node=closest_node+iterator.Index();
+            if(grid.Node_Indices().Inside(current_node)){ T weight=p.Weight(dindex);
+                if(weight>(T)0.){ TV weight_grad=p.Weight_Gradient(dindex); TV tmp_vec=p.scp.Transpose_Times(weight_grad); 
+                        for(int v=0;v<d;++v) hierarchy.Channel(0,f(v))(current_node._data)+=tmp_vec(v);}}}}}}
+    if (false){high_resolution_clock::time_point te = high_resolution_clock::now();
+	duration<double> dur = duration_cast<duration<double>>(te-tb);
+	std::printf("Force: %f\n", dur.count());}
     }
 
     void Project(Vector_Base& v) const
@@ -141,19 +157,6 @@ class MPM_CG_System: public Krylov_System_Base<T>
 
     void Apply_Preconditioner(const Vector_Base& r,Vector_Base& z) const
     {
-        // T Struct_type::* r_channel         = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(r).channel;
-        // T Struct_type::* z_channel         = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(z).channel;
-
-        // multigrid_solver.Initialize_Right_Hand_Side(r_channel);
-        // multigrid_solver.Initialize_Guess();
-        // multigrid_solver.V_Cycle(boundary_smoothing_iterations,interior_smoothing_iterations,bottom_smoothing_iterations);
-
-        // // clear z
-        // for(int level=0;level<hierarchy.Levels();++level)
-        //     SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),z_channel);
-
-        // // copy u from multigrid hierarchy
-        // multigrid_solver.Copy_Channel_Values(z_channel,multigrid_solver.u_channel,false);
     }
 };
 }

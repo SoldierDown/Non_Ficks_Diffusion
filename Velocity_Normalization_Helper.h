@@ -50,7 +50,6 @@ class Velocity_Normalization_Helper
                     if(m>max_mass) max_mass=m;
                     if(m<min_mass) min_mass=m;
                     for(int v=0;v<d;++v){
-                    allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)/=m;
                     T velocity=abs(allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset));
                     if(velocity<min_v) min_v=velocity;
                     if(velocity>max_v) max_v=velocity;
