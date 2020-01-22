@@ -24,8 +24,7 @@ public:
     T mass,volume;
     Mat weights;
     Mat dweights;
-    T_INDEX base_node;              
-    
+                 
     // Constitutive model
     MPM_Constitutive_Model<T,d> constitutive_model;
     Matrix<T,d> scp;
@@ -43,7 +42,6 @@ public:
         mass=(T)0.;
         volume=(T)0.;
         scp=Matrix<T,d>();
-
     }
 
     T Weight(T_INDEX index)

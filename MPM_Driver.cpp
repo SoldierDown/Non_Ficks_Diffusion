@@ -75,9 +75,11 @@ Advance_To_Target_Time(const T target_time)
             dt=(target_time-time)*(T).5;
         }
         Advance_Step(dt);
+        Log::cout<<"dt: "<<dt<<std::endl;
         if(!done) example.Write_Substep("END Substep",substep,0);
         time+=dt;
-        Log::cout<<"time: "<<time<<std::endl;}
+        // Log::cout<<"time: "<<time<<std::endl;
+        }
 }
 //######################################################################
 // Simulate_To_Frame

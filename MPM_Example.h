@@ -9,7 +9,6 @@
 #include <nova/Dynamics/Hierarchy/Grid_Hierarchy.h>
 #include <nova/Tools/Utilities/Constants.h>
 #include <nova/Tools/Utilities/Example.h>
-#include <nova/Tools/Utilities/Range_Iterator.h>
 #include <nova/Tools/Utilities/Utilities.h>
 #include <nova/Tools/Arrays/Array.h>
 #include "MPM_Data.h"
@@ -17,7 +16,8 @@
 #include "MPM_Plane_Barrier.h"
 #include "./Tools/Matrix_MXN.h"
 #include "./Tools/Interval.h"
-#include "./Tools/Cropped_Range_Interator.h"
+#include "./Tools/Influence_Iterator.h"
+#include "./Tools/Cropped_Influence_Iterator.h"
 
 namespace Nova{
 template<class T>
@@ -118,19 +118,19 @@ Vector_To_Flag(Vector<int,3> current_node)
 template<class T,int d>
 class MPM_Example: public Example<T,d>
 {
-    using TV                        = Vector<T,d>;
-    using Base                      = Example<T,d>;
-    using T_INDEX                   = Vector<int,d>;
-    using T_Particle                = MPM_Particle<T,d>;
-    using T_Barrier                 = MPM_Plane_Barrier<T,d>;
-    using Struct_type               = MPM_Data<T>;
-    using Flags_type                = typename Struct_type::Flags_type;
-    using Allocator_type            = SPGrid::SPGrid_Allocator<Struct_type,d>;
-    using Flag_array_mask           = typename Allocator_type::template Array_mask<unsigned>;
-    using Hierarchy                 = Grid_Hierarchy<Struct_type,T,d>;
-    using Channel_Vector            = Vector<T Struct_type::*,d>;
-    using T_Range_Iterator          = Range_Iterator<d,T_INDEX>;
-    using T_Cropped_Range_Iterator  = Cropped_Range_Iterator<d,T_INDEX>;
+    using TV                            = Vector<T,d>;
+    using Base                          = Example<T,d>;
+    using T_INDEX                       = Vector<int,d>;
+    using T_Particle                    = MPM_Particle<T,d>;
+    using T_Barrier                     = MPM_Plane_Barrier<T,d>;
+    using Struct_type                   = MPM_Data<T>;
+    using Flags_type                    = typename Struct_type::Flags_type;
+    using Allocator_type                = SPGrid::SPGrid_Allocator<Struct_type,d>;
+    using Flag_array_mask               = typename Allocator_type::template Array_mask<unsigned>;
+    using Hierarchy                     = Grid_Hierarchy<Struct_type,T,d>;
+    using Channel_Vector                = Vector<T Struct_type::*,d>;
+    using T_Influence_Iterator          = Influence_Iterator<T,d,T_INDEX>;
+    using T_Cropped_Influence_Iterator  = Cropped_Influence_Iterator<T,d,T_INDEX>;
 
   public:
     using Base::frame_title;using Base::output_directory;using Base::parse_args;using Base::first_frame;
