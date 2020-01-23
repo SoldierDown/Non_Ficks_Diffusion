@@ -26,31 +26,15 @@ class Inner_Product_Helper
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector channels1,Channel_Vector channels2,
                           double& result,const unsigned mask) const
     {
-        // auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        // auto mass=allocator.template Get_Const_Array<Struct_type,T>(&Struct_type::ch0);
-        // double tmp_result=(T)0.;
-        // auto inner_product_helper=[&](uint64_t offset, double& tmp_result)
-        // {
-        //     for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-        //         if(flags(offset)&mask) for(int v=0;v<d;++v) 
-        //           tmp_result+=mass(offset)*allocator.template Get_Const_Array<Struct_type,T>(channels1(v))(offset)*allocator.template Get_Const_Array<Struct_type,T>(channels2(v))(offset) ;
-        // };
-        // for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
-        //     uint64_t offset=iterator.Offset();
-        //     inner_product_helper(offset,result);}
-
-
-
-
+        result=(double)0.;
         auto mass=allocator.template Get_Const_Array<Struct_type,T>(&Struct_type::ch0);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        double temp_result=(T)0.;
+        double temp_result=0;
 #pragma omp parallel for reduction(+:temp_result)
-        for(int b=0;b<blocks.second;b++){
-            uint64_t offset=blocks.first[b];
+        for(int b=0;b<blocks.second;b++){uint64_t offset=blocks.first[b];
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&mask) for(int v=0;v<d;++v) temp_result+=mass(offset)*allocator.template Get_Const_Array<Struct_type,T>(channels1(v))(offset)
-                                                              *allocator.template Get_Const_Array<Struct_type,T>(channels2(v))(offset) ;}
+                if(flags(offset)&mask)for(int v=0;v<d;++v) temp_result+=mass(offset)*allocator.template Get_Const_Array<Struct_type,T>(channels1(v))(offset)*allocator.template Get_Const_Array<Struct_type,T>(channels2(v))(offset);}
+
         result+=temp_result;
     }
 };

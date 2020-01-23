@@ -19,13 +19,11 @@ class Standard_Tests: public MPM_Example<T,d>
     using TV                = Vector<T,d>;
     using Base              = MPM_Example<T,d>;
     using T_Particle        = MPM_Particle<T,d>;
-    using T_Barrier         = MPM_Plane_Barrier<T,d>;
     using Struct_type       = MPM_Data<T>;
     using Hierarchy         = Grid_Hierarchy<Struct_type,T,d>;
 
   public:
     using Base::output_directory;using Base::test_number;using Base::particles;using Base::parse_args;using Base::counts;using Base::domain;
-    using Base::barriers;
     /****************************
      * example explanation:
      *
@@ -127,10 +125,6 @@ class Standard_Tests: public MPM_Example<T,d>
         case 17:{
             Random_Numbers<T> random;
             random.Set_Seed(0);
-            T_Barrier wall(0.,TV({1.,0.}),TV({1.,0.}),.1);
-            barriers.Append(wall);
-            T_Barrier ground(0.,TV({0.,1.}),TV({0.,1.}),.1);
-            barriers.Append(ground);
             {
                 const T mass_density=(T)2.;
                 const int number_of_particles=2000;
@@ -159,11 +153,6 @@ class Standard_Tests: public MPM_Example<T,d>
         case 18:{
             Random_Numbers<T> random;
             random.Set_Seed(0);
-            T_Barrier ceiling(0.,TV({0.,-1.}),TV({0.,1.}),.9);
-            Base::barriers.Append(ceiling);
-            T_Barrier ground(0.,TV({0.,1.}),TV({0.,1.}),.1);
-            barriers.Append(ground);
-
             {
                 const T mass_density=(T)2.;
                 const int number_of_particles=2000;

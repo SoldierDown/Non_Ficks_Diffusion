@@ -15,6 +15,10 @@
 #include "MPM_Data.h"
 #include "MPM_Particle.h"
 #include "MPM_Plane_Barrier.h"
+#include "./Tools/Matrix_MXN.h"
+#include "./Tools/Interval.h"
+#include "./Tools/Influence_Iterator.h"
+#include "./Tools/Cropped_Influence_Iterator.h"
 
 namespace Nova{
 template<class T>
@@ -126,8 +130,8 @@ class MPM_Example: public Example<T,d>
     using Flag_array_mask           = typename Allocator_type::template Array_mask<unsigned>;
     using Hierarchy                 = Grid_Hierarchy<Struct_type,T,d>;
     using Channel_Vector            = Vector<T Struct_type::*,d>;
-    using T_Range_Iterator          = Range_Iterator<d,T_INDEX>;
-
+    using T_Influence_Iterator          = Influence_Iterator<T,d,T_INDEX>;
+    using T_Cropped_Influence_Iterator  = Cropped_Influence_Iterator<T,d,T_INDEX>;
   public:
     using Base::frame_title;using Base::output_directory;using Base::parse_args;using Base::first_frame;
 
@@ -140,17 +144,17 @@ class MPM_Example: public Example<T,d>
     Range<T,d> domain;
     Range<T,d> bbox;
     Array<T_Particle> particles;
-    Array<T_Barrier> barriers;
     Array<int> simulated_particles;
     Array<int> invalid_particles;
     Array<int> valid_grid_indices;
     Array<Array<int> > valid_grid_indices_thread;
+    Array<Interval<int> > x_intervals;
+    Matrix_MxN<Array<int> > particle_bins;
     TV gravity;
     Hierarchy *hierarchy;
 
     unsigned Struct_type::* flags_channel;
     T Struct_type::* mass_channel;
-    //T Struct_type::* collide_nodes_channel;
     Channel_Vector velocity_channels;
     Channel_Vector velocity_star_channels;
     Channel_Vector f_channels;
@@ -178,8 +182,6 @@ class MPM_Example: public Example<T,d>
     Channel_Vector r_channels;
     Channel_Vector z_channels;
 
-    T Struct_type::* collide_nodes_channel;
-
     MPM_Example();
 
     ~MPM_Example();
@@ -193,6 +195,8 @@ class MPM_Example: public Example<T,d>
     void Reset_Grid_Based_Variables();
     void Reset_Solver_Channels();
     void Populate_Simulated_Particles();
+    void Update_Particle_Weights();
+    void Group_Particles();
     void Rasterize();
     void Update_Constitutive_Model_State();
     void Update_Particle_Velocities_And_Positions(const T dt);

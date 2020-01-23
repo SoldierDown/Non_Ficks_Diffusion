@@ -8,7 +8,6 @@
 
 #include <nova/Tools/Krylov_Solvers/Krylov_System_Base.h>
 #include "Diffusion_CG_Vector.h"
-#include "Diffusion_Clear_Non_Active_Helper.h"
 #include "Diffusion_Convergence_Norm_Helper.h"
 #include "Diffusion_Inner_Product_Helper.h"
 #include "Diffusion_Multiply_Helper.h"
@@ -53,10 +52,6 @@ class Diffusion_CG_System: public Krylov_System_Base<T>
 
     void Project(Vector_Base& v) const
     {
-        T Base_struct_type::* v_channel         = Diffusion_CG_Vector<Base_struct_type,T,d>::Cg_Vector(v).channel;
-
-        for(int level=0;level<hierarchy.Levels();++level)
-            Diffusion_Clear_Non_Active_Helper<Base_struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v_channel);
     }
 
     double Inner_Product(const Vector_Base& v1,const Vector_Base& v2) const
