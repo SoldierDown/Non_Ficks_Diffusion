@@ -148,7 +148,7 @@ Compute_Bounding_Box(Range<T,d>& bbox)
         TV& current_min_corner=min_corner_per_thread(tid);
         TV& current_max_corner=max_corner_per_thread(tid);
         for(int v=0;v<d;++v){
-            T dd=(T)4./counts(v);
+            T dd=(T)3./counts(v);
             current_min_corner(v)=std::min(current_min_corner(v),p.X(v)-dd);
             current_max_corner(v)=std::max(current_max_corner(v),p.X(v)+dd);}}
 
@@ -277,6 +277,7 @@ Group_Particles()
             const Interval<int> thread_x_interval=x_intervals(tid_process);
             if(particle_x_interval.Intersection(thread_x_interval)) particle_bins(tid_process,tid_collect).Append(id);}
     }
+    // for(int i=0;i<x_intervals.size();++i) Log::cout<<x_intervals(i).min_corner<<", "<<x_intervals(i).max_corner<<std::endl;
 }
 //######################################################################
 // Rasterize
@@ -297,8 +298,8 @@ Rasterize()
             for(int i=0;i<index.size();++i){
                 T_Particle& p=particles(index(i));T_INDEX& closest_node=p.closest_node;
                 const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_node(0),thread_x_interval.max_corner-closest_node(0));
-        for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){T_INDEX current_node=iterator.Current_Node();
-            T weight=iterator.Weight(); TV current_node_location=grid.Node(current_node);
+        for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){
+            T_INDEX current_node=iterator.Current_Node(); T weight=iterator.Weight();
             if(weight>(T)0.){                                    
                 mass(current_node._data)+=weight*p.mass; flags(current_node._data)|=Node_Saturated;
                 for(int v=0;v<d;++v) hierarchy->Channel(0,velocity_channels(v))(current_node._data)+=weight*p.mass*p.V(v);
@@ -329,11 +330,11 @@ Ficks_Diffusion(T dt)
     const Grid<T,d>& grid=hierarchy->Lattice(0);
     const T one_over_dx2=(T)1./(grid.dX(0)*grid.dX(1));
     const T a=diff_coeff*dt*one_over_dx2;
-    const T four_a_plus_one=(T)2.*d*a+(T)1.;
+    const T twod_a_plus_one=(T)2.*d*a+(T)1.;
     if(!explicit_diffusion){
     Diffusion_CG_System<Struct_type,T,d> ficks_diffusion_system(*hierarchy,FICKS);
     ficks_diffusion_system.a=a;
-    ficks_diffusion_system.four_a_plus_one=four_a_plus_one;
+    ficks_diffusion_system.twod_a_plus_one=twod_a_plus_one;
     ficks_diffusion_system.use_preconditioner=false;
     Conjugate_Gradient<T> cg;
     Krylov_Solver<T>* solver_fd=(Krylov_Solver<T>*)&cg;
@@ -356,7 +357,7 @@ Ficks_Diffusion(T dt)
         const int id=simulated_particles(i); T_Particle &p=particles(id); T_INDEX closest_node=p.closest_node;
         T p_lap_saturation=(T)0.;
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
-            T_INDEX current_node=closest_node+iterator.Index();
+            T_INDEX current_node=iterator.Current_Node();
             if(grid.Node_Indices().Inside(current_node)){
                 T weight=iterator.Weight();
                 if(weight>(T)0.) p_lap_saturation+=weight*lap_saturation(current_node._data);}}

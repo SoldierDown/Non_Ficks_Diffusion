@@ -107,7 +107,7 @@ Simulate_To_Frame(const int target_frame)
 template<class T,int d> void MPM_Driver<T,d>::
 Advance_Step(const T dt)
 {
-    bool SHOW_RUNNING_TIME=false;
+    bool SHOW_RUNNING_TIME=true;
     high_resolution_clock::time_point tb1 = high_resolution_clock::now();
     example.Initialize_SPGrid();
     if (SHOW_RUNNING_TIME){high_resolution_clock::time_point te1 = high_resolution_clock::now();

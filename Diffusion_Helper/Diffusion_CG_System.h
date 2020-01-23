@@ -25,13 +25,13 @@ class Diffusion_CG_System: public Krylov_System_Base<T>
   public:
     const bool FICKS;
     T a;
-    T four_a_plus_one;
+    T twod_a_plus_one;
     T coeff1;
 
     Hierarchy& hierarchy;
 
     Diffusion_CG_System(Hierarchy& hierarchy_input,bool FICKS_input)
-        :Base(true,false),hierarchy(hierarchy_input),FICKS(FICKS_input),a((T)0.),four_a_plus_one((T)0.),coeff1((T)0.)
+        :Base(true,false),hierarchy(hierarchy_input),FICKS(FICKS_input),a((T)0.),twod_a_plus_one((T)0.),coeff1((T)0.)
     {}
 
     ~Diffusion_CG_System(){}
@@ -46,7 +46,7 @@ class Diffusion_CG_System: public Krylov_System_Base<T>
         
         for(int level=0;level<hierarchy.Levels();++level)
             Diffusion_Multiply_Helper<Base_struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v_channel,result_channel,
-                                    FICKS,a,four_a_plus_one,coeff1);       
+                                    FICKS,a,twod_a_plus_one,coeff1);       
         
     }
 
@@ -60,15 +60,13 @@ class Diffusion_CG_System: public Krylov_System_Base<T>
         const Hierarchy& v2_hierarchy           = Diffusion_CG_Vector<Base_struct_type,T,d>::Hierarchy(v2);
         T Base_struct_type::* const v1_channel  = Diffusion_CG_Vector<Base_struct_type,T,d>::Cg_Vector(v1).channel;
         T Base_struct_type::* const v2_channel  = Diffusion_CG_Vector<Base_struct_type,T,d>::Cg_Vector(v2).channel;
-        assert(&hierarchy == &v1_hierarchy);
-        assert(&hierarchy == &v2_hierarchy);
+        assert(&hierarchy == &v1_hierarchy);    assert(&hierarchy == &v2_hierarchy);
 
         double result=(T)0;
 
         for(int level=0;level<hierarchy.Levels();++level)
             Diffusion_Inner_Product_Helper<Base_struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v1_channel,
                                                   v2_channel,result,(unsigned)Node_Saturated);
-
         return result;
     }
 

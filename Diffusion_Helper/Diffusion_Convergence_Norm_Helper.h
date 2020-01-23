@@ -25,6 +25,7 @@ class Diffusion_Convergence_Norm_Helper
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
              T Struct_type::* channel,T& result,const unsigned mask) const
     {
+        result=(T)0.;
         auto data=allocator.template Get_Const_Array<Struct_type,T>(channel);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         T max_value=0;
