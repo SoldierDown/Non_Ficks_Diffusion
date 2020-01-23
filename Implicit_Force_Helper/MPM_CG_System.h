@@ -144,9 +144,8 @@ class MPM_CG_System: public Krylov_System_Base<T>
         using T_Barrier                     = MPM_Plane_Barrier<T,3>; 
         
         high_resolution_clock::time_point tb1 = high_resolution_clock::now();
-        auto v_0=hierarchy.Channel(0,x(0));
-        auto v_1=hierarchy.Channel(0,x(1));
-        auto v_2=hierarchy.Channel(0,x(2));
+        auto v_0=hierarchy.Channel(0,x(0)); auto v_1=hierarchy.Channel(0,x(1)); auto v_2=hierarchy.Channel(0,x(2));
+        auto f_0=hierarchy.Channel(0,f(0)); auto f_1=hierarchy.Channel(0,f(1)); auto f_2=hierarchy.Channel(0,f(2));
         const Grid<T,3>& grid=hierarchy.Lattice(0);
 #pragma omp parallel for
         for(int i=0;i<simulated_particles.size();++i){
@@ -181,7 +180,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
             T_INDEX dindex=iterator.Index();T_INDEX current_node=closest_node+iterator.Index();
             if(grid.Node_Indices().Inside(current_node)){ T weight=p.Weight(dindex);
                 if(weight>(T)0.){ TV weight_grad=p.Weight_Gradient(dindex); TV tmp_vec=p.scp.Transpose_Times(weight_grad); 
-                        for(int v=0;v<d;++v) hierarchy.Channel(0,f(v))(current_node._data)+=tmp_vec(v);}}}}}}
+                    f_0(current_node._data)+=tmp_vec(0);f_1(current_node._data)+=tmp_vec(1);f_2(current_node._data)+=tmp_vec(2);}}}}}}
     if (print_running_time){high_resolution_clock::time_point te3 = high_resolution_clock::now();
 	duration<double> dur3 = duration_cast<duration<double>>(te3-tb3);
 	Log::cout<<"Collect to grid: "<<dur3.count()<<std::endl;}

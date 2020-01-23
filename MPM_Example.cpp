@@ -149,7 +149,6 @@ Compute_Bounding_Box(Range<T,d>& bbox)
     for(int v=0;v<d;++v){ 
         bbox.min_corner(v)=std::max((T)0.,bbox.min_corner(v));
         bbox.max_corner(v)=std::min((T)1.,bbox.max_corner(v));}
-    // Log::cout<<bbox.min_corner<<bbox.max_corner<<std::endl;
 }
 //######################################################################
 // Rasterize_Voxels
@@ -263,7 +262,6 @@ Group_Particles()
             const Interval<int> thread_x_interval=x_intervals(tid_process);
             if(particle_x_interval.Intersection(thread_x_interval)) particle_bins(tid_process,tid_collect).Append(id);}
     }
-    // for(int i=0;i<x_intervals.size();i++) Log::cout<<x_intervals(i).min_corner<<","<<x_intervals(i).max_corner<<std::endl;
 }
 //######################################################################
 // Rasterize
@@ -273,7 +271,6 @@ Rasterize()
 {
     auto mass=hierarchy->Channel(0,mass_channel); auto flags=hierarchy->Channel(0,flags_channel);
     auto collide_nodes=hierarchy->Channel(0,collide_nodes_channel);
-    auto v_0=hierarchy->Channel(0,velocity_channels(0)); auto v_1=hierarchy->Channel(0,velocity_channels(1));
     const Grid<T,d>& grid=hierarchy->Lattice(0);
 #pragma omp parallel for
     for(int tid_process=0;tid_process<threads;++tid_process){
@@ -288,7 +285,7 @@ Rasterize()
             if(weight>(T)0.){                                    
                 mass(current_node._data)+=weight*p.mass; flags(current_node._data)|=Node_Saturated;
                 for(int id=0;id<barriers.size();++id) if((current_node_location-barriers(id).surface).Dot_Product(barriers(id).normal)<(T)0.) collide_nodes(current_node._data)=(T)1.;                 
-                v_0(current_node._data)+=weight*p.mass*p.V(0); v_1(current_node._data)+=weight*p.mass*p.V(1);}}}}}
+                for(int v=0;v<d;++v) hierarchy->Channel(0,velocity_channels(v))(current_node._data)+=weight*p.mass*p.V(v);}}}}}
 
     // normalize weights for velocity (to conserve momentum)
     for(int level=0;level<levels;++level) Velocity_Normalization_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels);     
@@ -312,8 +309,6 @@ template<class T,int d> void MPM_Example<T,d>::
 Update_Particle_Velocities_And_Positions(const T dt)
 {
     Apply_Force(dt);
-    auto v_0=hierarchy->Channel(0,velocity_channels(0)); auto v_1=hierarchy->Channel(0,velocity_channels(1));
-    auto vs_0=hierarchy->Channel(0,velocity_star_channels(0)); auto vs_1=hierarchy->Channel(0,velocity_star_channels(1));
     const Grid<T,d>& grid=hierarchy->Lattice(0);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
@@ -323,13 +318,14 @@ Update_Particle_Velocities_And_Positions(const T dt)
         Matrix<T,d> grad_Vp=Matrix<T,d>();
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             T_INDEX current_node=iterator.Current_Node(); T weight=iterator.Weight();
-            if(weight>(T)0.){TV V_grid,delta_V_grid;
-                V_grid(0)=vs_0(current_node._data); V_grid(1)=vs_1(current_node._data);
-                delta_V_grid(0)=vs_0(current_node._data)-v_0(current_node._data); delta_V_grid(1)=vs_1(current_node._data)-v_1(current_node._data);
+            if(weight>(T)0.){
+                TV V_grid,delta_V_grid;
+                for(int v=0;v<d;++v){
+                    V_grid(v)=hierarchy->Channel(0,velocity_star_channels(v))(current_node._data); 
+                    delta_V_grid(v)=hierarchy->Channel(0,velocity_star_channels(v))(current_node._data)-hierarchy->Channel(0,velocity_channels(v))(current_node._data);}
                 V_pic+=weight*V_grid; 
                 V_flip+=weight*delta_V_grid;
                 grad_Vp+=Matrix<T,d>::Outer_Product(V_grid,iterator.Weight_Gradient());}}
-
             p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
             p.V=V_flip*flip+V_pic*((T)1.-flip);
             p.X+=V_pic*dt;
@@ -363,7 +359,6 @@ Apply_Force(const T dt)
 template<class T,int d> void MPM_Example<T,d>::
 Apply_Explicit_Force(const T dt)
 {
-    auto f_0=hierarchy->Channel(0,f_channels(0)); auto f_1=hierarchy->Channel(0,f_channels(1));
     const Grid<T,d>& grid=hierarchy->Lattice(0);
 #pragma omp parallel for
     for(int tid_process=0;tid_process<threads;++tid_process){
@@ -377,7 +372,8 @@ Apply_Explicit_Force(const T dt)
                 V0_P_FT=P.Times_Transpose(F)*V0;
                 const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_node(0),thread_x_interval.max_corner-closest_node(0));
                 for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){T_INDEX current_node=closest_node+iterator.Index(); T weight=iterator.Weight();
-                if(weight>(T)0.){ TV weight_grad=iterator.Weight_Gradient();f_0(current_node._data)+=gravity(0)*p.mass*weight-(V0_P_FT*weight_grad)(0); f_1(current_node._data)+=gravity(1)*p.mass*weight-(V0_P_FT*weight_grad)(1);}}}}}
+                if(weight>(T)0.) {TV weight_grad=iterator.Weight_Gradient();
+                for(int v=0;v<d;++v)  hierarchy->Channel(0,f_channels(v))(current_node._data)+=gravity(v)*p.mass*weight-(V0_P_FT*weight_grad)(v);}}}}}
 
     for(int level=0;level<levels;++level) Explicit_Force_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),f_channels,velocity_channels,velocity_star_channels,dt);
 }

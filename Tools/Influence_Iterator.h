@@ -85,8 +85,7 @@ public:
     T Weight() const
     {
         T weight=(T)1.;
-        for(int i=0;i<d;++i)
-            weight*=particle.weights(index(i)+1,i);
+        for(int i=0;i<d;++i) weight*=particle.weights(index(i)+1,i);
         return weight;
     }
 
