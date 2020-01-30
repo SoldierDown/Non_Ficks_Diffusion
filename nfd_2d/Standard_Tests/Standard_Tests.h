@@ -51,6 +51,37 @@ class Standard_Tests: public MPM_Example<T,d>
         particles.Clear();
         switch (test_case)
         {
+        // Test: one particle
+        case 1:{
+            Random_Numbers<T> random;
+            random.Set_Seed(0);
+            {
+                const T mass_density=(T)2.;
+                const int number_of_particles=1;
+                const Sphere<T,d> ball(TV({.2,.5}),.1);
+                const T block_area=ball.Size();
+                const T area_per_particle=block_area/number_of_particles;
+                std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
+                const T E=(T)40.,nu=(T).4;
+                for(int i=0;i<number_of_particles;++i){
+                    T_Particle p;
+                    p.X=random.Get_Vector_In_Sphere(ball)+ball.center;
+                    Log::cout<<"position: "<<p.X<<std::endl;
+                    p.V=TV({.5,0.});
+                    p.mass=mass_density*area_per_particle;
+                    p.constitutive_model.Compute_Lame_Parameters(E,nu);
+                    p.constitutive_model.plastic=true;
+                    p.constitutive_model.stretching_yield=(T)1.01;
+                    p.constitutive_model.compression_yield=(T)0.95;
+                    p.constitutive_model.hardening_factor=(T)10.;
+                    particles.Append(p);
+                }
+            }
+            
+
+        }break;
+
+
         case 15:{
             const T mass_density=(T)2.;
             const int number_of_particles=2000;
@@ -65,13 +96,13 @@ class Standard_Tests: public MPM_Example<T,d>
             for(int i=0;i<number_of_particles;++i){
                 T_Particle p;
                 p.X=random.Get_Uniform_Vector(block);
-                p.V(1)=(T)-1.;
+                p.V=TV({-2.,.1});
                 p.mass=mass_density*area_per_particle;
                 p.constitutive_model.Compute_Lame_Parameters(E,nu);
                 p.constitutive_model.plastic=true;
-                p.constitutive_model.stretching_yield=(T)1.005;
-                p.constitutive_model.compression_yield=(T)0.985;
-                p.constitutive_model.hardening_factor=(T)7.;
+                p.constitutive_model.stretching_yield=(T)1.01;
+                p.constitutive_model.compression_yield=(T)0.95;
+                p.constitutive_model.hardening_factor=(T)10.;
                 particles.Append(p);
             }  
 

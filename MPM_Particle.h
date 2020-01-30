@@ -75,25 +75,13 @@ public:
 
     void Compute_Weights(T x,const T one_over_dx,const int k)
     {
-        // weights(0,k)=(T)0.5*x*x-(T)1.5*x+(T)1.125;
-        // if(weights(0,k)<(T)0.) Log::cout<<"0 negative weight: "<<weights(0,k)<<", x: "<<x<<std::endl;
-        // dweights(0,k)=(x-(T)1.5)*one_over_dx;
-        // x-=(T)1;
-        // weights(1,k)=-x*x+(T).75;
-        // if(weights(1,k)<(T)0.) Log::cout<<"1 negative weight!"<<weights(1,k)<<", x: "<<x<<std::endl;
-        // dweights(1,k)=(T)(-2)*x*one_over_dx;
-        // x-=(T)1;
-        // weights(2,k)=(T).5*x*x+(T)1.5*x+(T)1.125;
-        // if(weights(2,k)<(T)0.) Log::cout<<"2 negative weight!"<<weights(2,k)<<", x: "<<x<<std::endl;
-        // dweights(2,k)=(x+(T)1.5)*one_over_dx;
-
-        weights(0,k)=(T)0.5*x*x-(T)1.5*x+(T)1.125;
+        weights(0,k)=std::abs((T)0.5*x*x-(T)1.5*x+(T)1.125);
         dweights(0,k)=(x-(T)1.5)*one_over_dx;
         x-=(T)1;
-        weights(1,k)=-x*x+(T).75;
+        weights(1,k)=std::abs(-x*x+(T).75);
         dweights(1,k)=(T)(-2)*x*one_over_dx;
         x-=(T)1;
-        weights(2,k)=(T).5*x*x+(T)1.5*x+(T)1.125;
+        weights(2,k)=std::abs((T).5*x*x+(T)1.5*x+(T)1.125);
         dweights(2,k)=(x+(T)1.5)*one_over_dx;
     }
 };

@@ -262,6 +262,13 @@ Group_Particles()
             const Interval<int> thread_x_interval=x_intervals(tid_process);
             if(particle_x_interval.Intersection(thread_x_interval)) particle_bins(tid_process,tid_collect).Append(id);}
     }
+    
+    // for(int tid_process=0;tid_process<threads;++tid_process){
+    //     for(int tid_collect=0;tid_collect<threads;++tid_collect){
+    //         const Array<int> index=particle_bins(tid_process,tid_collect);
+    //         for(int i=0;i<index.size();++i) Log::cout<<i<<": "<<index(i)<<std::endl;
+    //     }
+    // }
 }
 //######################################################################
 // Rasterize
@@ -269,6 +276,7 @@ Group_Particles()
 template<class T,int d> void MPM_Example<T,d>::
 Rasterize()
 {
+    Log::cout.precision(10);
     auto mass=hierarchy->Channel(0,mass_channel); auto flags=hierarchy->Channel(0,flags_channel);
     auto collide_nodes=hierarchy->Channel(0,collide_nodes_channel);
     const Grid<T,d>& grid=hierarchy->Lattice(0);
@@ -371,9 +379,10 @@ Apply_Explicit_Force(const T dt)
                 Matrix<T,d> V0_P_FT=P.Times_Transpose(F)*V0;                    
                 V0_P_FT=P.Times_Transpose(F)*V0;
                 const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_node(0),thread_x_interval.max_corner-closest_node(0));
-                for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){T_INDEX current_node=closest_node+iterator.Index(); T weight=iterator.Weight();
-                if(weight>(T)0.) {TV weight_grad=iterator.Weight_Gradient();
-                for(int v=0;v<d;++v)  hierarchy->Channel(0,f_channels(v))(current_node._data)+=gravity(v)*p.mass*weight-(V0_P_FT*weight_grad)(v);}}}}}
+                for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){auto data=iterator.Current_Node()._data; T weight=iterator.Weight();                            
+                // if(weight>(T)0.) 
+                {TV weight_grad=iterator.Weight_Gradient();
+                for(int v=0;v<d;++v)  hierarchy->Channel(0,f_channels(v))(data)+=gravity(v)*p.mass*weight-(V0_P_FT*weight_grad)(v);}}}}}
 
     for(int level=0;level<levels;++level) Explicit_Force_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),f_channels,velocity_channels,velocity_star_channels,dt);
 }
@@ -399,7 +408,7 @@ Estimate_Particle_Volumes()
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             particle_density+=iterator.Weight()*mass(iterator.Current_Node()._data);}
         particle_density*=one_over_volume_per_cell;
-        p.volume=p.mass/particle_density;}
+        p.volume=p.mass/particle_density;} 
 }
 //######################################################################
 // Register_Options

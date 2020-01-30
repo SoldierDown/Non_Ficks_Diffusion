@@ -78,7 +78,7 @@ Advance_To_Target_Time(const T target_time)
         Log::cout<<"dt: "<<dt<<std::endl;
         if(!done) example.Write_Substep("END Substep",substep,0);
         time+=dt;
-        // Log::cout<<"time: "<<time<<std::endl;
+        Log::cout<<"time: "<<time<<std::endl;
         }
 }
 //######################################################################

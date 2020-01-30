@@ -75,7 +75,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
         Channel_Vector& x_channels           = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(x).channel;
         Channel_Vector& result_channels      = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(result).channel;
         Force(result_channels,x_channels);
-        
+        // Log::cout<<"After Force() x: "<<Convergence_Norm(x)<<", result: "<<Convergence_Norm(result)<<std::endl;
         const T scaled_dt_squared=dt*dt/((T)1.+trapezoidal);
         for(int level=0;level<hierarchy.Levels();++level)
             Multiply_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),x_channels,result_channels,scaled_dt_squared,(unsigned)Node_Saturated);
@@ -97,14 +97,26 @@ class MPM_CG_System: public Krylov_System_Base<T>
         const Grid<T,2>& grid=hierarchy.Lattice(0);
 #pragma omp parallel for
         for(int i=0;i<simulated_particles.size();++i){
+            high_resolution_clock::time_point tb = high_resolution_clock::now();    
             int id=simulated_particles(i); T_Particle& p=particles(id); Matrix<T,d> tmp_mat; 
-            for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
-                T_INDEX current_node=iterator.Current_Node();TV v_vec;
-                v_vec(0)=v_0(current_node._data); v_vec(1)=v_1(current_node._data);
-                tmp_mat+=Matrix<T,d>::Outer_Product(iterator.Weight_Gradient(),v_vec);}
+            for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){          
+                TV v_vec; auto data=iterator.Current_Node()._data; v_vec(0)=v_0(data); v_vec(1)=v_1(data);
+                // Log::cout<<"Node: "<<iterator.Current_Node()<<", node location: "<<grid.Node(iterator.Current_Node())<<std::endl;
+                // Log::cout<<"x: "<<v_vec(0)<<", "<<v_vec(1)<<", weight: "<<iterator.Weight()<<", weight grad: "<<iterator.Weight_Gradient()<<", matrix: "<<Matrix<T,d>::Outer_Product(iterator.Weight_Gradient(),v_vec)<<std::endl;
+                // Log::cout<<"matrix: "<<Matrix<T,d>::Outer_Product(iterator.Weight_Gradient(),v_vec)<<std::endl;
+                tmp_mat+=Matrix<T,d>::Outer_Product(iterator.Weight_Gradient(),v_vec);
+                // Log::cout<<"tmp_mat: "<<tmp_mat<<std::endl;
+            }
             Matrix<T,d> F=p.constitutive_model.Fe;
+            // Log::cout<<"F: "<<F<<std::endl;
+            // Log::cout<<"transpose_times: "<<tmp_mat.Transpose_Times(F)<<std::endl;
+            // Log::cout<<"times_dp_df: "<<p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F))<<std::endl;
             tmp_mat=F.Times_Transpose(p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F)));
-            p.scp=p.volume*tmp_mat;}
+            p.scp=p.volume*tmp_mat;
+            // Log::cout<<tmp_mat<<std::endl;
+            if(false){ high_resolution_clock::time_point te = high_resolution_clock::now();
+    	    duration<double> dur = duration_cast<duration<double>>(te-tb);
+    	    Log::cout<<"single particle: "<<dur.count()<<std::endl;}}
         if(print_running_time){ high_resolution_clock::time_point te1 = high_resolution_clock::now();
     	duration<double> dur1 = duration_cast<duration<double>>(te1-tb1);
     	Log::cout<<"Collect to scp: "<<dur1.count()<<std::endl;}
@@ -118,16 +130,17 @@ class MPM_CG_System: public Krylov_System_Base<T>
         high_resolution_clock::time_point tb3 = high_resolution_clock::now();
 #pragma omp parallel for
     for(int tid_process=0;tid_process<threads;++tid_process){
-        const Interval<int>& thread_x_interval=x_intervals(tid_process);
+        const Interval<int> thread_x_interval=x_intervals(tid_process);
         for(int tid_collect=0;tid_collect<threads;++tid_collect){
             const Array<int>& index=particle_bins(tid_process,tid_collect);
             for(int i=0;i<index.size();++i){
                 T_Particle& p=particles(index(i));T_INDEX& closest_node=p.closest_node;
                 const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_node(0),thread_x_interval.max_corner-closest_node(0));
         for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){ 
-            T_INDEX current_node=closest_node+iterator.Index();
+            auto data=iterator.Current_Node()._data;
             TV tmp_vec=p.scp.Transpose_Times(iterator.Weight_Gradient()); 
-            f_0(current_node._data)+=tmp_vec(0); f_1(current_node._data)+=tmp_vec(1);}}}}
+            f_0(data)+=tmp_vec(0); f_1(data)+=tmp_vec(1);}}}}
+
     if (print_running_time){high_resolution_clock::time_point te3 = high_resolution_clock::now();
 	duration<double> dur3 = duration_cast<duration<double>>(te3-tb3);
 	Log::cout<<"Collect to grid: "<<dur3.count()<<std::endl;}
@@ -206,7 +219,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
         assert(&hierarchy == &v1_hierarchy);
         assert(&hierarchy == &v2_hierarchy);
 
-        double result=(T)0.;
+        T result=0.;
 
         for(int level=0;level<hierarchy.Levels();++level)
             Inner_Product_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v1_channels,v2_channels,result,(unsigned)Node_Saturated);

@@ -29,15 +29,17 @@ class Explicit_Force_Helper
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
              Channel_Vector f_channels,Channel_Vector velocity_channels,Channel_Vector& velocity_star_channels,const T dt) const
     {
+        Log::cout.precision(10);
         auto mass=allocator.template Get_Const_Array<Struct_type,T>(&Struct_type::ch0);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto explicit_velocity_update_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Node_Saturated) 
+                if(flags(offset)&Node_Saturated)
                 for(int v=0;v<d;++v){
                     allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)=allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)
                                                                                                         +dt/mass(offset)*allocator.template Get_Array<Struct_type,T>(f_channels(v))(offset);
+                    // Log::cout<<"v*: "<<allocator.template Get_Const_Array<Struct_type,T>(velocity_star_channels(v))(offset)<<std::endl;
             }}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,explicit_velocity_update_helper);        

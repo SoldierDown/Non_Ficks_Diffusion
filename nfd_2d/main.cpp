@@ -9,6 +9,7 @@ using namespace std::chrono;
 
 int main(int argc,char** argv)
 {
+    Log::cout.precision(10);
     high_resolution_clock::time_point tb = high_resolution_clock::now();
     enum {d=2};
     typedef float T;

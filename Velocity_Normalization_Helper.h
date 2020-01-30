@@ -25,13 +25,14 @@ class Velocity_Normalization_Helper
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& velocity_channels) const
     {
+        Log::cout.precision(10);
         auto mass=allocator.template Get_Const_Array<Struct_type,T>(&Struct_type::ch0);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto velocity_normalization_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Node_Saturated) for(int v=0;v<d;++v)
-                    allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)/=mass(offset);
+                if(flags(offset)&Node_Saturated) { const T mass_inverse=1/mass(offset);
+                    for(int v=0;v<d;++v) allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)*=mass_inverse;}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,velocity_normalization_helper);
     }
