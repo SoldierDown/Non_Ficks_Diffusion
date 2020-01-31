@@ -189,10 +189,14 @@ class Standard_Tests: public MPM_Example<T,d>
         case 18:{
             Random_Numbers<T> random;
             random.Set_Seed(0);
-            // T_Barrier ceiling(0.,TV({0.,-1.}),TV({0.,1.}),.9);
-            // Base::barriers.Append(ceiling);
             T_Barrier ground(0.,TV({0.,1.}),TV({0.,.1}));
             barriers.Append(ground);
+            // T_Barrier ceiling(0.,TV({0.,-1.}),TV({0.,.9}));
+            // Base::barriers.Append(ceiling);
+            // T_Barrier left_wall(0.,TV({1.,0.}),TV({.1,0.}));
+            // barriers.Append(left_wall);
+            // T_Barrier right_wall(0.,TV({-1.,0.}),TV({.9,0.}));
+            // barriers.Append(right_wall);
 
             {
                 const T mass_density=(T)2.;

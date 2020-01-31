@@ -21,7 +21,7 @@ class MPM_Driver: public Driver<T,d>
 
   public:
     MPM_Example<T,d>& example;
-
+    bool SHOW_RUNNING_TIME=false;
     MPM_Driver(MPM_Example<T,d>& example_input);
     ~MPM_Driver() {}
 

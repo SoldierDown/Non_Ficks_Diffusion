@@ -154,14 +154,13 @@ class MPM_Example: public Example<T,d>
     TV gravity;
     Hierarchy *hierarchy;
 
-    
-
+    bool SHOW_RUNNING_TIME=false;
+    bool first_time=true;
     unsigned Struct_type::* flags_channel;
     T Struct_type::* mass_channel;
     Channel_Vector velocity_channels;
     Channel_Vector velocity_star_channels;
     Channel_Vector f_channels;
-
 
     // Krylov solver channels
     Channel_Vector rhs_channels;
@@ -169,8 +168,6 @@ class MPM_Example: public Example<T,d>
     Channel_Vector s_channels;
     Channel_Vector r_channels;
     Channel_Vector z_channels;
-
-    T Struct_type::* collide_nodes_channel;
 
     MPM_Example();
 
@@ -201,9 +198,10 @@ class MPM_Example: public Example<T,d>
     void Parse_Options() override;
     void Read_Output_Files(const int frame);
     void Write_Output_Files(const int frame) const override;
+    void Rasterize_Voxels();
+
   protected:
     void Compute_Bounding_Box(Range<T,d>& bbox);
-    void Rasterize_Voxels(const Range<T,d>& bbox);
 //######################################################################
 };
 }

@@ -24,6 +24,7 @@ Initialize()
         example.Reset_Grid_Based_Variables();
         example.Update_Particle_Weights();
         example.Group_Particles();
+        example.Rasterize_Voxels();
         example.Rasterize();
         example.Estimate_Particle_Volumes();
         example.Update_Constitutive_Model_State();
@@ -75,6 +76,7 @@ Advance_To_Target_Time(const T target_time)
             dt=(target_time-time)*(T).5;
         }
         Advance_Step(dt);
+        // done = true;
         Log::cout<<"dt: "<<dt<<std::endl;
         if(!done) example.Write_Substep("END Substep",substep,0);
         time+=dt;
@@ -106,7 +108,6 @@ Simulate_To_Frame(const int target_frame)
 template<class T,int d> void MPM_Driver<T,d>::
 Advance_Step(const T dt)
 {
-    bool SHOW_RUNNING_TIME=false;
     high_resolution_clock::time_point tb1 = high_resolution_clock::now();
     example.Initialize_SPGrid();
     if (SHOW_RUNNING_TIME){high_resolution_clock::time_point te1 = high_resolution_clock::now();
@@ -123,13 +124,20 @@ Advance_Step(const T dt)
     example.Update_Particle_Weights();
     if (SHOW_RUNNING_TIME){high_resolution_clock::time_point te8 = high_resolution_clock::now();
 	duration<double> d8 = duration_cast<duration<double>>(te8 - tb8);
-	std::printf("Reset Variables duration: %f\n", d8.count());}
+	std::printf("Update Weights duration: %f\n", d8.count());}
 
     high_resolution_clock::time_point tb3 = high_resolution_clock::now();
     example.Group_Particles();
     if (SHOW_RUNNING_TIME){high_resolution_clock::time_point te3 = high_resolution_clock::now();
 	duration<double> d3 = duration_cast<duration<double>>(te3 - tb3);
 	std::printf("Group Particles duration: %f\n", d3.count());}
+
+    high_resolution_clock::time_point tb9 = high_resolution_clock::now();
+    example.Rasterize_Voxels();
+    if (SHOW_RUNNING_TIME){high_resolution_clock::time_point te9 = high_resolution_clock::now();
+	duration<double> d9 = duration_cast<duration<double>>(te9 - tb9);
+	std::printf("RV duration: %f\n", d9.count());}
+
 
     high_resolution_clock::time_point tb4 = high_resolution_clock::now();
     example.Rasterize();

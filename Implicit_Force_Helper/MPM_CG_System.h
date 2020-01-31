@@ -207,7 +207,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
         Channel_Vector& v_channels              = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(v).channel;
 
         for(int level=0;level<hierarchy.Levels();++level)
-            Project_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v_channels,barriers);
+            Project_Helper<Struct_type,T,d>(hierarchy.Lattice(0),hierarchy.Allocator(level),hierarchy.Blocks(level),v_channels,barriers);
     }
 
     double Inner_Product(const Vector_Base& v1,const Vector_Base& v2) const
