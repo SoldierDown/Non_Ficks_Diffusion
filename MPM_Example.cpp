@@ -480,11 +480,34 @@ Register_Options()
 template<class T,int d> void MPM_Example<T,d>::
 Test()
 {
-    // for(int i=0;i<counts(0)+1;++i)
-    //     for(int j=0;j<counts(1)+1;++j){
-    //         Vector<int,d> id({i,j});
-    //         ID321(id);
-    //     }
+    const int iterations=1e8;
+    auto mass=hierarchy->Channel(0,mass_channel);
+    T_INDEX index({0,0}); auto data=index._data;
+    // read
+    high_resolution_clock::time_point tb1=high_resolution_clock::now();
+    for(int i=0;i<iterations;i++) mass(data);
+    high_resolution_clock::time_point te1=high_resolution_clock::now();
+	duration<double> dur1=duration_cast<duration<double>>(te1-tb1);
+    Log::cout<<"read from channel: "<<dur1.count()/iterations<<std::endl;
+
+    // write
+    high_resolution_clock::time_point tb2=high_resolution_clock::now();
+    for(int i=0;i<iterations;i++) mass(data)=(T)0.;
+    high_resolution_clock::time_point te2=high_resolution_clock::now();
+	duration<double> dur2=duration_cast<duration<double>>(te2-tb2);
+    Log::cout<<"write to channel: "<<dur2.count()/iterations<<std::endl;
+
+    
+    // influence iterator
+    high_resolution_clock::time_point tb3=high_resolution_clock::now();
+    for(int it=0;it<iterations;++it){
+        for(unsigned i=0;i<particles.size();++i){T_Particle& p=particles(i);     
+            for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){}}}
+    high_resolution_clock::time_point te3=high_resolution_clock::now();
+	duration<double> dur3=duration_cast<duration<double>>(te2-tb2);
+    Log::cout<<"iterator: "<<dur3.count()/iterations<<std::endl;
+
+
 }
 //######################################################################
 // Parse_Options

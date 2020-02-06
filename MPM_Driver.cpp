@@ -45,8 +45,9 @@ Test()
 template<class T,int d> void MPM_Driver<T,d>::
 Execute_Main_Program() 
 {
-    Initialize();
-    Simulate_To_Frame(example.last_frame);
+    Test();
+    // Initialize();
+    // Simulate_To_Frame(example.last_frame);
 }
 //######################################################################
 // Advance_To_Target_Time
