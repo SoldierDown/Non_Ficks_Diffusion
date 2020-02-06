@@ -26,21 +26,62 @@ class Explicit_Force_Helper
                                   Channel_Vector f_channels,Channel_Vector velocity_channels,Channel_Vector& velocity_star_channels,const T dt)
     {Run(allocator,blocks,f_channels,velocity_channels,velocity_star_channels,dt);}
 
-    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-             Channel_Vector f_channels,Channel_Vector velocity_channels,Channel_Vector& velocity_star_channels,const T dt) const
+    void Run(SPGrid::SPGrid_Allocator<Struct_type,2>& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
+             Vector<T Struct_type::*,2> f_channels, Vector<T Struct_type::*,2> velocity_channels, Vector<T Struct_type::*,2>& velocity_star_channels,const T dt) const
     {
-        Log::cout.precision(10);
         auto mass=allocator.template Get_Const_Array<Struct_type,T>(&Struct_type::ch0);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
+        auto v0=allocator.template Get_Const_Array<Struct_type,T>(velocity_channels(0));
+        auto v1=allocator.template Get_Const_Array<Struct_type,T>(velocity_channels(1));
+        auto vs0=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(0));
+        auto vs1=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(1));
+        auto f0=allocator.template Get_Const_Array<Struct_type,T>(f_channels(0));
+        auto f1=allocator.template Get_Const_Array<Struct_type,T>(f_channels(1));
         auto explicit_velocity_update_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Node_Saturated)
-                for(int v=0;v<d;++v){
-                    allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)=allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)
-                                                                                                        +dt/mass(offset)*allocator.template Get_Array<Struct_type,T>(f_channels(v))(offset);
+                if(flags(offset)&Node_Saturated){
+                    vs0(offset)=v0(offset)+dt/mass(offset)*f0(offset);
+                    vs1(offset)=v1(offset)+dt/mass(offset)*f1(offset);
+                    // Log::cout<<"v: "<<v0(offset)<<","<<v1(offset)<<", mass: "<<mass(offset)<<", f: "<<f0(offset)<<","<<f1(offset)<<", vs: "<<vs0(offset)<<","<<vs1(offset)<<std::endl;
+                    }
+                // for(int v=0;v<d;++v){
+                //     allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)=allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)
+                                                                                            //  +dt/mass(offset)*allocator.template Get_Array<Struct_type,T>(f_channels(v))(offset);
                     // Log::cout<<"v*: "<<allocator.template Get_Const_Array<Struct_type,T>(velocity_star_channels(v))(offset)<<std::endl;
-            }}
+            // }
+            }
+        };
+        SPGrid_Computations::Run_Parallel_Blocks(blocks,explicit_velocity_update_helper);        
+    }
+
+    void Run(SPGrid::SPGrid_Allocator<Struct_type,3>& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
+             Vector<T Struct_type::*,3> f_channels, Vector<T Struct_type::*,3> velocity_channels, Vector<T Struct_type::*,3>& velocity_star_channels,const T dt) const
+    {
+        auto mass=allocator.template Get_Const_Array<Struct_type,T>(&Struct_type::ch0);
+        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
+        auto v0=allocator.template Get_Const_Array<Struct_type,T>(velocity_channels(0));
+        auto v1=allocator.template Get_Const_Array<Struct_type,T>(velocity_channels(1));
+        auto v2=allocator.template Get_Const_Array<Struct_type,T>(velocity_channels(2));
+        auto vs0=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(0));
+        auto vs1=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(1));
+        auto vs2=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(2));
+        auto f0=allocator.template Get_Const_Array<Struct_type,T>(f_channels(0));
+        auto f1=allocator.template Get_Const_Array<Struct_type,T>(f_channels(1));
+        auto f2=allocator.template Get_Const_Array<Struct_type,T>(f_channels(2));
+        auto explicit_velocity_update_helper=[&](uint64_t offset)
+        {
+            for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
+                if(flags(offset)&Node_Saturated){
+                    vs0(offset)=v0(offset)+dt/mass(offset)*f0(offset);
+                    vs1(offset)=v1(offset)+dt/mass(offset)*f1(offset);
+                    vs2(offset)=v2(offset)+dt/mass(offset)*f2(offset);}
+                // for(int v=0;v<d;++v){
+                //     allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)=allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)
+                                                                                            //  +dt/mass(offset)*allocator.template Get_Array<Struct_type,T>(f_channels(v))(offset);
+                    // Log::cout<<"v*: "<<allocator.template Get_Const_Array<Struct_type,T>(velocity_star_channels(v))(offset)<<std::endl;
+            // }
+            }
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,explicit_velocity_update_helper);        
     }

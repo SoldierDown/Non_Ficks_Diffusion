@@ -49,6 +49,7 @@ class Standard_Tests: public MPM_Example<T,d>
     {
         Log::Scope scope("Initialize_Particles");
         particles.Clear();
+        Log::cout<<"Pi: "<<pi<<std::endl;
         switch (test_case)
         {
         // Test: one particle
@@ -61,7 +62,7 @@ class Standard_Tests: public MPM_Example<T,d>
                 const Sphere<T,d> ball(TV({.2,.5}),.1);
                 const T block_area=ball.Size();
                 const T area_per_particle=block_area/number_of_particles;
-                std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
+                Log::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
                 const T E=(T)40.,nu=(T).4;
                 for(int i=0;i<number_of_particles;++i){
                     T_Particle p;

@@ -54,7 +54,6 @@ class Grid_Based_Collision_Helper
                     // for(int v=0;v<d;++v) allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)=vel(v);
                     }}}
                 }
-                
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,grid_based_collision_helper);
     }
@@ -86,7 +85,6 @@ class Grid_Based_Collision_Helper
                     // for(int v=0;v<d;++v) allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)=vel(v);
                     }}}
                 }
-                
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,grid_based_collision_helper);
     }

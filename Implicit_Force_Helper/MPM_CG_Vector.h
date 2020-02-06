@@ -13,6 +13,7 @@
 #include <nova/Tools/Log/Debug_Utilities.h>
 #include <cassert>
 #include "../MPM_Flags.h"
+#include "../Channel_Vector_Traverse_Helper.h"
 
 namespace Nova{
 template<class Struct_type,class T,int d>
@@ -98,6 +99,8 @@ class MPM_CG_Vector: public Krylov_Vector_Base<T>
         for(int level=0;level<hierarchy.Levels();++level) for(int v=0;v<d;++v)
             SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),c1,bv1_channel(v),
                                                   bv2_channel(v),channel(v),(unsigned)Node_Saturated);
+        // for(int level=0;level<hierarchy.Levels();++level)
+        //     Channel_Vector_Traverse_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),channel,(unsigned)Node_Saturated);
     }
 };
 }

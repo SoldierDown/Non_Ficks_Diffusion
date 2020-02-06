@@ -135,12 +135,25 @@ class MPM_Example: public Example<T,d>
   public:
     using Base::frame_title;using Base::output_directory;using Base::parse_args;using Base::first_frame;
 
+
+
+    T explicit_force_rt=0.;
+    int explicit_force_cnt=0;
+    T apply_force_rt=0.;
+    int apply_force_cnt=0;
+    T ras_rt=0.;
+    int ras_cnt=0;
+    T ras_vx_rt=0.;
+    int ras_vx_cnt=0;
+    T update_x_v_rt=0.;
+    int update_x_v_cnt=0;
     T flip;
     T cfl;
     T solver_tolerance;
     int solver_iterations;
     int levels,threads;
     T_INDEX counts;
+    // T_INDEX dn;
     Range<T,d> domain;
     Range<T,d> bbox;
     Array<T_Particle> particles;
@@ -154,7 +167,7 @@ class MPM_Example: public Example<T,d>
     TV gravity;
     Hierarchy *hierarchy;
 
-    bool SHOW_RUNNING_TIME=false;
+    bool SHOW_RUNNING_TIME=true;
     bool first_time=true;
     unsigned Struct_type::* flags_channel;
     T Struct_type::* mass_channel;
@@ -190,7 +203,7 @@ class MPM_Example: public Example<T,d>
     void Estimate_Particle_Volumes();
     void Apply_Force(const T dt);
     void Apply_Explicit_Force(const T dt);
-    void Grid_Based_Collison(const bool detect_collision);
+    void Grid_Based_Collision(const bool detect_collision);
     T    Max_Particle_Velocity() const;
     void Limit_Dt(T& dt,const T time) override;
     void Test();
@@ -199,7 +212,7 @@ class MPM_Example: public Example<T,d>
     void Read_Output_Files(const int frame);
     void Write_Output_Files(const int frame) const override;
     void Rasterize_Voxels();
-
+    int ID321(Vector<int,d> index);
   protected:
     void Compute_Bounding_Box(Range<T,d>& bbox);
 //######################################################################
