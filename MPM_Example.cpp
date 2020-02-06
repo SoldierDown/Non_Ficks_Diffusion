@@ -504,7 +504,7 @@ Test()
         for(unsigned i=0;i<particles.size();++i){T_Particle& p=particles(i);     
             for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){}}}
     high_resolution_clock::time_point te3=high_resolution_clock::now();
-	duration<double> dur3=duration_cast<duration<double>>(te2-tb2);
+	duration<double> dur3=duration_cast<duration<double>>(te3-tb3);
     Log::cout<<"iterator: "<<dur3.count()/iterations<<std::endl;
 
 
