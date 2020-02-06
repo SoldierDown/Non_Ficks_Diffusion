@@ -24,8 +24,7 @@ public:
     T mass,volume;
     Mat weights;
     Mat dweights;
-    
-    T_INDEX base_node;              
+
 
     // Hydrogel variables
     T mass_solid;
@@ -33,10 +32,9 @@ public:
     T saturation;
     T volume_fraction_0;
     T div_Qc;
-    
+             
     // Constitutive model
     MPM_Constitutive_Model<T,d> constitutive_model;
-
     Matrix<T,d> scp;
 
     MPM_Particle()
@@ -51,15 +49,9 @@ public:
         V=TV();
         mass=(T)0.;
         volume=(T)0.;
-
-        // Hydrogel variables
-        mass_solid=mass;
-        mass_fluid=(T)0.;
-        saturation=(T)0.;
-        volume_fraction_0=(T)0.;
-        div_Qc=(T)0.;
         scp=Matrix<T,d>();
     }
+
     T Weight(T_INDEX index)
     {
         T weight=(T)1.;
@@ -77,6 +69,7 @@ public:
         weight_gradient(i)*=(i==j)?dweights(index(j),j):weights(index(j),j);
         return weight_gradient;
     }
+
     void Update_Weights(const Grid<T,d>& grid)    
     {
         closest_node=grid.Closest_Node(X);
@@ -90,25 +83,13 @@ public:
 
     void Compute_Weights(T x,const T one_over_dx,const int k)
     {
-        // weights(0,k)=(T)0.5*x*x-(T)1.5*x+(T)1.125;
-        // if(weights(0,k)<(T)0.) Log::cout<<"0 negative weight: "<<weights(0,k)<<", x: "<<x<<std::endl;
-        // dweights(0,k)=(x-(T)1.5)*one_over_dx;
-        // x-=(T)1;
-        // weights(1,k)=-x*x+(T).75;
-        // if(weights(1,k)<(T)0.) Log::cout<<"1 negative weight!"<<weights(1,k)<<", x: "<<x<<std::endl;
-        // dweights(1,k)=(T)(-2)*x*one_over_dx;
-        // x-=(T)1;
-        // weights(2,k)=(T).5*x*x+(T)1.5*x+(T)1.125;
-        // if(weights(2,k)<(T)0.) Log::cout<<"2 negative weight!"<<weights(2,k)<<", x: "<<x<<std::endl;
-        // dweights(2,k)=(x+(T)1.5)*one_over_dx;
-
-        weights(0,k)=(T)0.5*x*x-(T)1.5*x+(T)1.125;
+        weights(0,k)=std::abs((T)0.5*x*x-(T)1.5*x+(T)1.125);
         dweights(0,k)=(x-(T)1.5)*one_over_dx;
         x-=(T)1;
-        weights(1,k)=-x*x+(T).75;
+        weights(1,k)=std::abs(-x*x+(T).75);
         dweights(1,k)=(T)(-2)*x*one_over_dx;
         x-=(T)1;
-        weights(2,k)=(T).5*x*x+(T)1.5*x+(T)1.125;
+        weights(2,k)=std::abs((T).5*x*x+(T)1.5*x+(T)1.125);
         dweights(2,k)=(x+(T)1.5)*one_over_dx;
     }
 };

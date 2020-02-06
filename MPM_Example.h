@@ -135,6 +135,16 @@ class MPM_Example: public Example<T,d>
   public:
     using Base::frame_title;using Base::output_directory;using Base::parse_args;using Base::first_frame;
 
+    T explicit_force_rt=0.;
+    int explicit_force_cnt=0;
+    T apply_force_rt=0.;
+    int apply_force_cnt=0;
+    T ras_rt=0.;
+    int ras_cnt=0;
+    T ras_vx_rt=0.;
+    int ras_vx_cnt=0;
+    T update_x_v_rt=0.;
+    int update_x_v_cnt=0;
     T flip;
     T cfl;
     T solver_tolerance;
@@ -144,6 +154,7 @@ class MPM_Example: public Example<T,d>
     Range<T,d> domain;
     Range<T,d> bbox;
     Array<T_Particle> particles;
+    Array<T_Barrier> barriers;
     Array<int> simulated_particles;
     Array<int> invalid_particles;
     Array<int> valid_grid_indices;
@@ -198,6 +209,7 @@ class MPM_Example: public Example<T,d>
     void Update_Particle_Weights();
     void Group_Particles();
     void Rasterize();
+    void Grid_Based_Collision(const bool detect_collision);
     void Update_Constitutive_Model_State();
     void Update_Particle_Velocities_And_Positions(const T dt);
     void Estimate_Particle_Volumes();
@@ -213,9 +225,9 @@ class MPM_Example: public Example<T,d>
     void Parse_Options() override;
     void Read_Output_Files(const int frame);
     void Write_Output_Files(const int frame) const override;
+    void Rasterize_Voxels();
   protected:
     void Compute_Bounding_Box(Range<T,d>& bbox);
-    void Rasterize_Voxels(const Range<T,d>& bbox);
 //######################################################################
 };
 }

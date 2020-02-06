@@ -24,20 +24,41 @@ class Project_Helper
     using TV                    = Vector<T,d>;
     using T_Barrier             = MPM_Plane_Barrier<T,d>;
   public:
-    Project_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& v_channels,Array<T_Barrier> barriers)
-    {Run(allocator,blocks,v_channels,barriers);}
+    Project_Helper(const Grid<T,d>& grid,Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& v_channels,Array<T_Barrier> barriers)
+    {Run(grid,allocator,blocks,v_channels,barriers);}
 
-    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& v_channels,Array<T_Barrier> barriers) const
+    void Run(const Grid<T,2>& grid,SPGrid::SPGrid_Allocator<Struct_type,2>& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Vector<T Struct_type::*,2>& v_channels,Array<T_Barrier> barriers) const
     {
-        auto collide_nodes=allocator.template Get_Const_Array<Struct_type,T>(&Struct_type::ch10);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
+        auto v0=allocator.template Get_Array<Struct_type,T>(v_channels(0));
+        auto v1=allocator.template Get_Array<Struct_type,T>(v_channels(1));
         auto project_helper=[&](uint64_t offset)
         {
-            for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                for(int id=0;id<barriers.size();++id) if(collide_nodes(offset)==(T)1.) for(int v=0;v<d;++v) allocator.template Get_Array<Struct_type,T>(v_channels(v))(offset)=(T)0.;
-                    
+            for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
+                Vector<int,d> index(Flag_array_mask::LinearToCoord(offset)); TV node_location=grid.Node(index);
+                for(int id=0;id<barriers.size();++id) {
+                    const TV normal=barriers(id).normal;
+                    if((node_location-barriers(id).surface).Dot_Product(barriers(id).normal<(T)0.)) {v0(offset)=(T)0.; v1(offset)=(T)0.;}}};
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,project_helper);
+
+    }
+    void Run(const Grid<T,3>& grid,SPGrid::SPGrid_Allocator<Struct_type,3>& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Vector<T Struct_type::*,3>& v_channels,Array<T_Barrier> barriers) const
+    {
+        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
+        auto v0=allocator.template Get_Array<Struct_type,T>(v_channels(0));
+        auto v1=allocator.template Get_Array<Struct_type,T>(v_channels(1));
+        auto v2=allocator.template Get_Array<Struct_type,T>(v_channels(2));
+        auto project_helper=[&](uint64_t offset)
+        {
+            for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
+                Vector<int,d> index(Flag_array_mask::LinearToCoord(offset)); TV node_location=grid.Node(index);
+                for(int id=0;id<barriers.size();++id) {
+                    const TV normal=barriers(id).normal;
+                    if((node_location-barriers(id).surface).Dot_Product(barriers(id).normal<(T)0.)) {v0(offset)=(T)0.; v1(offset)=(T)0.; v2(offset)=(T)0.;}}};
+        };
+        SPGrid_Computations::Run_Parallel_Blocks(blocks,project_helper);
+
     }
 };
 }

@@ -19,11 +19,11 @@ public:
     const T mu; // coefficient of friction
     Vector<T,d> axis_vector;
     Vector<T,d> normal;
-    T surface;
+    Vector<T,d> surface;
     const bool sticky;
     
-    MPM_Plane_Barrier(const T mu_input,const TV normal_input,TV axis_vector_input,const T surface_input,const bool sticky_input=false)
-        :mu(mu_input),normal(normal_input),axis_vector(axis_vector_input),surface(surface_input),sticky(sticky_input)
+    MPM_Plane_Barrier(const T mu_input,const TV normal_input,const TV surface_input,const bool sticky_input=false)
+        :mu(mu_input),normal(normal_input),surface(surface_input),sticky(sticky_input)
     {}
 
     ~MPM_Plane_Barrier()
