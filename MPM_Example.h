@@ -116,6 +116,8 @@ Vector_To_Flag(Vector<int,3> current_node)
     std::cout<<Flag_array_mask::Linear_Offset(current_node(0),current_node(1),current_node(2))<<std::endl;
 }
 
+
+
 template<class T,int d>
 class MPM_Example: public Example<T,d>
 {

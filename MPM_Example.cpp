@@ -149,7 +149,7 @@ Compute_Bounding_Box(Range<T,d>& bbox)
         TV& current_min_corner=min_corner_per_thread(tid);
         TV& current_max_corner=max_corner_per_thread(tid);
         for(int v=0;v<d;++v){
-            T dd=(T)2./counts(v);
+            T dd=(T)3./counts(v);
             current_min_corner(v)=std::min(current_min_corner(v),p.X(v)-dd);
             current_max_corner(v)=std::max(current_max_corner(v),p.X(v)+dd);}}
 
@@ -176,21 +176,11 @@ Rasterize_Voxels()
     using Cell_Iterator             = Grid_Iterator_Cell<T,d>;
     using Hierarchy_Initializer     = Grid_Hierarchy_Initializer<Struct_type,T,d>;
     const Grid<T,d>& grid=hierarchy->Lattice(0);
-// #pragma omp parallel for
-//     for(int tid_process=0;tid_process<threads;++tid_process){
-//         const Interval<int> thread_x_interval=x_intervals(tid_process);
-//         for(int tid_collect=0;tid_collect<threads;++tid_collect){
-//             const Array<int> index=particle_bins(tid_process,tid_collect);
-//             for(int i=0;i<index.size();++i){
-//                 T_Particle& p=particles(index(i));const T_INDEX cell_id=grid.Closest_Cell(p.X);
-//                 const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-cell_id(0),thread_x_interval.max_corner-cell_id(0));
-//         for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){
-//             T_INDEX current_cell=cell_id+iterator.Index(); 
-//             if(grid.Inside_Domain(current_cell)) hierarchy->Activate_Cell(0,current_cell,Cell_Type_Interior);}}}}
     Range<int,d> bounding_grid_cells(grid.Clamp_To_Cell(bbox.min_corner),grid.Clamp_To_Cell(bbox.max_corner));
     for(Cell_Iterator iterator(grid,bounding_grid_cells);iterator.Valid();iterator.Next())
         hierarchy->Activate_Cell(0,iterator.Cell_Index(),Cell_Type_Interior);
     
+    Hierarchy_Initializer::Flag_Active_Nodes(*hierarchy);
     hierarchy->Update_Block_Offsets();
     hierarchy->Initialize_Red_Black_Partition(2*threads);
 

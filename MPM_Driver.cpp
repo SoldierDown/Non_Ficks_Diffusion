@@ -26,6 +26,8 @@ Initialize()
         example.Group_Particles();
         example.Rasterize_Voxels();
         example.Rasterize();
+        if(example.FICKS) example.Ficks_Diffusion(dt);
+        else example.Non_Ficks_Diffusion(dt);
         example.Estimate_Particle_Volumes();
     }
     else example.Read_Output_Files(example.restart_frame);

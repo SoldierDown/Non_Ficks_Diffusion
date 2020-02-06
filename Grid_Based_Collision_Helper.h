@@ -50,10 +50,7 @@ class Grid_Based_Collision_Helper
                             vel-=normal_vector*projection;
                             if(-projection*mu<vel.Norm()) vel+=vel.Normalized()*projection*mu;
                             else vel=TV();}
-                        vs0(offset)=vel(0); vs1(offset)=vel(1);
-                    // for(int v=0;v<d;++v) allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)=vel(v);
-                    }}}
-                }
+                        vs0(offset)=vel(0); vs1(offset)=vel(1);}}}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,grid_based_collision_helper);
     }
