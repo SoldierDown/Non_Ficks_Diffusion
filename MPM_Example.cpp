@@ -572,7 +572,7 @@ Register_Options()
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
     parse_args->Add_Double_Argument("-cfl",(T)0.1,"CFL number.");
-    parse_args->Add_Vector_2D_Argument("-size",Vector<double,2>(100.),"n","Grid resolution");
+    parse_args->Add_Vector_2D_Argument("-size",Vector<double,2>(32.),"n","Grid resolution");
 }
 //######################################################################
 // Test
@@ -736,7 +736,7 @@ Compute_Bounding_Box(Range<T,3>& bbox)
         TV& current_min_corner=min_corner_per_thread(tid);
         TV& current_max_corner=max_corner_per_thread(tid);
         for(int v=0;v<3;++v){
-            T dd=(T)3./counts(v);
+            T dd=(T)4./counts(v);
             current_min_corner(v)=std::min(current_min_corner(v),p.X(v)-dd);
             current_max_corner(v)=std::max(current_max_corner(v),p.X(v)+dd);}}
 
@@ -798,7 +798,6 @@ Populate_Simulated_Particles()
     for(int i=0;i<particles.size();++i)
         if(particles(i).valid)
             simulated_particles.Append(i);
-    // Log::cout<<"\nSimulated particles: "<<simulated_particles.size()<<std::endl;
 }
 //######################################################################
 // Max_Particle_Velocity
@@ -914,11 +913,11 @@ Ficks_Diffusion(T dt)
     const Grid<T,3>& grid=hierarchy->Lattice(0);
     const T one_over_dx2=(T)1./(grid.dX(0)*grid.dX(1));
     const T a=diff_coeff*dt*one_over_dx2;
-    const T twod_a_plus_one=(T)6.*a+(T)1.;
+    const T six_a_plus_one=(T)6.*a+(T)1.;
     if(!explicit_diffusion){
     Diffusion_CG_System<Struct_type,T,3> ficks_diffusion_system(*hierarchy,FICKS);
     ficks_diffusion_system.a=a;
-    ficks_diffusion_system.twod_a_plus_one=twod_a_plus_one;
+    ficks_diffusion_system.twod_a_plus_one=six_a_plus_one;
     ficks_diffusion_system.use_preconditioner=false;
     Conjugate_Gradient<T> cg;
     Krylov_Solver<T>* solver_fd=(Krylov_Solver<T>*)&cg;
@@ -1169,7 +1168,7 @@ Register_Options()
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
     parse_args->Add_Double_Argument("-cfl",(T)0.1,"CFL number.");
-    parse_args->Add_Vector_3D_Argument("-size",Vector<double,3>(100.),"n","Grid resolution");
+    parse_args->Add_Vector_3D_Argument("-size",Vector<double,3>(32.),"n","Grid resolution");
 }
 //######################################################################
 // Test

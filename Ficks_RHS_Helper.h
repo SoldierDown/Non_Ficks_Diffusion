@@ -32,9 +32,8 @@ class Ficks_RHS_Helper
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* saturation_channel,T Struct_type::* rhs_channel,const T a) const
     {
-        auto saturation=allocator.template Get_Const_Array<Struct_type,T>(saturation_channel);
-        auto rhs=allocator.template Get_Array<Struct_type,T>(rhs_channel);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
+        auto saturation=allocator.template Get_Const_Array<Struct_type,T>(saturation_channel); auto rhs=allocator.template Get_Array<Struct_type,T>(rhs_channel);
         uint64_t face_neighbor_offsets[Topology_Helper::number_of_faces_per_cell];
         Topology_Helper::Face_Neighbor_Offsets(face_neighbor_offsets);
         auto ficks_rhs_helper=[&](uint64_t offset)
@@ -44,7 +43,7 @@ class Ficks_RHS_Helper
                     rhs(offset)=saturation(offset);
                     for(int face=0;face<Topology_Helper::number_of_faces_per_cell;++face){
                         int64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
-                        if(flags(neighbor_offset)&Node_Active) if(flags(neighbor_offset)&Node_Saturated!=(unsigned)0) 
+                        if(flags(neighbor_offset)&Node_Active) if(flags(neighbor_offset)&Node_Saturated==(unsigned)0) 
                             rhs(offset)+=a*saturation(neighbor_offset);}}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,ficks_rhs_helper);

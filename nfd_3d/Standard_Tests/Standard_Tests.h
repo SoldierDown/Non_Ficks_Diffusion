@@ -53,7 +53,7 @@ class Standard_Tests: public MPM_Example<T,d>
             {
                 const T solid_density=(T)10.;
                 const T fluid_density=(T)1.;
-                const int number_of_particles=40000;
+                const int number_of_particles=4000;
                 const Range<T,d> block(TV({.45,.45,.49}),TV({.55,.55,.51}));
                 const T block_area=block.Area();
                 const T area_per_particle=block_area/number_of_particles;

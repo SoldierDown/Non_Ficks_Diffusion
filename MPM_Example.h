@@ -237,18 +237,18 @@ class MPM_Example<T,2>: public Example<T,2>
 template<class T>
 class MPM_Example<T,3>: public Example<T,3>
 {
-    using T_Mat                     = Matrix<T,3>;
-    using TV                        = Vector<T,3>;
-    using Base                      = Example<T,3>;
-    using T_INDEX                   = Vector<int,3>;
-    using T_Particle                = MPM_Particle<T,3>;
-    using T_Barrier                 = MPM_Plane_Barrier<T,3>;
-    using Struct_type               = MPM_Data<T>;
-    using Flags_type                = typename Struct_type::Flags_type;
-    using Allocator_type            = SPGrid::SPGrid_Allocator<Struct_type,3>;
-    using Flag_array_mask           = typename Allocator_type::template Array_mask<unsigned>;
-    using Hierarchy                 = Grid_Hierarchy<Struct_type,T,3>;
-    using Channel_Vector            = Vector<T Struct_type::*,3>;
+    using T_Mat                         = Matrix<T,3>;
+    using TV                            = Vector<T,3>;
+    using Base                          = Example<T,3>;
+    using T_INDEX                       = Vector<int,3>;
+    using T_Particle                    = MPM_Particle<T,3>;
+    using T_Barrier                     = MPM_Plane_Barrier<T,3>;
+    using Struct_type                   = MPM_Data<T>;
+    using Flags_type                    = typename Struct_type::Flags_type;
+    using Allocator_type                = SPGrid::SPGrid_Allocator<Struct_type,3>;
+    using Flag_array_mask               = typename Allocator_type::template Array_mask<unsigned>;
+    using Hierarchy                     = Grid_Hierarchy<Struct_type,T,3>;
+    using Channel_Vector                = Vector<T Struct_type::*,3>;
     using T_Influence_Iterator          = Influence_Iterator<T,3,T_INDEX>;
     using T_Cropped_Influence_Iterator  = Cropped_Influence_Iterator<T,3,T_INDEX>;
   public:

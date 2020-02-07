@@ -30,9 +30,9 @@ class Diffusion_Multiply_Helper
                 const bool FICKS,const T a,const T twod_a_plus_one,const T coeff1) const
     {
         if(FICKS){
+        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto x=allocator.template Get_Const_Array<Struct_type,T>(x_channel);
         auto result=allocator.template Get_Array<Struct_type,T>(result_channel);
-        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         uint64_t face_neighbor_offsets[Topology_Helper::number_of_faces_per_cell];
         Topology_Helper::Face_Neighbor_Offsets(face_neighbor_offsets);
 
@@ -61,7 +61,7 @@ class Diffusion_Multiply_Helper
                         int64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
                         if(flags(neighbor_offset)&Node_Saturated) result(offset)-=coeff1*x(neighbor_offset);}}}
         };
-
+        
         SPGrid_Computations::Run_Parallel_Blocks(blocks,non_ficks_diffusion_multiply_helper);}
     }
 };

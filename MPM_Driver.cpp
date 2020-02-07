@@ -26,9 +26,11 @@ Initialize()
         example.Group_Particles();
         example.Rasterize_Voxels();
         example.Rasterize();
-        if(example.FICKS) example.Ficks_Diffusion(dt);
-        else example.Non_Ficks_Diffusion(dt);
         example.Estimate_Particle_Volumes();
+        // if(example.FICKS) example.Ficks_Diffusion(dt);
+        // else example.Non_Ficks_Diffusion(dt);
+        // example.Update_Constitutive_Model_State();
+        // example.Update_Particle_Velocities_And_Positions(dt);
     }
     else example.Read_Output_Files(example.restart_frame);
 }

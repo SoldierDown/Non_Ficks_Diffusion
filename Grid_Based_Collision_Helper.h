@@ -59,9 +59,7 @@ class Grid_Based_Collision_Helper
     {
         using TV=Vector<T,3>; using T_INDEX=Vector<int,3>;
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        auto vs0=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(0)); 
-        auto vs1=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(1));
-        auto vs2=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(2));
+        auto vs0=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(0));  auto vs1=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(1)); auto vs2=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(2));
         auto grid_based_collision_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
@@ -78,9 +76,7 @@ class Grid_Based_Collision_Helper
                             vel-=normal_vector*projection;
                             if(-projection*mu<vel.Norm()) vel+=vel.Normalized()*projection*mu;
                             else vel=TV();}
-                        vs0(offset)=vel(0); vs1(offset)=vel(1); vs2(offset)=vel(2);
-                    // for(int v=0;v<d;++v) allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)=vel(v);
-                    }}}
+                        vs0(offset)=vel(0); vs1(offset)=vel(1); vs2(offset)=vel(2);}}}
                 }
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,grid_based_collision_helper);
