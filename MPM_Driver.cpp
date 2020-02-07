@@ -37,7 +37,6 @@ Test()
 {
     example.Initialize();
     example.Test();
-
 }
 //######################################################################
 // Execute_Main_Program

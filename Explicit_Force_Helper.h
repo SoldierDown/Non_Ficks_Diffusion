@@ -40,7 +40,7 @@ class Explicit_Force_Helper
         auto explicit_velocity_update_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Node_Saturated){
+                if(flags(offset)&Cell_Saturated){
                     vs0(offset)=v0(offset)+dt/mass(offset)*f0(offset);
                     vs1(offset)=v1(offset)+dt/mass(offset)*f1(offset);
                     // Log::cout<<"v: "<<v0(offset)<<","<<v1(offset)<<", mass: "<<mass(offset)<<", f: "<<f0(offset)<<","<<f1(offset)<<", vs: "<<vs0(offset)<<","<<vs1(offset)<<std::endl;
@@ -72,7 +72,7 @@ class Explicit_Force_Helper
         auto explicit_velocity_update_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Node_Saturated){
+                if(flags(offset)&Cell_Saturated){
                     vs0(offset)=v0(offset)+dt/mass(offset)*f0(offset);
                     vs1(offset)=v1(offset)+dt/mass(offset)*f1(offset);
                     vs2(offset)=v2(offset)+dt/mass(offset)*f2(offset);}

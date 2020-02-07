@@ -79,8 +79,8 @@ public:
     const TV_INT& Index() const
     {return index;}
 
-    const TV_INT Current_Node() const 
-    {return particle.closest_node+Index();}
+    const TV_INT Current_Cell() const 
+    {return particle.closest_cell+Index();}
 
     T Weight() const
     {

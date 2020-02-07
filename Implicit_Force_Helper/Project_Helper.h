@@ -33,10 +33,10 @@ class Project_Helper
         auto project_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                Vector<int,d> index(Flag_array_mask::LinearToCoord(offset)); TV node_location=grid.Node(index);
+                Vector<int,d> index(Flag_array_mask::LinearToCoord(offset)); TV cell_location=grid.Center(index);
                 for(int id=0;id<barriers.size();++id) {
                     const TV normal=barriers(id).normal;
-                    if((node_location-barriers(id).surface).Dot_Product(barriers(id).normal<(T)0.)) 
+                    if((cell_location-barriers(id).surface).Dot_Product(barriers(id).normal<(T)0.)) 
                         for(int v=0;v<d;++v) allocator.template Get_Array<Struct_type,T>(v_channels(v))(offset)=(T)0.;}
             }
                     

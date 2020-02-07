@@ -31,7 +31,7 @@ class Channel_Vector_Norm_Helper
         auto channel_vector_norm_helper=[&](uint64_t offset,T& result)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Node_Saturated) for(int v=0;v<d;++v) result+=Nova_Utilities::Sqr(allocator.template Get_Const_Array<Struct_type,T>(channel_vector(v))(offset));
+                if(flags(offset)&Cell_Saturated) for(int v=0;v<d;++v) result+=Nova_Utilities::Sqr(allocator.template Get_Const_Array<Struct_type,T>(channel_vector(v))(offset));
         };
         for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
             uint64_t offset=iterator.Offset();

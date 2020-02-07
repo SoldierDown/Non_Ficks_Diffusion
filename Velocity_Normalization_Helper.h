@@ -25,15 +25,13 @@ class Velocity_Normalization_Helper
 
     void Run(SPGrid::SPGrid_Allocator<Struct_type,2>& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Vector<T Struct_type::*,2>& velocity_channels) const
     {
-        auto mass=allocator.template Get_Const_Array<Struct_type,T>(&Struct_type::ch0);
-        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        auto v0=allocator.template Get_Array<Struct_type,T>(velocity_channels(0));
-        auto v1=allocator.template Get_Array<Struct_type,T>(velocity_channels(1));
+        auto mass=allocator.template Get_Const_Array<Struct_type,T>(&Struct_type::ch0); auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
+        auto v0=allocator.template Get_Array<Struct_type,T>(velocity_channels(0)); auto v1=allocator.template Get_Array<Struct_type,T>(velocity_channels(1));
 
         auto velocity_normalization_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Node_Saturated) { const T mass_inverse=1/mass(offset);
+                if(flags(offset)&Cell_Saturated) { const T mass_inverse=1/mass(offset);
                     // Log::cout<<"p: "<<v0(offset)<<","<<v1(offset)<<", m: "<<mass(offset)<<", mass_inverse: "<<mass_inverse<<", v: "<<v0(offset)*mass_inverse<<","<<v1(offset)*mass_inverse<<std::endl;
                     v0(offset)*=mass_inverse; v1(offset)*=mass_inverse;}
             }
@@ -43,16 +41,13 @@ class Velocity_Normalization_Helper
 
     void Run(SPGrid::SPGrid_Allocator<Struct_type,3>& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Vector<T Struct_type::*,3>& velocity_channels) const
     {
-        auto mass=allocator.template Get_Const_Array<Struct_type,T>(&Struct_type::ch0);
-        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        auto v0=allocator.template Get_Array<Struct_type,T>(velocity_channels(0));
-        auto v1=allocator.template Get_Array<Struct_type,T>(velocity_channels(1));
-        auto v2=allocator.template Get_Array<Struct_type,T>(velocity_channels(2));
+        auto mass=allocator.template Get_Const_Array<Struct_type,T>(&Struct_type::ch0); auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
+        auto v0=allocator.template Get_Array<Struct_type,T>(velocity_channels(0)); auto v1=allocator.template Get_Array<Struct_type,T>(velocity_channels(1)); auto v2=allocator.template Get_Array<Struct_type,T>(velocity_channels(2));
 
         auto velocity_normalization_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Node_Saturated) { const T mass_inverse=1/mass(offset);
+                if(flags(offset)&Cell_Saturated) { const T mass_inverse=1/mass(offset);
                     v0(offset)*=mass_inverse; v1(offset)*=mass_inverse; v2(offset)*=mass_inverse;}
             }
         };
@@ -68,7 +63,7 @@ class Velocity_Normalization_Helper
             T min_mass=FLT_MAX, max_mass=-FLT_MAX;
             T min_v=FLT_MAX,    max_v=-FLT_MAX;
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Node_Saturated) {
+                if(flags(offset)&Cell_Saturated) {
                     T m=mass(offset);
                     if(m>max_mass) max_mass=m;
                     if(m<min_mass) min_mass=m;

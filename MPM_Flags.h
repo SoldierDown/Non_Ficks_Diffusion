@@ -6,7 +6,7 @@
 
 namespace Nova{
 enum{
-    Node_Saturated                  = 0x00010000u
+    Cell_Saturated                  = 0x00010000u
 };
 }
 #endif

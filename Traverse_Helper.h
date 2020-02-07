@@ -26,13 +26,12 @@ class Traverse_Helper
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::*channel1,T Struct_type::* channel2) const
     {
-        auto c1=allocator.template Get_Const_Array<Struct_type,T>(channel1);
-        auto c2=allocator.template Get_Const_Array<Struct_type,T>(channel2);
+        auto c1=allocator.template Get_Const_Array<Struct_type,T>(channel1); auto c2=allocator.template Get_Const_Array<Struct_type,T>(channel2);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto traverse_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Node_Saturated) if(c1(offset)!=c2(offset))  Log::cout<<"\n**********NOT EQUAL!**********\n"<<c1(offset)-c2(offset)<<std::endl;
+                if(flags(offset)&Cell_Saturated) if(c1(offset)!=c2(offset))  Log::cout<<"\n**********NOT EQUAL!**********\n"<<c1(offset)-c2(offset)<<std::endl;
         };
         for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
             uint64_t offset=iterator.Offset();

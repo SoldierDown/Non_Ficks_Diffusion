@@ -30,7 +30,7 @@ class Flag_Setup_Helper
         auto flag_setup_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(mass(offset)>(T)0.) flags(offset)|=Node_Saturated;
+                if(mass(offset)>(T)0.) flags(offset)|=Cell_Saturated;
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,flag_setup_helper);
     }

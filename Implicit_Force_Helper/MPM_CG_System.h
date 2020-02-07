@@ -79,13 +79,13 @@ class MPM_CG_System: public Krylov_System_Base<T>
         // Log::cout<<"After Force() x: "<<Convergence_Norm(x)<<", result: "<<Convergence_Norm(result)<<std::endl;
         const T scaled_dt_squared=dt*dt/(1+trapezoidal);
         for(int level=0;level<hierarchy.Levels();++level)
-            Multiply_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),x_channels,result_channels,scaled_dt_squared,(unsigned)Node_Saturated);
+            Multiply_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),x_channels,result_channels,scaled_dt_squared,(unsigned)Cell_Saturated);
         
         // for(int level=0;level<hierarchy.Levels();++level)
-        //     Channel_Vector_Traverse_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),x_channels,(unsigned)Node_Saturated);
+        //     Channel_Vector_Traverse_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),x_channels,(unsigned)Cell_Saturated);
         // Log::cout<<std::endl;
         // for(int level=0;level<hierarchy.Levels();++level)
-        //     Channel_Vector_Traverse_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),result_channels,(unsigned)Node_Saturated);
+        //     Channel_Vector_Traverse_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),result_channels,(unsigned)Cell_Saturated);
         
     }
     
@@ -109,7 +109,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
             high_resolution_clock::time_point tb = high_resolution_clock::now();    
             int id=simulated_particles(i); T_Particle& p=particles(id); T_Mat& tmp_mat=p.scp; tmp_mat=T_Mat();
             for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){          
-                auto data=iterator.Current_Node()._data;
+                auto data=iterator.Current_Cell()._data;
                 TV v_vec({v0(data),v1(data)});
                 // Log::cout<<"Node: "<<iterator.Current_Node()<<", node location: "<<grid.Node(iterator.Current_Node())<<std::endl;
                 // Log::cout<<"x: "<<v_vec(0)<<", "<<v_vec(1)<<", weight: "<<iterator.Weight()<<", weight grad: "<<iterator.Weight_Gradient()<<", matrix: "<<Matrix<T,d>::Outer_Product(iterator.Weight_Gradient(),v_vec)<<std::endl;
@@ -145,10 +145,10 @@ class MPM_CG_System: public Krylov_System_Base<T>
             for(int tid_collect=0;tid_collect<threads;++tid_collect){
                 const Array<int>& index=particle_bins(tid_process,tid_collect);
                 for(int i=0;i<index.size();++i){
-                    T_Particle& p=particles(index(i));T_INDEX& closest_node=p.closest_node;
-                    const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_node(0),thread_x_interval.max_corner-closest_node(0));
+                    T_Particle& p=particles(index(i));T_INDEX& closest_cell=p.closest_cell;
+                    const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_cell(0),thread_x_interval.max_corner-closest_cell(0));
             for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){ 
-                auto data=iterator.Current_Node()._data;
+                auto data=iterator.Current_Cell()._data;
                 TV tmp_vec=p.scp.Transpose_Times(iterator.Weight_Gradient()); 
                 f0(data)+=tmp_vec(0); f1(data)+=tmp_vec(1);}}}}
 
@@ -177,7 +177,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
             high_resolution_clock::time_point tb = high_resolution_clock::now();    
             int id=simulated_particles(i); T_Particle& p=particles(id); T_Mat& tmp_mat=p.scp; tmp_mat=T_Mat();
             for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){          
-                auto data=iterator.Current_Node()._data;
+                auto data=iterator.Current_Cell()._data;
                 TV v_vec({v0(data),v1(data),v2(data)});
                 // Log::cout<<"Node: "<<iterator.Current_Node()<<", node location: "<<grid.Node(iterator.Current_Node())<<std::endl;
                 // Log::cout<<"x: "<<v_vec(0)<<", "<<v_vec(1)<<", weight: "<<iterator.Weight()<<", weight grad: "<<iterator.Weight_Gradient()<<", matrix: "<<Matrix<T,d>::Outer_Product(iterator.Weight_Gradient(),v_vec)<<std::endl;
@@ -213,10 +213,10 @@ class MPM_CG_System: public Krylov_System_Base<T>
             for(int tid_collect=0;tid_collect<threads;++tid_collect){
                 const Array<int>& index=particle_bins(tid_process,tid_collect);
                 for(int i=0;i<index.size();++i){
-                    T_Particle& p=particles(index(i));T_INDEX& closest_node=p.closest_node;
-                    const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_node(0),thread_x_interval.max_corner-closest_node(0));
+                    T_Particle& p=particles(index(i));T_INDEX& closest_cell=p.closest_cell;
+                    const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_cell(0),thread_x_interval.max_corner-closest_cell(0));
             for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){ 
-                auto data=iterator.Current_Node()._data;
+                auto data=iterator.Current_Cell()._data;
                 TV tmp_vec=p.scp.Transpose_Times(iterator.Weight_Gradient()); 
                 f0(data)+=tmp_vec(0); f1(data)+=tmp_vec(1);f2(data)+=tmp_vec(2);}}}}
 
@@ -235,7 +235,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
         for(int level=0;level<hierarchy.Levels();++level)
             Project_Helper<Struct_type,T,d>(hierarchy.Lattice(0),hierarchy.Allocator(level),hierarchy.Blocks(level),v_channels,barriers);
         // for(int level=0;level<hierarchy.Levels();++level)
-        //     Channel_Vector_Traverse_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v_channels,(unsigned)Node_Saturated);
+        //     Channel_Vector_Traverse_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v_channels,(unsigned)Cell_Saturated);
     }
 
     double Inner_Product(const Vector_Base& v1,const Vector_Base& v2) const
@@ -248,15 +248,15 @@ class MPM_CG_System: public Krylov_System_Base<T>
         assert(&hierarchy == &v2_hierarchy);
 
         // for(int level=0;level<hierarchy.Levels();++level)
-        //     Channel_Vector_Traverse_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v1_channels,(unsigned)Node_Saturated);
+        //     Channel_Vector_Traverse_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v1_channels,(unsigned)Cell_Saturated);
         // Log::cout<<std::endl;
         // for(int level=0;level<hierarchy.Levels();++level)
-        //     Channel_Vector_Traverse_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v2_channels,(unsigned)Node_Saturated);
+        //     Channel_Vector_Traverse_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v2_channels,(unsigned)Cell_Saturated);
 
         T result=(T)0.;
 
         for(int level=0;level<hierarchy.Levels();++level)
-            Inner_Product_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v1_channels,v2_channels,result,(unsigned)Node_Saturated);
+            Inner_Product_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v1_channels,v2_channels,result,(unsigned)Cell_Saturated);
         return result;
     }
 
@@ -266,11 +266,11 @@ class MPM_CG_System: public Krylov_System_Base<T>
         T result=(T)0.;
         
         // for(int level=0;level<hierarchy.Levels();++level)
-        //     Channel_Vector_Traverse_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v_channels,(unsigned)Node_Saturated);
+        //     Channel_Vector_Traverse_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v_channels,(unsigned)Cell_Saturated);
         
         for(int level=0;level<hierarchy.Levels();++level)
             Convergence_Norm_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
-                                                     v_channels,result,(unsigned)Node_Saturated);
+                                                     v_channels,result,(unsigned)Cell_Saturated);
         return result;
     }
 
