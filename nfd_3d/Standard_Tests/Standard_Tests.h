@@ -51,10 +51,18 @@ class Standard_Tests: public MPM_Example<T,d>
         case 18:{
             Random_Numbers<T> random;
             random.Set_Seed(0);
-            T_Barrier ceiling(0.,TV({0.,-1.,0.}),TV({0.,1.,0.}),.9);
+            T_Barrier ceiling(0.,TV({0.,-1.,0.}),TV({0.,.9,0.}));
             Base::barriers.Append(ceiling);
-            T_Barrier ground(0.,TV({0.,1.,0.}),TV({0.,1.,0.}),.1);
+            T_Barrier ground(0.,TV({0.,1.,0.}),TV({0.,.1,0.}));
             barriers.Append(ground);
+            T_Barrier left_wall(0.,TV({1.,0.,0.}),TV({.1,0.,0.}));
+            Base::barriers.Append(left_wall);
+            T_Barrier right_wall(0.,TV({-1.,0.,0.}),TV({.9,0.,0.}));
+            Base::barriers.Append(right_wall);
+            T_Barrier front_wall(0.,TV({0.,0.,1.}),TV({0.,0.,.1}));
+            Base::barriers.Append(front_wall);
+            T_Barrier back_wall(0.,TV({0.,0.,-1.}),TV({0.,0.,.9}));
+            Base::barriers.Append(back_wall);
 
             {
                 const T mass_density=(T)2.;

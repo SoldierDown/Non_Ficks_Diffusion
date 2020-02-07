@@ -92,6 +92,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
     void Force(Vector<T Struct_type::*,2>& f,const Vector<T Struct_type::*,2>& x) const
     {
         bool print_running_time=false;
+        using T_Mat                         = Matrix<T,2>;
         using TV                            = Vector<T,2>;
         using T_INDEX                       = Vector<int,2>;
         using T_Particle                    = MPM_Particle<T,2>;
@@ -106,7 +107,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
 #pragma omp parallel for
         for(int i=0;i<simulated_particles.size();++i){
             high_resolution_clock::time_point tb = high_resolution_clock::now();    
-            int id=simulated_particles(i); T_Particle& p=particles(id); Matrix<T,2>& tmp_mat=p.scp; tmp_mat=Matrix<T,2>();
+            int id=simulated_particles(i); T_Particle& p=particles(id); T_Mat& tmp_mat=p.scp; tmp_mat=T_Mat();
             for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){          
                 auto data=iterator.Current_Node()._data;
                 TV v_vec({v0(data),v1(data)});
@@ -132,7 +133,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
     	Log::cout<<"Collect to scp: "<<dur1.count()<<std::endl;}
 
         high_resolution_clock::time_point tb2 = high_resolution_clock::now();
-        for(int level=0;level<hierarchy.Levels();++level) for(int v=0;v<d;++v) SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),f(v));
+        for(int level=0;level<hierarchy.Levels();++level) for(int v=0;v<2;++v) SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),f(v));
         if(print_running_time){high_resolution_clock::time_point te2 = high_resolution_clock::now();
 	    duration<double> dur2 = duration_cast<duration<double>>(te2-tb2);
 	    Log::cout<<"Clear force: "<<dur2.count()<<std::endl;}
@@ -159,6 +160,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
     void Force(Vector<T Struct_type::*,3>& f,const Vector<T Struct_type::*,3>& x) const
     {
         bool print_running_time=false;
+        using T_Mat                         = Matrix<T,3>;
         using TV                            = Vector<T,3>;
         using T_INDEX                       = Vector<int,3>;
         using T_Particle                    = MPM_Particle<T,3>;
@@ -167,46 +169,60 @@ class MPM_CG_System: public Krylov_System_Base<T>
         using T_Barrier                     = MPM_Plane_Barrier<T,3>; 
         
         high_resolution_clock::time_point tb1 = high_resolution_clock::now();
-        auto v_0=hierarchy.Channel(0,x(0)); auto v_1=hierarchy.Channel(0,x(1)); auto v_2=hierarchy.Channel(0,x(2));
-        auto f_0=hierarchy.Channel(0,f(0)); auto f_1=hierarchy.Channel(0,f(1)); auto f_2=hierarchy.Channel(0,f(2));
+        auto v0=hierarchy.Channel(0,x(0)); auto v1=hierarchy.Channel(0,x(1)); auto v2=hierarchy.Channel(0,x(2));
+        auto f0=hierarchy.Channel(0,f(0)); auto f1=hierarchy.Channel(0,f(1)); auto f2=hierarchy.Channel(0,f(2));
         const Grid<T,3>& grid=hierarchy.Lattice(0);
 #pragma omp parallel for
         for(int i=0;i<simulated_particles.size();++i){
-            int id=simulated_particles(i); T_Particle& p=particles(id); Matrix<T,d> tmp_mat; 
-            for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
-                auto data=iterator.Current_Node()._data; TV v_vec;
-                v_vec(0)=v_0(data); v_vec(1)=v_1(data); v_vec(2)=v_2(data);
-                tmp_mat+=Matrix<T,d>::Outer_Product(iterator.Weight_Gradient(),v_vec);}
+            high_resolution_clock::time_point tb = high_resolution_clock::now();    
+            int id=simulated_particles(i); T_Particle& p=particles(id); T_Mat& tmp_mat=p.scp; tmp_mat=T_Mat();
+            for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){          
+                auto data=iterator.Current_Node()._data;
+                TV v_vec({v0(data),v1(data),v2(data)});
+                // Log::cout<<"Node: "<<iterator.Current_Node()<<", node location: "<<grid.Node(iterator.Current_Node())<<std::endl;
+                // Log::cout<<"x: "<<v_vec(0)<<", "<<v_vec(1)<<", weight: "<<iterator.Weight()<<", weight grad: "<<iterator.Weight_Gradient()<<", matrix: "<<Matrix<T,d>::Outer_Product(iterator.Weight_Gradient(),v_vec)<<std::endl;
+                // Log::cout<<"matrix: "<<Matrix<T,d>::Outer_Product(iterator.Weight_Gradient(),v_vec)<<std::endl;
+                tmp_mat+=T_Mat::Outer_Product(iterator.Weight_Gradient(),v_vec);
+                // Log::cout<<"tmp_mat: "<<tmp_mat<<std::endl;
+            }
             Matrix<T,d> F=p.constitutive_model.Fe;
+            // Log::cout<<"F: "<<F<<std::endl;
+            // Log::cout<<"transpose_times: "<<tmp_mat.Transpose_Times(F)<<std::endl;
+            // Log::cout<<"times_dp_df: "<<p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F))<<std::endl;
             tmp_mat=F.Times_Transpose(p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F)));
-            p.scp=p.volume*tmp_mat;}
-        if (print_running_time){high_resolution_clock::time_point te1 = high_resolution_clock::now();
+            tmp_mat*=p.volume;
+            // Log::cout<<tmp_mat<<std::endl;
+            if(false){ high_resolution_clock::time_point te = high_resolution_clock::now();
+    	    duration<double> dur = duration_cast<duration<double>>(te-tb);
+    	    Log::cout<<"single particle: "<<dur.count()<<std::endl;}
+            }
+        if(print_running_time){ high_resolution_clock::time_point te1 = high_resolution_clock::now();
     	duration<double> dur1 = duration_cast<duration<double>>(te1-tb1);
     	Log::cout<<"Collect to scp: "<<dur1.count()<<std::endl;}
 
         high_resolution_clock::time_point tb2 = high_resolution_clock::now();
-        for(int level=0;level<hierarchy.Levels();++level) for(int v=0;v<d;++v) SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),f(v));  
-        if (print_running_time){high_resolution_clock::time_point te2 = high_resolution_clock::now();
+        for(int level=0;level<hierarchy.Levels();++level) for(int v=0;v<3;++v) SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),f(v));
+        if(print_running_time){high_resolution_clock::time_point te2 = high_resolution_clock::now();
 	    duration<double> dur2 = duration_cast<duration<double>>(te2-tb2);
 	    Log::cout<<"Clear force: "<<dur2.count()<<std::endl;}
 
         high_resolution_clock::time_point tb3 = high_resolution_clock::now();
 #pragma omp parallel for
-    for(int tid_process=0;tid_process<threads;++tid_process){
-        const Interval<int>& thread_x_interval=x_intervals(tid_process);
-        for(int tid_collect=0;tid_collect<threads;++tid_collect){
-            const Array<int>& index=particle_bins(tid_process,tid_collect);
-            for(int i=0;i<index.size();++i){
-                T_Particle& p=particles(index(i));T_INDEX& closest_node=p.closest_node;
-                const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_node(0),thread_x_interval.max_corner-closest_node(0));
-        for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){ 
-            T_INDEX dindex=iterator.Index();T_INDEX current_node=closest_node+iterator.Index();
-            if(grid.Node_Indices().Inside(current_node)){ T weight=p.Weight(dindex);
-                if(weight>(T)0.){ TV weight_grad=p.Weight_Gradient(dindex); TV tmp_vec=p.scp.Transpose_Times(weight_grad); 
-                    f_0(current_node._data)+=tmp_vec(0);f_1(current_node._data)+=tmp_vec(1);f_2(current_node._data)+=tmp_vec(2);}}}}}}
-    if (print_running_time){high_resolution_clock::time_point te3 = high_resolution_clock::now();
-	duration<double> dur3 = duration_cast<duration<double>>(te3-tb3);
-	Log::cout<<"Collect to grid: "<<dur3.count()<<std::endl;}
+        for(int tid_process=0;tid_process<threads;++tid_process){
+            const Interval<int> thread_x_interval=x_intervals(tid_process);
+            for(int tid_collect=0;tid_collect<threads;++tid_collect){
+                const Array<int>& index=particle_bins(tid_process,tid_collect);
+                for(int i=0;i<index.size();++i){
+                    T_Particle& p=particles(index(i));T_INDEX& closest_node=p.closest_node;
+                    const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_node(0),thread_x_interval.max_corner-closest_node(0));
+            for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){ 
+                auto data=iterator.Current_Node()._data;
+                TV tmp_vec=p.scp.Transpose_Times(iterator.Weight_Gradient()); 
+                f0(data)+=tmp_vec(0); f1(data)+=tmp_vec(1);f2(data)+=tmp_vec(2);}}}}
+
+        if (print_running_time){high_resolution_clock::time_point te3 = high_resolution_clock::now();
+	    duration<double> dur3 = duration_cast<duration<double>>(te3-tb3);
+	    Log::cout<<"Collect to grid: "<<dur3.count()<<std::endl;}
     }
 
 

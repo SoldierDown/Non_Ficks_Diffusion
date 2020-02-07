@@ -115,22 +115,25 @@ Vector_To_Flag(Vector<int,3> current_node)
     std::cout<<Flag_array_mask::Linear_Offset(current_node(0),current_node(1),current_node(2))<<std::endl;
 }
 
-template<class T,int d>
-class MPM_Example: public Example<T,d>
+template <class T,int d> class MPM_Example;
+
+template<class T>
+class MPM_Example<T,2>: public Example<T,2>
 {
-    using TV                            = Vector<T,d>;
-    using Base                          = Example<T,d>;
-    using T_INDEX                       = Vector<int,d>;
-    using T_Particle                    = MPM_Particle<T,d>;
-    using T_Barrier                     = MPM_Plane_Barrier<T,d>;
+    using T_Mat                         = Matrix<T,2>;
+    using TV                            = Vector<T,2>;
+    using Base                          = Example<T,2>;
+    using T_INDEX                       = Vector<int,2>;
+    using T_Particle                    = MPM_Particle<T,2>;
+    using T_Barrier                     = MPM_Plane_Barrier<T,2>;
     using Struct_type                   = MPM_Data<T>;
     using Flags_type                    = typename Struct_type::Flags_type;
-    using Allocator_type                = SPGrid::SPGrid_Allocator<Struct_type,d>;
+    using Allocator_type                = SPGrid::SPGrid_Allocator<Struct_type,2>;
     using Flag_array_mask               = typename Allocator_type::template Array_mask<unsigned>;
-    using Hierarchy                     = Grid_Hierarchy<Struct_type,T,d>;
-    using Channel_Vector                = Vector<T Struct_type::*,d>;
-    using T_Influence_Iterator          = Influence_Iterator<T,d,T_INDEX>;
-    using T_Cropped_Influence_Iterator  = Cropped_Influence_Iterator<T,d,T_INDEX>;
+    using Hierarchy                     = Grid_Hierarchy<Struct_type,T,2>;
+    using Channel_Vector                = Vector<T Struct_type::*,2>;
+    using T_Influence_Iterator          = Influence_Iterator<T,2,T_INDEX>;
+    using T_Cropped_Influence_Iterator  = Cropped_Influence_Iterator<T,2,T_INDEX>;
 
   public:
     using Base::frame_title;using Base::output_directory;using Base::parse_args;using Base::first_frame;
@@ -154,8 +157,8 @@ class MPM_Example: public Example<T,d>
     int levels,threads;
     T_INDEX counts;
     // T_INDEX dn;
-    Range<T,d> domain;
-    Range<T,d> bbox;
+    Range<T,2> domain;
+    Range<T,2> bbox;
     Array<T_Particle> particles;
     Array<T_Barrier> barriers;
     Array<int> simulated_particles;
@@ -212,9 +215,113 @@ class MPM_Example: public Example<T,d>
     void Read_Output_Files(const int frame);
     void Write_Output_Files(const int frame) const override;
     void Rasterize_Voxels();
-    int ID321(Vector<int,d> index);
+    int ID321(Vector<int,2> index);
   protected:
-    void Compute_Bounding_Box(Range<T,d>& bbox);
+    void Compute_Bounding_Box(Range<T,2>& bbox);
+//######################################################################
+};
+
+template<class T>
+class MPM_Example<T,3>: public Example<T,3>
+{
+    using T_Mat                         = Matrix<T,3>;
+    using TV                            = Vector<T,3>;
+    using Base                          = Example<T,3>;
+    using T_INDEX                       = Vector<int,3>;
+    using T_Particle                    = MPM_Particle<T,3>;
+    using T_Barrier                     = MPM_Plane_Barrier<T,3>;
+    using Struct_type                   = MPM_Data<T>;
+    using Flags_type                    = typename Struct_type::Flags_type;
+    using Allocator_type                = SPGrid::SPGrid_Allocator<Struct_type,3>;
+    using Flag_array_mask               = typename Allocator_type::template Array_mask<unsigned>;
+    using Hierarchy                     = Grid_Hierarchy<Struct_type,T,3>;
+    using Channel_Vector                = Vector<T Struct_type::*,3>;
+    using T_Influence_Iterator          = Influence_Iterator<T,3,T_INDEX>;
+    using T_Cropped_Influence_Iterator  = Cropped_Influence_Iterator<T,3,T_INDEX>;
+
+  public:
+    using Base::frame_title;using Base::output_directory;using Base::parse_args;using Base::first_frame;
+
+
+
+    T explicit_force_rt=0.;
+    int explicit_force_cnt=0;
+    T apply_force_rt=0.;
+    int apply_force_cnt=0;
+    T ras_rt=0.;
+    int ras_cnt=0;
+    T ras_vx_rt=0.;
+    int ras_vx_cnt=0;
+    T update_x_v_rt=0.;
+    int update_x_v_cnt=0;
+    T flip;
+    T cfl;
+    T solver_tolerance;
+    int solver_iterations;
+    int levels,threads;
+    T_INDEX counts;
+    // T_INDEX dn;
+    Range<T,3> domain;
+    Range<T,3> bbox;
+    Array<T_Particle> particles;
+    Array<T_Barrier> barriers;
+    Array<int> simulated_particles;
+    Array<int> invalid_particles;
+    Array<int> valid_grid_indices;
+    Array<Array<int> > valid_grid_indices_thread;
+    Array<Interval<int> > x_intervals;
+    Matrix_MxN<Array<int> > particle_bins;
+    TV gravity;
+    Hierarchy *hierarchy;
+
+    bool SHOW_RUNNING_TIME=true;
+    bool first_time=true;
+    unsigned Struct_type::* flags_channel;
+    T Struct_type::* mass_channel;
+    Channel_Vector velocity_channels;
+    Channel_Vector velocity_star_channels;
+    Channel_Vector f_channels;
+
+    // Krylov solver channels
+    Channel_Vector rhs_channels;
+    Channel_Vector q_channels;
+    Channel_Vector s_channels;
+    Channel_Vector r_channels;
+    Channel_Vector z_channels;
+
+    MPM_Example();
+
+    ~MPM_Example();
+
+
+//######################################################################
+    virtual void Initialize_Particles(int test_case)=0;
+//######################################################################
+    void Initialize_SPGrid();
+    void Initialize();
+    void Reset_Grid_Based_Variables();
+    void Reset_Solver_Channels();
+    void Populate_Simulated_Particles();
+    void Update_Particle_Weights();
+    void Group_Particles();
+    void Rasterize();
+    void Update_Constitutive_Model_State();
+    void Update_Particle_Velocities_And_Positions(const T dt);
+    void Estimate_Particle_Volumes();
+    void Apply_Force(const T dt);
+    void Apply_Explicit_Force(const T dt);
+    void Grid_Based_Collision(const bool detect_collision);
+    T    Max_Particle_Velocity() const;
+    void Limit_Dt(T& dt,const T time) override;
+    void Test();
+    void Register_Options() override;
+    void Parse_Options() override;
+    void Read_Output_Files(const int frame);
+    void Write_Output_Files(const int frame) const override;
+    void Rasterize_Voxels();
+    int ID321(Vector<int,3> index);
+  protected:
+    void Compute_Bounding_Box(Range<T,3>& bbox);
 //######################################################################
 };
 }

@@ -63,7 +63,7 @@ class Inner_Product_Helper
                 if(flags(offset)&mask) { 
                   // TV tmp_vec; for(int v=0;v<d;++v) tmp_vec(v)=allocator.template Get_Const_Array<Struct_type,T>(channels1(v))(offset);
                   // Log::cout<<"mass: "<<node_mass<<", tmp_vec: "<<tmp_vec<<std::endl;
-                  TV vec1({c00(offset),c01(offset),c02(offset)}), vec2({c10(offset),c11(offset),c12(offset)});
+                  TV vec1({c00(offset),c01(offset),c02(offset)}), vec2({c10(offset)*mass(offset),c11(offset)*mass(offset),c12(offset)*mass(offset)});
                   temp_result+=vec1.Dot_Product(vec2);
                   // for(int v=0;v<d;++v) temp_result+=node_mass*allocator.template Get_Const_Array<Struct_type,T>(channels1(v))(offset)*allocator.template Get_Const_Array<Struct_type,T>(channels2(v))(offset);
           }}
