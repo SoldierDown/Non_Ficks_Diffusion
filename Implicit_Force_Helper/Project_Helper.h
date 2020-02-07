@@ -46,9 +46,7 @@ class Project_Helper
     void Run(const Grid<T,3>& grid,SPGrid::SPGrid_Allocator<Struct_type,3>& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Vector<T Struct_type::*,3>& v_channels,Array<T_Barrier> barriers) const
     {
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        auto v0=allocator.template Get_Array<Struct_type,T>(v_channels(0));
-        auto v1=allocator.template Get_Array<Struct_type,T>(v_channels(1));
-        auto v2=allocator.template Get_Array<Struct_type,T>(v_channels(2));
+        auto v0=allocator.template Get_Array<Struct_type,T>(v_channels(0)); auto v1=allocator.template Get_Array<Struct_type,T>(v_channels(1)); auto v2=allocator.template Get_Array<Struct_type,T>(v_channels(2));
         auto project_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){

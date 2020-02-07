@@ -50,12 +50,8 @@ class Inner_Product_Helper
         result=(T)0.;
         auto mass=allocator.template Get_Const_Array<Struct_type,T>(&Struct_type::ch0);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        auto c00=allocator.template Get_Const_Array<Struct_type,T>(channels0(0));
-        auto c01=allocator.template Get_Const_Array<Struct_type,T>(channels0(1));
-        auto c02=allocator.template Get_Const_Array<Struct_type,T>(channels0(2));
-        auto c10=allocator.template Get_Const_Array<Struct_type,T>(channels1(0));
-        auto c11=allocator.template Get_Const_Array<Struct_type,T>(channels1(1));
-        auto c12=allocator.template Get_Const_Array<Struct_type,T>(channels1(2));
+        auto c00=allocator.template Get_Const_Array<Struct_type,T>(channels0(0)); auto c01=allocator.template Get_Const_Array<Struct_type,T>(channels0(1)); auto c02=allocator.template Get_Const_Array<Struct_type,T>(channels0(2));
+        auto c10=allocator.template Get_Const_Array<Struct_type,T>(channels1(0)); auto c11=allocator.template Get_Const_Array<Struct_type,T>(channels1(1)); auto c12=allocator.template Get_Const_Array<Struct_type,T>(channels1(2));
         T temp_result=(T)0.;
 #pragma omp parallel for reduction(+:temp_result)
         for(int b=0;b<blocks.second;b++){uint64_t offset=blocks.first[b];
@@ -63,7 +59,7 @@ class Inner_Product_Helper
                 if(flags(offset)&mask) { 
                   // TV tmp_vec; for(int v=0;v<d;++v) tmp_vec(v)=allocator.template Get_Const_Array<Struct_type,T>(channels1(v))(offset);
                   // Log::cout<<"mass: "<<node_mass<<", tmp_vec: "<<tmp_vec<<std::endl;
-                  TV vec1({c00(offset),c01(offset),c02(offset)}), vec2({c10(offset),c11(offset),c12(offset)});
+                  TV vec1({c00(offset),c01(offset),c02(offset)}), vec2({c10(offset)*mass(offset),c11(offset)*mass(offset),c12(offset)*mass(offset)});
                   temp_result+=vec1.Dot_Product(vec2);
                   // for(int v=0;v<d;++v) temp_result+=node_mass*allocator.template Get_Const_Array<Struct_type,T>(channels1(v))(offset)*allocator.template Get_Const_Array<Struct_type,T>(channels2(v))(offset);
           }}

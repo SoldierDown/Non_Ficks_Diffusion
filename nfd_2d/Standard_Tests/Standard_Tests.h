@@ -259,7 +259,7 @@ class Standard_Tests: public MPM_Example<T,d>
                     p.X=random.Get_Uniform_Vector(block);
                     p.V=TV();
                     p.constitutive_model.Compute_Lame_Parameters(E,nu);
-                    p.constitutive_model.eta=(T).1;
+                    p.constitutive_model.eta=(T).01;
                     p.constitutive_model.plastic=false;
                     p.saturation=(T)0.;
                     p.volume_fraction_0=(T).7;
