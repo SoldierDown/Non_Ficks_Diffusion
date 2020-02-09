@@ -17,9 +17,9 @@ class MPM_Plane_Barrier
 public:
 
     const T mu; // coefficient of friction
-    Vector<T,d> axis_vector;
-    Vector<T,d> normal;
-    Vector<T,d> surface;
+    TV axis_vector;
+    TV normal;
+    TV surface;
     const bool sticky;
     
     MPM_Plane_Barrier(const T mu_input,const TV normal_input,const TV surface_input,const bool sticky_input=false)

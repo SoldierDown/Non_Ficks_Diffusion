@@ -20,7 +20,7 @@ class MPM_Particle
 public:
     bool valid;
     TV X,V;
-    T_INDEX closest_node;
+    T_INDEX closest_cell;
     T mass,volume;
     Mat weights;
     Mat dweights;
@@ -32,7 +32,8 @@ public:
     T saturation;
     T volume_fraction_0;
     T div_Qc;
-             
+
+
     // Constitutive model
     MPM_Constitutive_Model<T,d> constitutive_model;
     Matrix<T,d> scp;
@@ -72,9 +73,9 @@ public:
 
     void Update_Weights(const Grid<T,d>& grid)    
     {
-        closest_node=grid.Closest_Node(X);
+        closest_cell=grid.Closest_Cell(X);
         TV dx=grid.dX;
-        const TV X_eval=X-(grid.Node(closest_node)-dx);
+        const TV X_eval=X-(grid.Center(closest_cell)-dx);
         for(int i=0;i<d;++i){
             const T one_over_dx=grid.one_over_dX(i);
             const T x=X_eval(i);

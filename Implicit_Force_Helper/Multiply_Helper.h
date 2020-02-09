@@ -29,19 +29,14 @@ class Multiply_Helper
 
         auto x0=allocator.template Get_Const_Array<Struct_type,T>(x_channels(0)); auto x1=allocator.template Get_Const_Array<Struct_type,T>(x_channels(1));
         auto r0=allocator.template Get_Array<Struct_type,T>(result_channels(0)); auto r1=allocator.template Get_Array<Struct_type,T>(result_channels(1));
-        
-        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        auto mass=allocator.template  Get_Const_Array<Struct_type,T>(&Struct_type::ch0);
+        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags); auto mass=allocator.template  Get_Const_Array<Struct_type,T>(&Struct_type::ch0);
         auto multiply_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)) 
               // if(flags(offset)&mask) for(int v=0;v<d;v++) 
               //   allocator.template Get_Array<Struct_type,T>(result_channels(v))(offset)=scaled_dt_squared/mass(offset)*allocator.template Get_Array<Struct_type,T>(result_channels(v))(offset)
               //                                                 +allocator.template Get_Const_Array<Struct_type,T>(x_channels(v))(offset);              
-              if(flags(offset)&mask){
-                  r0(offset)=scaled_dt_squared/mass(offset)*r0(offset)+x0(offset);
-                  r1(offset)=scaled_dt_squared/mass(offset)*r1(offset)+x1(offset);
-              }
+              if(flags(offset)&mask){r0(offset)=scaled_dt_squared/mass(offset)*r0(offset)+x0(offset); r1(offset)=scaled_dt_squared/mass(offset)*r1(offset)+x1(offset);}
                 // allocator.template Get_Array<Struct_type,T>(result_channels(v))(offset)=scaled_dt_squared/mass(offset)*allocator.template Get_Array<Struct_type,T>(result_channels(v))(offset)
                 //                                               +allocator.template Get_Const_Array<Struct_type,T>(x_channels(v))(offset);
         };
@@ -54,13 +49,16 @@ class Multiply_Helper
 
         auto x0=allocator.template Get_Const_Array<Struct_type,T>(x_channels(0)); auto x1=allocator.template Get_Const_Array<Struct_type,T>(x_channels(1)); auto x2=allocator.template Get_Const_Array<Struct_type,T>(x_channels(2));
         auto r0=allocator.template Get_Array<Struct_type,T>(result_channels(0)); auto r1=allocator.template Get_Array<Struct_type,T>(result_channels(1)); auto r2=allocator.template Get_Array<Struct_type,T>(result_channels(2));
-        
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags); auto mass=allocator.template  Get_Const_Array<Struct_type,T>(&Struct_type::ch0);
         auto multiply_helper=[&](uint64_t offset)
         {
-            for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))         
-              if(flags(offset)&mask){
-                    r0(offset)=scaled_dt_squared/mass(offset)*r0(offset)+x0(offset); r1(offset)=scaled_dt_squared/mass(offset)*r1(offset)+x1(offset); r2(offset)=scaled_dt_squared/mass(offset)*r2(offset)+x2(offset);}
+            for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)) 
+              // if(flags(offset)&mask) for(int v=0;v<d;v++) 
+              //   allocator.template Get_Array<Struct_type,T>(result_channels(v))(offset)=scaled_dt_squared/mass(offset)*allocator.template Get_Array<Struct_type,T>(result_channels(v))(offset)
+              //                                                 +allocator.template Get_Const_Array<Struct_type,T>(x_channels(v))(offset);              
+              if(flags(offset)&mask){r0(offset)=scaled_dt_squared/mass(offset)*r0(offset)+x0(offset); r1(offset)=scaled_dt_squared/mass(offset)*r1(offset)+x1(offset); r2(offset)=scaled_dt_squared/mass(offset)*r2(offset)+x2(offset);}
+                // allocator.template Get_Array<Struct_type,T>(result_channels(v))(offset)=scaled_dt_squared/mass(offset)*allocator.template Get_Array<Struct_type,T>(result_channels(v))(offset)
+                //                                               +allocator.template Get_Const_Array<Struct_type,T>(x_channels(v))(offset);
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,multiply_helper);
     }

@@ -18,7 +18,6 @@ MPM_Driver(MPM_Example<T,d>& example_input)
 template<class T,int d> void MPM_Driver<T,d>::
 Initialize()
 {
-    const T dt=1e-5;
     if(!example.restart){
         example.Initialize();
         example.Reset_Grid_Based_Variables();
@@ -27,10 +26,6 @@ Initialize()
         example.Rasterize_Voxels();
         example.Rasterize();
         example.Estimate_Particle_Volumes();
-        // if(example.FICKS) example.Ficks_Diffusion(dt);
-        // else example.Non_Ficks_Diffusion(dt);
-        // example.Update_Constitutive_Model_State();
-        // example.Update_Particle_Velocities_And_Positions(dt);
     }
     else example.Read_Output_Files(example.restart_frame);
 }
@@ -59,7 +54,7 @@ template<class T,int d> void MPM_Driver<T,d>::
 Advance_To_Target_Time(const T target_time)
 {
     T min_dt=(T)1e-6;
-    T max_dt=(T).001;
+    T max_dt=(T).005;
     T cfl=example.cfl;
     T dx_min=example.hierarchy->Lattice(0).dX(0);
     bool done=false;
@@ -112,8 +107,8 @@ Advance_Step(const T dt)
     example.Group_Particles();
     example.Rasterize_Voxels();
     example.Rasterize();
-    if(example.FICKS) example.Ficks_Diffusion(dt);
-    else example.Non_Ficks_Diffusion(dt);
+    // if(example.FICKS) example.Ficks_Diffusion(dt);
+    // else example.Non_Ficks_Diffusion(dt);
     example.Update_Constitutive_Model_State();
     example.Update_Particle_Velocities_And_Positions(dt);
 }

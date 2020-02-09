@@ -40,17 +40,8 @@ class Explicit_Force_Helper
         auto explicit_velocity_update_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Node_Saturated){
-                    vs0(offset)=v0(offset)+dt/mass(offset)*f0(offset);
-                    vs1(offset)=v1(offset)+dt/mass(offset)*f1(offset);
-                    // Log::cout<<"v: "<<v0(offset)<<","<<v1(offset)<<", mass: "<<mass(offset)<<", f: "<<f0(offset)<<","<<f1(offset)<<", vs: "<<vs0(offset)<<","<<vs1(offset)<<std::endl;
-                    }
-                // for(int v=0;v<d;++v){
-                //     allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset)=allocator.template Get_Array<Struct_type,T>(velocity_channels(v))(offset)
-                                                                                            //  +dt/mass(offset)*allocator.template Get_Array<Struct_type,T>(f_channels(v))(offset);
-                    // Log::cout<<"v*: "<<allocator.template Get_Const_Array<Struct_type,T>(velocity_star_channels(v))(offset)<<std::endl;
-            // }
-            }
+                if(flags(offset)&Cell_Saturated){
+                    vs0(offset)=v0(offset)+dt/mass(offset)*f0(offset); vs1(offset)=v1(offset)+dt/mass(offset)*f1(offset);}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,explicit_velocity_update_helper);        
     }
@@ -65,7 +56,7 @@ class Explicit_Force_Helper
         auto explicit_velocity_update_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Node_Saturated){ vs0(offset)=v0(offset)+dt/mass(offset)*f0(offset); vs1(offset)=v1(offset)+dt/mass(offset)*f1(offset); vs2(offset)=v2(offset)+dt/mass(offset)*f2(offset);}}
+                if(flags(offset)&Cell_Saturated){ vs0(offset)=v0(offset)+dt/mass(offset)*f0(offset); vs1(offset)=v1(offset)+dt/mass(offset)*f1(offset); vs2(offset)=v2(offset)+dt/mass(offset)*f2(offset);}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,explicit_velocity_update_helper);        
     }

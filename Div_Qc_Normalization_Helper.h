@@ -32,7 +32,7 @@ class Div_Qc_Normalization_Helper
         auto div_qc_normalization_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Node_Saturated)
+                if(flags(offset)&Cell_Saturated)
                     if(volume(offset)!=(T)0.) div_Qc(offset)/=volume(offset);
                 
         };

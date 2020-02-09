@@ -35,7 +35,7 @@ class MPM_RHS_Helper
         auto mpm_rhs_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Node_Saturated){rhs0(offset)=vs0(offset); rhs1(offset)=vs1(offset);}
+                if(flags(offset)&Cell_Saturated){rhs0(offset)=vs0(offset); rhs1(offset)=vs1(offset);}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,mpm_rhs_helper);        
     }
@@ -52,7 +52,7 @@ class MPM_RHS_Helper
         auto mpm_rhs_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Node_Saturated){rhs0(offset)=vs0(offset); rhs1(offset)=vs1(offset); rhs2(offset)=vs2(offset);}
+                if(flags(offset)&Cell_Saturated){rhs0(offset)=vs0(offset); rhs1(offset)=vs1(offset); rhs2(offset)=vs2(offset);}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,mpm_rhs_helper);        
     }

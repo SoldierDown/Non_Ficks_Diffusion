@@ -37,20 +37,21 @@ class Grid_Based_Collision_Helper
         auto grid_based_collision_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Node_Saturated){
-                    T_INDEX index(Flag_array_mask::LinearToCoord(offset)); TV node_location=grid.Node(index);
+                if(flags(offset)&Cell_Saturated){
+                    T_INDEX index(Flag_array_mask::LinearToCoord(offset)); TV cell_location=grid.Center(index);
                 for(int id=0;id<barriers.size();++id){
                     const TV& normal_vector=barriers(id).normal; const T& mu=barriers(id).mu;
-                    const T result=(node_location-barriers(id).surface).Dot_Product(barriers(id).normal);
+                    const T result=(cell_location-barriers(id).surface).Dot_Product(barriers(id).normal);
                     if(result<(T)0.){
                         TV vel=TV({vs0(offset),vs1(offset)});
-                        // for(int v=0;v<d;++v) vel(v)=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset);
                         T projection=vel.Dot_Product(normal_vector);
                         if(projection<(T)0.){
                             vel-=normal_vector*projection;
                             if(-projection*mu<vel.Norm()) vel+=vel.Normalized()*projection*mu;
                             else vel=TV();}
-                        vs0(offset)=vel(0); vs1(offset)=vel(1);}}}}
+                        vs0(offset)=vel(0); vs1(offset)=vel(1);
+                    }}}
+                }
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,grid_based_collision_helper);
     }
@@ -63,20 +64,20 @@ class Grid_Based_Collision_Helper
         auto grid_based_collision_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Node_Saturated){
-                    T_INDEX index(Flag_array_mask::LinearToCoord(offset)); TV node_location=grid.Node(index);
+                if(flags(offset)&Cell_Saturated){
+                    T_INDEX index(Flag_array_mask::LinearToCoord(offset)); TV cell_location=grid.Center(index);
                 for(int id=0;id<barriers.size();++id){
                     const TV& normal_vector=barriers(id).normal; const T& mu=barriers(id).mu;
-                    const T result=(node_location-barriers(id).surface).Dot_Product(barriers(id).normal);
+                    const T result=(cell_location-barriers(id).surface).Dot_Product(barriers(id).normal);
                     if(result<(T)0.){
                         TV vel=TV({vs0(offset),vs1(offset),vs2(offset)});
-                        // for(int v=0;v<d;++v) vel(v)=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(v))(offset);
                         T projection=vel.Dot_Product(normal_vector);
                         if(projection<(T)0.){
                             vel-=normal_vector*projection;
                             if(-projection*mu<vel.Norm()) vel+=vel.Normalized()*projection*mu;
                             else vel=TV();}
-                        vs0(offset)=vel(0); vs1(offset)=vel(1); vs2(offset)=vel(2);}}}
+                        vs0(offset)=vel(0); vs1(offset)=vel(1); vs2(offset)=vel(2);
+                    }}}
                 }
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,grid_based_collision_helper);

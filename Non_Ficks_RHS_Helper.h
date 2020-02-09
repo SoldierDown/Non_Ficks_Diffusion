@@ -42,11 +42,11 @@ class Non_Ficks_RHS_Helper
         auto non_ficks_rhs_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Node_Saturated){
+                if(flags(offset)&Cell_Saturated){
                     rhs(offset)=saturation(offset)-coeff2*div_Qc(offset);
                     for(int face=0;face<Topology_Helper::number_of_faces_per_cell;++face){
                         int64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
-                        if(flags(neighbor_offset)&Node_Active) if(flags(neighbor_offset)&Node_Saturated!=0) 
+                        if(flags(neighbor_offset)&Cell_Type_Interior) if(flags(neighbor_offset)&Cell_Saturated!=0) 
                             rhs(offset)+=coeff1*saturation(neighbor_offset);}}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,non_ficks_rhs_helper);

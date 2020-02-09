@@ -33,7 +33,7 @@ class Velocity_Normalization_Helper
         auto velocity_normalization_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Node_Saturated) { const T mass_inverse=1/mass(offset);
+                if(flags(offset)&Cell_Saturated) { const T mass_inverse=1/mass(offset);
                     // Log::cout<<"p: "<<v0(offset)<<","<<v1(offset)<<", m: "<<mass(offset)<<", mass_inverse: "<<mass_inverse<<", v: "<<v0(offset)*mass_inverse<<","<<v1(offset)*mass_inverse<<std::endl;
                     v0(offset)*=mass_inverse; v1(offset)*=mass_inverse;}
             }
@@ -48,7 +48,7 @@ class Velocity_Normalization_Helper
         auto velocity_normalization_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Node_Saturated) { const T mass_inverse=1/mass(offset);
+                if(flags(offset)&Cell_Saturated) { const T mass_inverse=1/mass(offset);
                     v0(offset)*=mass_inverse; v1(offset)*=mass_inverse; v2(offset)*=mass_inverse;}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,velocity_normalization_helper);
@@ -63,7 +63,7 @@ class Velocity_Normalization_Helper
             T min_mass=FLT_MAX, max_mass=-FLT_MAX;
             T min_v=FLT_MAX,    max_v=-FLT_MAX;
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Node_Saturated) {
+                if(flags(offset)&Cell_Saturated) {
                     T m=mass(offset);
                     if(m>max_mass) max_mass=m;
                     if(m<min_mass) min_mass=m;

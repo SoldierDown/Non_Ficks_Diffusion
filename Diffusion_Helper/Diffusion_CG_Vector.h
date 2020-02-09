@@ -57,7 +57,7 @@ class Diffusion_CG_Vector: public Krylov_Vector_Base<T>
 
         for(int level=0;level<hierarchy.Levels();++level)
             SPGrid::Masked_Add<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),channel,
-                                                bv_channel,channel,(unsigned)Node_Saturated);
+                                                bv_channel,channel,(unsigned)Cell_Saturated);
     }
 
     Base& operator-=(const Base& bv)
@@ -68,14 +68,14 @@ class Diffusion_CG_Vector: public Krylov_Vector_Base<T>
 
         for(int level=0;level<hierarchy.Levels();++level)
             SPGrid::Masked_Subtract<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),channel,
-                                                     bv_channel,channel,(unsigned)Node_Saturated);
+                                                     bv_channel,channel,(unsigned)Cell_Saturated);
     }
 
     Base& operator*=(const T a)
     {
         for(int level=0;level<hierarchy.Levels();++level)
             SPGrid::Masked_Scalar_Multiply<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
-                                                            channel,a,channel,(unsigned)Node_Saturated);
+                                                            channel,a,channel,(unsigned)Cell_Saturated);
     }
 
     void Copy(const T c,const Base& bv)
@@ -86,7 +86,7 @@ class Diffusion_CG_Vector: public Krylov_Vector_Base<T>
 
         for(int level=0;level<hierarchy.Levels();++level)
             SPGrid::Masked_Scalar_Multiply<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
-                                                            bv_channel,c,channel,(unsigned)Node_Saturated);
+                                                            bv_channel,c,channel,(unsigned)Cell_Saturated);
     }
 
     void Copy(const T c1,const Base& bv1,const Base& bv2)
@@ -100,7 +100,7 @@ class Diffusion_CG_Vector: public Krylov_Vector_Base<T>
 
         for(int level=0;level<hierarchy.Levels();++level)
             SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),c1,bv1_channel,
-                                                  bv2_channel,channel,(unsigned)Node_Saturated);
+                                                  bv2_channel,channel,(unsigned)Cell_Saturated);
     }
 };
 }

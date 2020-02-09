@@ -29,8 +29,7 @@ class Convergence_Norm_Helper
              Vector<T Struct_type::*,2> channels,T& result,const unsigned mask) const
     {
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        auto c0=allocator.template Get_Const_Array<Struct_type,T>(channels(0));
-        auto c1=allocator.template Get_Const_Array<Struct_type,T>(channels(1));
+        auto c0=allocator.template Get_Const_Array<Struct_type,T>(channels(0)); auto c1=allocator.template Get_Const_Array<Struct_type,T>(channels(1));
         result=0;
         T max_value=0;
 

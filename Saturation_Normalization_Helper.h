@@ -30,10 +30,10 @@ class Saturation_Normalization_Helper
         auto saturation_normalization_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Node_Saturated) {
+                if(flags(offset)&Cell_Saturated) {
                     if(void_mass_fluid(offset)!=(T)0.) saturation(offset)/=void_mass_fluid(offset);
                     else saturation(offset)=(T)0.;}
-                else if(flags(offset)&Node_Active) saturation(offset)=(T)1.;
+                else if(flags(offset)&Cell_Type_Interior) saturation(offset)=(T)1.;
             }
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,saturation_normalization_helper);

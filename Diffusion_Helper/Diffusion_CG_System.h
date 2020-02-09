@@ -66,7 +66,7 @@ class Diffusion_CG_System: public Krylov_System_Base<T>
 
         for(int level=0;level<hierarchy.Levels();++level)
             Diffusion_Inner_Product_Helper<Base_struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v1_channel,
-                                                  v2_channel,result,(unsigned)Node_Saturated);
+                                                  v2_channel,result,(unsigned)Cell_Saturated);
         return result;
     }
 
@@ -79,7 +79,7 @@ class Diffusion_CG_System: public Krylov_System_Base<T>
 
         for(int level=0;level<hierarchy.Levels();++level)
             Diffusion_Convergence_Norm_Helper<Base_struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
-                                                  v_channel,result,(unsigned)Node_Saturated);
+                                                  v_channel,result,(unsigned)Cell_Saturated);
         return result;
     }
 

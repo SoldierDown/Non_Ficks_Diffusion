@@ -19,11 +19,13 @@ class Standard_Tests: public MPM_Example<T,d>
     using TV                = Vector<T,d>;
     using Base              = MPM_Example<T,d>;
     using T_Particle        = MPM_Particle<T,d>;
+    using T_Barrier         = MPM_Plane_Barrier<T,d>;
     using Struct_type       = MPM_Data<T>;
     using Hierarchy         = Grid_Hierarchy<Struct_type,T,d>;
 
   public:
     using Base::output_directory;using Base::test_number;using Base::particles;using Base::parse_args;using Base::counts;using Base::domain;
+    using Base::barriers;
     /****************************
      * example explanation:
      *
@@ -153,6 +155,15 @@ class Standard_Tests: public MPM_Example<T,d>
         case 18:{
             Random_Numbers<T> random;
             random.Set_Seed(0);
+            T_Barrier ground(0.,TV({0.,1.}),TV({0.,.1}));
+            barriers.Append(ground);
+            T_Barrier ceiling(0.,TV({0.,-1.}),TV({0.,.9}));
+            Base::barriers.Append(ceiling);
+            T_Barrier left_wall(0.,TV({1.,0.}),TV({.1,0.}));
+            barriers.Append(left_wall);
+            T_Barrier right_wall(0.,TV({-1.,0.}),TV({.9,0.}));
+            barriers.Append(right_wall);
+
             {
                 const T mass_density=(T)2.;
                 const int number_of_particles=2000;
@@ -167,11 +178,8 @@ class Standard_Tests: public MPM_Example<T,d>
                     p.V(0)=(T)-2.;
                     p.V(1)=(T).1;
                     p.mass=mass_density*area_per_particle;
-                    p.mass_solid=p.mass;
-                    p.mass_fluid=(T)0.;
                     p.constitutive_model.Compute_Lame_Parameters(E,nu);
                     p.constitutive_model.plastic=true;
-                    p.constitutive_model.eta=(T)0.;
                     p.constitutive_model.stretching_yield=(T)1.01;
                     p.constitutive_model.compression_yield=(T)0.95;
                     p.constitutive_model.hardening_factor=(T)10.;
@@ -193,11 +201,8 @@ class Standard_Tests: public MPM_Example<T,d>
                     p.V(0)=(T)2.;
                     p.V(1)=(T).1;
                     p.mass=mass_density*area_per_particle;
-                    p.mass_solid=p.mass;
-                    p.mass_fluid=(T)0.;
                     p.constitutive_model.Compute_Lame_Parameters(E,nu);
                     p.constitutive_model.plastic=true;
-                    p.constitutive_model.eta=(T)0.;
                     p.constitutive_model.stretching_yield=(T)1.01;
                     p.constitutive_model.compression_yield=(T)0.95;
                     p.constitutive_model.hardening_factor=(T)10.;
@@ -205,7 +210,6 @@ class Standard_Tests: public MPM_Example<T,d>
                 }  
             }
             
-
         }break;
         // example 19: standard test
         case 19:{

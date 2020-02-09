@@ -35,18 +35,18 @@ class Flag_Helper
         auto active_counter=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Node_Active) n_active++;//Log::cout<<c(offset)<<std::endl;
+                if(flags(offset)&Cell_Type_Interior) n_active++;//Log::cout<<c(offset)<<std::endl;
         };
         auto saturated_counter=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Node_Saturated) n_saturated++;//Log::cout<<c(offset)<<std::endl;
+                if(flags(offset)&Cell_Saturated) n_saturated++;//Log::cout<<c(offset)<<std::endl;
         };
 
         auto sna_counter=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if((flags(offset)&Node_Saturated)&&(flags(offset)&Node_Active)) n_both++;//Log::cout<<c(offset)<<std::endl;
+                if((flags(offset)&Cell_Saturated)&&(flags(offset)&Cell_Type_Interior)) n_both++;//Log::cout<<c(offset)<<std::endl;
         };
 
         

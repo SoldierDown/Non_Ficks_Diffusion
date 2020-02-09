@@ -35,14 +35,13 @@ class Project_Helper
         auto project_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                Vector<int,d> index(Flag_array_mask::LinearToCoord(offset)); TV node_location=grid.Node(index);
-                for(int id=0;id<barriers.size();++id) {
-                    const TV normal=barriers(id).normal;
-                    if((node_location-barriers(id).surface).Dot_Product(barriers(id).normal<(T)0.)) {v0(offset)=(T)0.; v1(offset)=(T)0.;}}};
+                Vector<int,d> index(Flag_array_mask::LinearToCoord(offset)); Vector<T,2> cell_location=grid.Center(index);
+                for(int id=0;id<barriers.size();++id) { const TV normal=barriers(id).normal;
+                    if((cell_location-barriers(id).surface).Dot_Product(barriers(id).normal<(T)0.)) {v0(offset)=(T)0.; v1(offset)=(T)0.;}}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,project_helper);
-
     }
+
     void Run(const Grid<T,3>& grid,SPGrid::SPGrid_Allocator<Struct_type,3>& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Vector<T Struct_type::*,3>& v_channels,Array<T_Barrier> barriers) const
     {
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
@@ -50,13 +49,11 @@ class Project_Helper
         auto project_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                Vector<int,d> index(Flag_array_mask::LinearToCoord(offset)); TV node_location=grid.Node(index);
-                for(int id=0;id<barriers.size();++id) {
-                    const TV normal=barriers(id).normal;
-                    if((node_location-barriers(id).surface).Dot_Product(barriers(id).normal<(T)0.)) {v0(offset)=(T)0.; v1(offset)=(T)0.; v2(offset)=(T)0.;}}};
+                Vector<int,d> index(Flag_array_mask::LinearToCoord(offset)); Vector<T,3> cell_location=grid.Center(index);
+                for(int id=0;id<barriers.size();++id) { const TV normal=barriers(id).normal;
+                    if((cell_location-barriers(id).surface).Dot_Product(barriers(id).normal<(T)0.)) {v0(offset)=(T)0.; v1(offset)=(T)0.; v2(offset)=(T)0.;}}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,project_helper);
-
     }
 };
 }
