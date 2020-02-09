@@ -48,10 +48,10 @@ MPM_Example()
 {
     solver_tolerance=(T)1e-7;
     solver_iterations=10000;
-    diff_coeff=(T)1e-3;
+    diff_coeff=(T)1;
     tau=(T)1.;
     Fc=(T)0.;
-    gravity=TV::Axis_Vector(1)*(T)-2.;
+    gravity=TV::Axis_Vector(1)*(T)0.;
     flip=(T).9;
     FICKS=true;
     explicit_diffusion=false;
@@ -98,7 +98,7 @@ MPM_Example()
     diff_coeff=(T)1e-3;
     tau=(T)1.;
     Fc=(T)0.;
-    gravity=TV::Axis_Vector(1)*(T)-2.;
+    gravity=TV::Axis_Vector(1)*(T)0.;
     flip=(T).9;
     FICKS=true;
     explicit_diffusion=false;
@@ -236,7 +236,7 @@ Compute_Bounding_Box(Range<T,2>& bbox)
         TV& current_min_corner=min_corner_per_thread(tid);
         TV& current_max_corner=max_corner_per_thread(tid);
         for(int v=0;v<2;++v){
-            T dd=(T)2./counts(v);
+            T dd=(T)3./counts(v);
             current_min_corner(v)=std::min(current_min_corner(v),p.X(v)-dd);
             current_max_corner(v)=std::max(current_max_corner(v),p.X(v)+dd);}}
 
@@ -269,7 +269,7 @@ Compute_Bounding_Box(Range<T,3>& bbox)
         TV& current_min_corner=min_corner_per_thread(tid);
         TV& current_max_corner=max_corner_per_thread(tid);
         for(int v=0;v<3;++v){
-            T dd=(T)2./counts(v);
+            T dd=(T)3./counts(v);
             current_min_corner(v)=std::min(current_min_corner(v),p.X(v)-dd);
             current_max_corner(v)=std::max(current_max_corner(v),p.X(v)+dd);}}
 
@@ -521,19 +521,18 @@ Rasterize()
                 for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){
                     TV V=p.V; T p_mass=p.mass; T weight=iterator.Weight(); auto data=iterator.Current_Cell()._data;
                     mass(data)+=weight*p_mass; v0(data)+=weight*(p_mass*V(0)); v1(data)+=weight*(p_mass*V(1));
-                    // saturation(data)+=weight*p.mass_fluid; void_mass_fluid(data)+=weight*fluid_density*p.volume_fraction_0*p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
-                    // if(!FICKS&&!explicit_diffusion){div_Qc(data)+=weight*p.div_Qc*p.volume; volume(data)+=weight*p.volume;}
-                    }}}}
+                    saturation(data)+=weight*p.mass_fluid; void_mass_fluid(data)+=weight*fluid_density*p.volume_fraction_0*p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
+                    if(!FICKS&&!explicit_diffusion){div_Qc(data)+=weight*p.div_Qc*p.volume; volume(data)+=weight*p.volume;}}}}}
 
     // set flags
     for(int level=0;level<levels;++level) Flag_Setup_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level));     
     // normalize weights for velocity (to conserve momentum)
     for(int level=0;level<levels;++level) Velocity_Normalization_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels);     
     // "normalize" saturation and set up surroundings
-    // for(int level=0;level<levels;++level) Saturation_Normalization_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel);     
+    for(int level=0;level<levels;++level) Saturation_Normalization_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel);     
     // clamp saturation
-    // for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);     
-    // if(!FICKS&&!explicit_diffusion) for(int level=0;level<levels;++level) Div_Qc_Normalization_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_Qc_channel,volume_channel);  
+    for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);     
+    if(!FICKS&&!explicit_diffusion) for(int level=0;level<levels;++level) Div_Qc_Normalization_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_Qc_channel,volume_channel);  
     high_resolution_clock::time_point te=high_resolution_clock::now();
 	duration<double> dur=duration_cast<duration<double>>(te-tb);
     ras_cnt++;
@@ -1067,6 +1066,7 @@ Grid_Based_Collision(const bool detect_collision)
 template<class T> void MPM_Example<T,2>::
 Estimate_Particle_Volumes()
 {   
+    const T solid_density=(T)10; const T fluid_density=(T)1.;
     auto mass=hierarchy->Channel(0,mass_channel); const Grid<T,2>& grid=hierarchy->Lattice(0); const T one_over_volume_per_cell=(T)1./grid.dX.Product();
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){const int id=simulated_particles(i); T_Particle& p=particles(id);     
@@ -1074,7 +1074,10 @@ Estimate_Particle_Volumes()
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             particle_density+=iterator.Weight()*mass(iterator.Current_Cell()._data);}
         particle_density*=one_over_volume_per_cell;
-        p.volume=p.mass/particle_density;}
+        p.volume=p.mass/particle_density;
+        p.mass_solid=solid_density*p.volume*((T)1.-p.volume_fraction_0);
+        p.mass_fluid=fluid_density*p.saturation*p.volume*p.volume_fraction_0;
+        p.mass=p.mass_solid+p.mass_fluid;}
 }
 //######################################################################
 // Estimate_Particle_Volumes

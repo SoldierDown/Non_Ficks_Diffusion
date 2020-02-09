@@ -117,11 +117,16 @@ class MPM_CG_System: public Krylov_System_Base<T>
                 tmp_mat+=Matrix<T,d>::Outer_Product(iterator.Weight_Gradient(),v_vec);
                 // Log::cout<<"tmp_mat: "<<tmp_mat<<std::endl;
             }
-            Matrix<T,d> F=p.constitutive_model.Fe;
+            T_Mat F=p.constitutive_model.Fe;
+            const T k_p=(T)1e4;
+            const T saturation=particles(i).saturation;
+            const T eta=particles(i).constitutive_model.eta*saturation;
             // Log::cout<<"F: "<<F<<std::endl;
             // Log::cout<<"transpose_times: "<<tmp_mat.Transpose_Times(F)<<std::endl;
             // Log::cout<<"times_dp_df: "<<p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F))<<std::endl;
-            tmp_mat=F.Times_Transpose(p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F)));
+            tmp_mat=F.Times_Transpose(p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F))
+                                                    -eta*k_p*saturation*Times_Cofactor_Matrix_Derivative(F,tmp_mat.Transpose_Times(F)));
+
             tmp_mat*=p.volume;
             // Log::cout<<tmp_mat<<std::endl;
             if(false){ high_resolution_clock::time_point te = high_resolution_clock::now();
@@ -186,10 +191,15 @@ class MPM_CG_System: public Krylov_System_Base<T>
                 // Log::cout<<"tmp_mat: "<<tmp_mat<<std::endl;
             }
             Matrix<T,d> F=p.constitutive_model.Fe;
+            const T k_p=(T)1e4;
+            const T saturation=particles(i).saturation;
+            const T eta=particles(i).constitutive_model.eta*saturation;
             // Log::cout<<"F: "<<F<<std::endl;
             // Log::cout<<"transpose_times: "<<tmp_mat.Transpose_Times(F)<<std::endl;
             // Log::cout<<"times_dp_df: "<<p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F))<<std::endl;
-            tmp_mat=F.Times_Transpose(p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F)));
+            tmp_mat=F.Times_Transpose(p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F))
+                                                    -eta*k_p*saturation*Times_Cofactor_Matrix_Derivative(F,tmp_mat.Transpose_Times(F)));
+
             tmp_mat*=p.volume;
             // Log::cout<<tmp_mat<<std::endl;
             if(false){ high_resolution_clock::time_point te = high_resolution_clock::now();

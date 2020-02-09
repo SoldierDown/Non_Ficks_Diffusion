@@ -24,14 +24,13 @@ class Saturation_Normalization_Helper
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* saturation_channel,T Struct_type::* void_mass_fluid_channel) const
     {
+        auto void_mass_fluid=allocator.template Get_Const_Array<Struct_type,T>(void_mass_fluid_channel); auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto saturation=allocator.template Get_Array<Struct_type,T>(saturation_channel);
-        auto void_mass_fluid=allocator.template Get_Const_Array<Struct_type,T>(void_mass_fluid_channel);
-        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto saturation_normalization_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                 if(flags(offset)&Cell_Saturated) {
-                    if(void_mass_fluid(offset)!=(T)0.) saturation(offset)/=void_mass_fluid(offset);
+                    if(void_mass_fluid(offset)>(T)0.) saturation(offset)/=void_mass_fluid(offset);
                     else saturation(offset)=(T)0.;}
                 else if(flags(offset)&Cell_Type_Interior) saturation(offset)=(T)1.;
             }
