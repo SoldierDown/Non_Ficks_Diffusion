@@ -53,7 +53,7 @@ MPM_Example()
     Fc=(T)0.;
     gravity=TV::Axis_Vector(1)*(T)0.;
     flip=(T).9;
-    FICKS=true;
+    FICKS=false;
     explicit_diffusion=false;
      
     flags_channel                           = &Struct_type::flags;
@@ -100,7 +100,7 @@ MPM_Example()
     Fc=(T)0.;
     gravity=TV::Axis_Vector(1)*(T)0.;
     flip=(T).9;
-    FICKS=true;
+    FICKS=false;
     explicit_diffusion=false;
      
     flags_channel                           = &Struct_type::flags;
@@ -203,6 +203,7 @@ template<class T> void MPM_Example<T,2>::
 Reset_Solver_Channels()
 {
     for(int level=0;level<levels;++level) for(int v=0;v<2;++v){
+        Clear<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),rhs_channels(v));
         Clear<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),q_channels(v));
         Clear<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channels(v));
         Clear<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),s_channels(v));
@@ -215,6 +216,7 @@ template<class T> void MPM_Example<T,3>::
 Reset_Solver_Channels()
 {
     for(int level=0;level<levels;++level) for(int v=0;v<3;++v){
+        Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),rhs_channels(v));
         Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),q_channels(v));
         Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channels(v));
         Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),s_channels(v));
@@ -339,7 +341,6 @@ Initialize_SPGrid()
     Compute_Bounding_Box(bbox);
     if(hierarchy!=nullptr) delete hierarchy;
     hierarchy=new Hierarchy(counts,domain,levels);
-
 }
 //######################################################################
 // Initialize_SPGrid
@@ -598,10 +599,10 @@ Ficks_Diffusion(T dt)
     ficks_diffusion_system.use_preconditioner=false;
     Conjugate_Gradient<T> cg;
     Krylov_Solver<T>* solver_fd=(Krylov_Solver<T>*)&cg;
-    // set up rhs
-    for(int level=0;level<levels;++level) Ficks_RHS_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,rhs_channels(0),a);
     // reset solver channels
     Reset_Solver_Channels();
+    // set up rhs
+    for(int level=0;level<levels;++level) Ficks_RHS_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,rhs_channels(0),a);
     Diffusion_CG_Vector<Struct_type,T,2> saturation_fd(*hierarchy,saturation_channel),rhs_fd(*hierarchy,rhs_channels(0)),solver_q_fd(*hierarchy,q_channels(0)),
                                                 solver_s_fd(*hierarchy,s_channels(0)),solver_r_fd(*hierarchy,r_channels(0)),solver_k_fd(*hierarchy,z_channels(0)),solver_z_fd(*hierarchy,z_channels(0));         
     
@@ -643,10 +644,10 @@ Ficks_Diffusion(T dt)
     ficks_diffusion_system.use_preconditioner=false;
     Conjugate_Gradient<T> cg;
     Krylov_Solver<T>* solver_fd=(Krylov_Solver<T>*)&cg;
-    // set up rhs
-    for(int level=0;level<levels;++level) Ficks_RHS_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,rhs_channels(0),a);
     // reset solver channels
     Reset_Solver_Channels();
+    // set up rhs
+    for(int level=0;level<levels;++level) Ficks_RHS_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,rhs_channels(0),a);
     Diffusion_CG_Vector<Struct_type,T,3> saturation_fd(*hierarchy,saturation_channel),rhs_fd(*hierarchy,rhs_channels(0)),solver_q_fd(*hierarchy,q_channels(0)),
                                                 solver_s_fd(*hierarchy,s_channels(0)),solver_r_fd(*hierarchy,r_channels(0)),solver_k_fd(*hierarchy,z_channels(0)),solver_z_fd(*hierarchy,z_channels(0));         
     
@@ -707,10 +708,11 @@ Non_Ficks_Diffusion(T dt)
     Conjugate_Gradient<T> cg;
     Krylov_Solver<T>* solver_nfd=(Krylov_Solver<T>*)&cg;
     solver_nfd->print_residuals=true;
+    // reset solver channels
+    Reset_Solver_Channels();    
     // set up rhs
     for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,div_Qc_channel,rhs_channels(0),coeff1,coeff2);
-    // reset solver channels
-    Reset_Solver_Channels();
+
     Diffusion_CG_Vector<Struct_type,T,2> saturation_nfd(*hierarchy,saturation_channel),rhs_nfd(*hierarchy,rhs_channels(0)),solver_q_nfd(*hierarchy,q_channels(0)),
                                                 solver_s_nfd(*hierarchy,s_channels(0)),solver_r_nfd(*hierarchy,r_channels(0)),solver_k_nfd(*hierarchy,z_channels(0)),solver_z_nfd(*hierarchy,z_channels(0));         
         
@@ -771,10 +773,11 @@ Non_Ficks_Diffusion(T dt)
     Conjugate_Gradient<T> cg;
     Krylov_Solver<T>* solver_nfd=(Krylov_Solver<T>*)&cg;
     solver_nfd->print_residuals=true;
-    // set up rhs
-    for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,div_Qc_channel,rhs_channels(0),coeff1,coeff2);
     // reset solver channels
     Reset_Solver_Channels();
+    // set up rhs
+    for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,div_Qc_channel,rhs_channels(0),coeff1,coeff2);
+
     Diffusion_CG_Vector<Struct_type,T,3> saturation_nfd(*hierarchy,saturation_channel),rhs_nfd(*hierarchy,rhs_channels(0)),solver_q_nfd(*hierarchy,q_channels(0)),
                                                 solver_s_nfd(*hierarchy,s_channels(0)),solver_r_nfd(*hierarchy,r_channels(0)),solver_k_nfd(*hierarchy,z_channels(0)),solver_z_nfd(*hierarchy,z_channels(0));         
         
@@ -926,10 +929,10 @@ Apply_Force(const T dt)
     Krylov_Solver<T>* solver=(Krylov_Solver<T>*)&cg;
     MPM_CG_System<Struct_type,T,2> mpm_system(*hierarchy,simulated_particles,particles,particle_bins,x_intervals,barriers,(T)0.,dt,threads);
     mpm_system.use_preconditioner=false;
-    // set rhs here
-    for(int level=0;level<levels;++level) MPM_RHS_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels,rhs_channels);     
     // clear channels
     Reset_Solver_Channels();
+    // set rhs here
+    for(int level=0;level<levels;++level) MPM_RHS_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels,rhs_channels);     
     MPM_CG_Vector<Struct_type,T,2> solver_vp(*hierarchy,velocity_star_channels),solver_rhs(*hierarchy,rhs_channels),solver_q(*hierarchy,q_channels),solver_s(*hierarchy,s_channels),solver_r(*hierarchy,r_channels),solver_k(*hierarchy,z_channels),solver_z(*hierarchy,z_channels);
     solver->Solve(mpm_system,solver_vp,solver_rhs,solver_q,solver_s,solver_r,solver_k,solver_z,solver_tolerance,0,solver_iterations);}
     high_resolution_clock::time_point te=high_resolution_clock::now();
@@ -952,10 +955,11 @@ Apply_Force(const T dt)
     Krylov_Solver<T>* solver=(Krylov_Solver<T>*)&cg;
     MPM_CG_System<Struct_type,T,3> mpm_system(*hierarchy,simulated_particles,particles,particle_bins,x_intervals,barriers,(T)0.,dt,threads);
     mpm_system.use_preconditioner=false;
-    // set rhs here
-    for(int level=0;level<levels;++level) MPM_RHS_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels,rhs_channels);     
     // clear channels
     Reset_Solver_Channels();
+    // set rhs here
+    for(int level=0;level<levels;++level) MPM_RHS_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels,rhs_channels);     
+
     MPM_CG_Vector<Struct_type,T,3> solver_vp(*hierarchy,velocity_star_channels),solver_rhs(*hierarchy,rhs_channels),solver_q(*hierarchy,q_channels),solver_s(*hierarchy,s_channels),solver_r(*hierarchy,r_channels),solver_k(*hierarchy,z_channels),solver_z(*hierarchy,z_channels);
     solver->Solve(mpm_system,solver_vp,solver_rhs,solver_q,solver_s,solver_r,solver_k,solver_z,solver_tolerance,0,solver_iterations);}
     high_resolution_clock::time_point te=high_resolution_clock::now();
@@ -1085,6 +1089,7 @@ Estimate_Particle_Volumes()
 template<class T> void MPM_Example<T,3>::
 Estimate_Particle_Volumes()
 {   
+    const T solid_density=(T)10; const T fluid_density=(T)1.;
     auto mass=hierarchy->Channel(0,mass_channel); const Grid<T,3>& grid=hierarchy->Lattice(0); const T one_over_volume_per_cell=(T)1./grid.dX.Product();
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){const int id=simulated_particles(i); T_Particle& p=particles(id);     
@@ -1092,7 +1097,10 @@ Estimate_Particle_Volumes()
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             particle_density+=iterator.Weight()*mass(iterator.Current_Cell()._data);}
         particle_density*=one_over_volume_per_cell;
-        p.volume=p.mass/particle_density;}
+        p.volume=p.mass/particle_density;
+        p.mass_solid=solid_density*p.volume*((T)1.-p.volume_fraction_0);
+        p.mass_fluid=fluid_density*p.saturation*p.volume*p.volume_fraction_0;
+        p.mass=p.mass_solid+p.mass_fluid;}
 }
 //######################################################################
 // Register_Options
