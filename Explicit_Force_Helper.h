@@ -31,12 +31,9 @@ class Explicit_Force_Helper
     {
         auto mass=allocator.template Get_Const_Array<Struct_type,T>(&Struct_type::ch0);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        auto v0=allocator.template Get_Const_Array<Struct_type,T>(velocity_channels(0));
-        auto v1=allocator.template Get_Const_Array<Struct_type,T>(velocity_channels(1));
-        auto vs0=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(0));
-        auto vs1=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(1));
-        auto f0=allocator.template Get_Const_Array<Struct_type,T>(f_channels(0));
-        auto f1=allocator.template Get_Const_Array<Struct_type,T>(f_channels(1));
+        auto v0=allocator.template Get_Const_Array<Struct_type,T>(velocity_channels(0)); auto v1=allocator.template Get_Const_Array<Struct_type,T>(velocity_channels(1)); 
+        auto vs0=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(0)); auto vs1=allocator.template Get_Array<Struct_type,T>(velocity_star_channels(1));
+        auto f0=allocator.template Get_Const_Array<Struct_type,T>(f_channels(0)); auto f1=allocator.template Get_Const_Array<Struct_type,T>(f_channels(1));
         auto explicit_velocity_update_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){

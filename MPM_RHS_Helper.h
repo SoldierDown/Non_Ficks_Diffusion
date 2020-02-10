@@ -28,10 +28,8 @@ class MPM_RHS_Helper
     void Run(SPGrid::SPGrid_Allocator<Struct_type,2>& allocator,const std::pair<const uint64_t*,unsigned>& blocks,const Vector<T Struct_type::*,2>& velocity_star_channels,Vector<T Struct_type::*,2>& rhs_channels) const
     {
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        auto vs0=allocator.template Get_Const_Array<Struct_type,T>(velocity_star_channels(0));
-        auto vs1=allocator.template Get_Const_Array<Struct_type,T>(velocity_star_channels(1));
-        auto rhs0=allocator.template Get_Array<Struct_type,T>(rhs_channels(0));
-        auto rhs1=allocator.template Get_Array<Struct_type,T>(rhs_channels(1));
+        auto vs0=allocator.template Get_Const_Array<Struct_type,T>(velocity_star_channels(0)); auto vs1=allocator.template Get_Const_Array<Struct_type,T>(velocity_star_channels(1));
+        auto rhs0=allocator.template Get_Array<Struct_type,T>(rhs_channels(0)); auto rhs1=allocator.template Get_Array<Struct_type,T>(rhs_channels(1));
         auto mpm_rhs_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
@@ -43,12 +41,8 @@ class MPM_RHS_Helper
     void Run(SPGrid::SPGrid_Allocator<Struct_type,3>& allocator,const std::pair<const uint64_t*,unsigned>& blocks,const Vector<T Struct_type::*,3>& velocity_star_channels,Vector<T Struct_type::*,3>& rhs_channels) const
     {
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        auto vs0=allocator.template Get_Const_Array<Struct_type,T>(velocity_star_channels(0));
-        auto vs1=allocator.template Get_Const_Array<Struct_type,T>(velocity_star_channels(1));
-        auto vs2=allocator.template Get_Const_Array<Struct_type,T>(velocity_star_channels(2));
-        auto rhs0=allocator.template Get_Array<Struct_type,T>(rhs_channels(0));
-        auto rhs1=allocator.template Get_Array<Struct_type,T>(rhs_channels(1));
-        auto rhs2=allocator.template Get_Array<Struct_type,T>(rhs_channels(2));
+        auto vs0=allocator.template Get_Const_Array<Struct_type,T>(velocity_star_channels(0)); auto vs1=allocator.template Get_Const_Array<Struct_type,T>(velocity_star_channels(1)); auto vs2=allocator.template Get_Const_Array<Struct_type,T>(velocity_star_channels(2));
+        auto rhs0=allocator.template Get_Array<Struct_type,T>(rhs_channels(0)); auto rhs1=allocator.template Get_Array<Struct_type,T>(rhs_channels(1)); auto rhs2=allocator.template Get_Array<Struct_type,T>(rhs_channels(2));
         auto mpm_rhs_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))

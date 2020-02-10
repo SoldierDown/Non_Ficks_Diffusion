@@ -62,7 +62,7 @@ class Diffusion_CG_System: public Krylov_System_Base<T>
         T Base_struct_type::* const v2_channel  = Diffusion_CG_Vector<Base_struct_type,T,d>::Cg_Vector(v2).channel;
         assert(&hierarchy == &v1_hierarchy);    assert(&hierarchy == &v2_hierarchy);
 
-        double result=(T)0;
+        T result=(T)0;
 
         for(int level=0;level<hierarchy.Levels();++level)
             Diffusion_Inner_Product_Helper<Base_struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v1_channel,

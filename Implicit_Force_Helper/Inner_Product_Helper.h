@@ -37,7 +37,6 @@ class Inner_Product_Helper
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
                 if(flags(offset)&mask) {
                   TV vec1({c00(offset),c01(offset)}),vec2({c10(offset)*mass(offset),c11(offset)*mass(offset)});
-                  // Log::cout<<"mass: "<<mass(offset)<<", x: "<<vec1<<", y: "<<vec2<<std::endl;
                   temp_result+=vec1.Dot_Product(vec2);
           }}
         result+=temp_result;

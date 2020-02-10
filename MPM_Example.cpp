@@ -95,12 +95,12 @@ MPM_Example()
 {
     solver_tolerance=(T)1e-7;
     solver_iterations=10000;
-    diff_coeff=(T)1e-3;
+    diff_coeff=(T)1;
     tau=(T)1.;
     Fc=(T)0.;
     gravity=TV::Axis_Vector(1)*(T)0.;
     flip=(T).9;
-    FICKS=false;
+    FICKS=true;
     explicit_diffusion=false;
      
     flags_channel                           = &Struct_type::flags;
@@ -607,7 +607,6 @@ Ficks_Diffusion(T dt)
                                                 solver_s_fd(*hierarchy,s_channels(0)),solver_r_fd(*hierarchy,r_channels(0)),solver_k_fd(*hierarchy,z_channels(0)),solver_z_fd(*hierarchy,z_channels(0));         
     
     solver_fd->Solve(ficks_diffusion_system,saturation_fd,rhs_fd,solver_q_fd,solver_s_fd,solver_r_fd,solver_k_fd,solver_z_fd,solver_tolerance,0,solver_iterations);
-
     // Clamp saturation
     for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);}
 
@@ -652,7 +651,6 @@ Ficks_Diffusion(T dt)
                                                 solver_s_fd(*hierarchy,s_channels(0)),solver_r_fd(*hierarchy,r_channels(0)),solver_k_fd(*hierarchy,z_channels(0)),solver_z_fd(*hierarchy,z_channels(0));         
     
     solver_fd->Solve(ficks_diffusion_system,saturation_fd,rhs_fd,solver_q_fd,solver_s_fd,solver_r_fd,solver_k_fd,solver_z_fd,solver_tolerance,0,solver_iterations);
-
     // Clamp saturation
     for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);}
 
@@ -684,7 +682,7 @@ Non_Ficks_Diffusion(T dt)
     const T coeff2=dt*tau/(dt+tau);
     const T coeff3=dt*diff_coeff*(1-Fc)/(dt+tau);
     const T coeff4=tau/(dt+tau);
-    Log::cout<<"coeff1: "<<coeff1<<", coeff2: "<<coeff2<<", coeff3: "<<coeff3<<", coeff4: "<<coeff4<<std::endl;
+    // Log::cout<<"coeff1: "<<coeff1<<", coeff2: "<<coeff2<<", coeff3: "<<coeff3<<", coeff4: "<<coeff4<<std::endl;
     if(explicit_diffusion){
         for(int level=0;level<levels;++level) Explicit_Lap_Saturation_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,one_over_dx2);        
     auto lap_saturation=hierarchy->Channel(0,lap_saturation_channel);
@@ -717,7 +715,6 @@ Non_Ficks_Diffusion(T dt)
                                                 solver_s_nfd(*hierarchy,s_channels(0)),solver_r_nfd(*hierarchy,r_channels(0)),solver_k_nfd(*hierarchy,z_channels(0)),solver_z_nfd(*hierarchy,z_channels(0));         
         
     solver_nfd->Solve(non_ficks_diffusion_system,saturation_nfd,rhs_nfd,solver_q_nfd,solver_s_nfd,solver_r_nfd,solver_k_nfd,solver_z_nfd,solver_tolerance,0,solver_iterations);
-
     // Clamp saturation
     for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);        
     
@@ -853,6 +850,9 @@ Update_Particle_Velocities_And_Positions(const T dt)
             p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
             p.V=V_flip*flip+V_pic*((T)1.-flip);
             p.X+=V_pic*dt;
+            const T J=p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
+            p.mass_fluid=p.volume*J*p.volume_fraction_0*p.saturation;
+            p.mass=p.mass_solid+p.mass_fluid;
         if(!grid.domain.Inside(p.X)){
             remove_indices(omp_get_thread_num()).Append(i);
             p.valid=false;}}
@@ -885,9 +885,7 @@ Update_Particle_Velocities_And_Positions(const T dt)
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i); 
-        T_Particle &p=particles(id);
-        TV V_pic=TV(),V_flip=p.V; 
-        T_Mat grad_Vp=T_Mat();
+        T_Particle &p=particles(id); TV V_pic=TV(),V_flip=p.V; T_Mat grad_Vp=T_Mat();
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             auto data=iterator.Current_Cell()._data; T weight=iterator.Weight();
             if(weight>(T)0.){
@@ -898,6 +896,9 @@ Update_Particle_Velocities_And_Positions(const T dt)
             p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
             p.V=V_flip*flip+V_pic*((T)1.-flip);
             p.X+=V_pic*dt;
+            const T J=p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
+            p.mass_fluid=p.volume*J*p.volume_fraction_0*p.saturation;
+            p.mass=p.mass_solid+p.mass_fluid;
         if(!grid.domain.Inside(p.X)){
             remove_indices(omp_get_thread_num()).Append(i);
             p.valid=false;}}
@@ -959,7 +960,6 @@ Apply_Force(const T dt)
     Reset_Solver_Channels();
     // set rhs here
     for(int level=0;level<levels;++level) MPM_RHS_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels,rhs_channels);     
-
     MPM_CG_Vector<Struct_type,T,3> solver_vp(*hierarchy,velocity_star_channels),solver_rhs(*hierarchy,rhs_channels),solver_q(*hierarchy,q_channels),solver_s(*hierarchy,s_channels),solver_r(*hierarchy,r_channels),solver_k(*hierarchy,z_channels),solver_z(*hierarchy,z_channels);
     solver->Solve(mpm_system,solver_vp,solver_rhs,solver_q,solver_s,solver_r,solver_k,solver_z,solver_tolerance,0,solver_iterations);}
     high_resolution_clock::time_point te=high_resolution_clock::now();
@@ -1033,6 +1033,7 @@ Apply_Explicit_Force(const T dt)
                 const T mu=p.constitutive_model.mu; const T lambda=p.constitutive_model.lambda; 
                 const T J=p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
                 T_Mat extra_sigma=eta*k_p*saturation*I*J;
+                Log::cout<<extra_sigma.Determinant()<<std::endl;
                 T_Mat V0_P_FT=(P.Times_Transpose(F)-extra_sigma)*V0;                    
                 const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_cell(0),thread_x_interval.max_corner-closest_cell(0));  
                 for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){
@@ -1078,10 +1079,7 @@ Estimate_Particle_Volumes()
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             particle_density+=iterator.Weight()*mass(iterator.Current_Cell()._data);}
         particle_density*=one_over_volume_per_cell;
-        p.volume=p.mass/particle_density;
-        p.mass_solid=solid_density*p.volume*((T)1.-p.volume_fraction_0);
-        p.mass_fluid=fluid_density*p.saturation*p.volume*p.volume_fraction_0;
-        p.mass=p.mass_solid+p.mass_fluid;}
+        p.volume=p.mass/particle_density;}
 }
 //######################################################################
 // Estimate_Particle_Volumes
@@ -1097,10 +1095,7 @@ Estimate_Particle_Volumes()
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             particle_density+=iterator.Weight()*mass(iterator.Current_Cell()._data);}
         particle_density*=one_over_volume_per_cell;
-        p.volume=p.mass/particle_density;
-        p.mass_solid=solid_density*p.volume*((T)1.-p.volume_fraction_0);
-        p.mass_fluid=fluid_density*p.saturation*p.volume*p.volume_fraction_0;
-        p.mass=p.mass_solid+p.mass_fluid;}
+        p.volume=p.mass/particle_density;}
 }
 //######################################################################
 // Register_Options

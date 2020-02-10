@@ -25,18 +25,19 @@ class Diffusion_Convergence_Norm_Helper
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
              T Struct_type::* channel,T& result,const unsigned mask) const
     {
-        result=(T)0.;
-        auto data=allocator.template Get_Const_Array<Struct_type,T>(channel);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
+        auto data=allocator.template Get_Const_Array<Struct_type,T>(channel); 
+        result=0;
         T max_value=0;
 
 #pragma omp parallel for reduction(max:max_value)
         for(int b=0;b<blocks.second;b++){uint64_t offset=blocks.first[b];
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
                 if(flags(offset)&mask) max_value=std::max(max_value,Nova_Utilities::Sqr(data(offset)));}
-
         result=std::sqrt(std::max(result,max_value));
     }
+
+
 };
 }
 #endif

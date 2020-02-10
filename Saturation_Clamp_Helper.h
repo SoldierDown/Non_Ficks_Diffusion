@@ -26,8 +26,7 @@ class Saturation_Clamp_Heler
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* saturation_channel) const
     {
-        auto saturation=allocator.template Get_Array<Struct_type,T>(saturation_channel);
-        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
+        auto saturation=allocator.template Get_Array<Struct_type,T>(saturation_channel); auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto saturation_clamp_heler=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
