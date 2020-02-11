@@ -32,9 +32,9 @@ class Div_Qc_Normalization_Helper
         auto div_qc_normalization_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Cell_Saturated)
-                    if(volume(offset)!=(T)0.) div_Qc(offset)/=volume(offset);
-                
+                if(flags(offset)&Cell_Saturated){
+                    if(volume(offset)>(T)0.) div_Qc(offset)/=volume(offset);
+                    else div_Qc(offset)=(T)0.;}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,div_qc_normalization_helper);
     }

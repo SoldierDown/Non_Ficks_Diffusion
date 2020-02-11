@@ -26,6 +26,7 @@
 #include "Compare_Helper.h"
 #include "MPM_Flags.h"
 #include "Flag_Setup_Helper.h"
+#include "Grid_Saturation_Initialization_Helper.h"
 
 #include <nova/SPGrid/Tools/SPGrid_Arithmetic.h>
 
@@ -95,12 +96,12 @@ MPM_Example()
 {
     solver_tolerance=(T)1e-7;
     solver_iterations=10000;
-    diff_coeff=(T)1;
-    tau=(T)1.;
+    diff_coeff=(T)1e-3;
+    tau=(T)1.0;
     Fc=(T)0.;
     gravity=TV::Axis_Vector(1)*(T)0.;
     flip=(T).9;
-    FICKS=true;
+    FICKS=false;
     explicit_diffusion=false;
      
     flags_channel                           = &Struct_type::flags;
@@ -195,6 +196,24 @@ Reset_Grid_Based_Variables()
 template<class T> void MPM_Example<T,3>::
 Reset_Grid_Based_Variables()
 {
+    for(int level=0;level<levels;++level) {
+        Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),mass_channel);
+        Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),lap_saturation_channel);
+        Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);
+        Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),void_mass_fluid_channel);
+        Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),volume_channel);
+        Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_Qc_channel);
+        for(int v=0;v<3;++v){
+            Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels(v));
+            Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels(v));
+            Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),f_channels(v));
+            Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),rhs_channels(v));
+            Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),q_channels(v));
+            Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channels(v));
+            Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),s_channels(v));
+            Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),z_channels(v));}
+    }
+
 }
 //######################################################################
 // Reset_Solver_Channels
@@ -505,12 +524,14 @@ template<class T> void MPM_Example<T,2>::
 Rasterize()
 {
     high_resolution_clock::time_point tb=high_resolution_clock::now();
+    const Grid<T,2>& grid=hierarchy->Lattice(0);
+    const T cell_volume=grid.dX.Product();
+    for(int level=0;level<levels;++level) Grid_Saturation_Initialization_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel,cell_volume);     
     const T fluid_density=(T)1.;
     auto flags=hierarchy->Channel(0,flags_channel); auto mass=hierarchy->Channel(0,mass_channel);       
     auto v0=hierarchy->Channel(0,velocity_channels(0)); auto v1=hierarchy->Channel(0,velocity_channels(1));
     auto div_Qc=hierarchy->Channel(0,div_Qc_channel); auto volume=hierarchy->Channel(0,volume_channel);
     auto saturation=hierarchy->Channel(0,saturation_channel); auto void_mass_fluid=hierarchy->Channel(0,void_mass_fluid_channel);
-    const Grid<T,2>& grid=hierarchy->Lattice(0);
 #pragma omp parallel for
     for(int tid_process=0;tid_process<threads;++tid_process){
         const Interval<int> thread_x_interval=x_intervals(tid_process);
@@ -520,9 +541,9 @@ Rasterize()
                 T_Particle& p=particles(index(i));T_INDEX& closest_cell=p.closest_cell;
                 const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_cell(0),thread_x_interval.max_corner-closest_cell(0));
                 for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){
-                    TV V=p.V; T p_mass=p.mass; T weight=iterator.Weight(); auto data=iterator.Current_Cell()._data;
+                    TV V=p.V; T p_mass=p.mass; T weight=iterator.Weight(); auto data=iterator.Current_Cell()._data; const T Vft=p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant()*p.volume_fraction_0;
                     mass(data)+=weight*p_mass; v0(data)+=weight*(p_mass*V(0)); v1(data)+=weight*(p_mass*V(1));
-                    saturation(data)+=weight*p.mass_fluid; void_mass_fluid(data)+=weight*fluid_density*p.volume_fraction_0*p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
+                    saturation(data)+=weight*p.mass_fluid; void_mass_fluid(data)+=weight*fluid_density*Vft;
                     if(!FICKS&&!explicit_diffusion){div_Qc(data)+=weight*p.div_Qc*p.volume; volume(data)+=weight*p.volume;}}}}}
 
     // set flags
@@ -546,12 +567,14 @@ template<class T> void MPM_Example<T,3>::
 Rasterize()
 {
     high_resolution_clock::time_point tb=high_resolution_clock::now();
+    const Grid<T,3>& grid=hierarchy->Lattice(0);
+    const T cell_volume=grid.dX.Product();
+    for(int level=0;level<levels;++level) Grid_Saturation_Initialization_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel,cell_volume);     
     const T fluid_density=(T)1.;
     auto flags=hierarchy->Channel(0,flags_channel); auto mass=hierarchy->Channel(0,mass_channel);       
     auto v0=hierarchy->Channel(0,velocity_channels(0)); auto v1=hierarchy->Channel(0,velocity_channels(1)); auto v2=hierarchy->Channel(0,velocity_channels(2)); 
     auto div_Qc=hierarchy->Channel(0,div_Qc_channel); auto volume=hierarchy->Channel(0,volume_channel);
     auto saturation=hierarchy->Channel(0,saturation_channel); auto void_mass_fluid=hierarchy->Channel(0,void_mass_fluid_channel);
-    const Grid<T,3>& grid=hierarchy->Lattice(0);
 #pragma omp parallel for
     for(int tid_process=0;tid_process<threads;++tid_process){
         const Interval<int> thread_x_interval=x_intervals(tid_process);
@@ -561,12 +584,10 @@ Rasterize()
                 T_Particle& p=particles(index(i));T_INDEX& closest_cell=p.closest_cell;
                 const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_cell(0),thread_x_interval.max_corner-closest_cell(0));
                 for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){
-                    TV V=p.V; T p_mass=p.mass; T weight=iterator.Weight(); auto data=iterator.Current_Cell()._data;
+                    TV V=p.V; T p_mass=p.mass; T weight=iterator.Weight(); auto data=iterator.Current_Cell()._data; const T Vft=p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant()*p.volume_fraction_0;
                     mass(data)+=weight*p_mass; v0(data)+=weight*(p_mass*V(0)); v1(data)+=weight*(p_mass*V(1)); v2(data)+=weight*(p_mass*V(2));
-                    saturation(data)+=weight*p.mass_fluid; void_mass_fluid(data)+=weight*fluid_density*p.volume_fraction_0*p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
-                    if(!FICKS&&!explicit_diffusion){div_Qc(data)+=weight*p.div_Qc*p.volume; volume(data)+=weight*p.volume;}
-                    }}}}
-
+                    saturation(data)+=weight*p.mass_fluid; void_mass_fluid(data)+=weight*fluid_density*Vft;
+                    if(!FICKS&&!explicit_diffusion){div_Qc(data)+=weight*p.div_Qc*p.volume; volume(data)+=weight*p.volume;}}}}}
     // set flags
     for(int level=0;level<levels;++level) Flag_Setup_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level));     
     // normalize weights for velocity (to conserve momentum)
@@ -690,7 +711,7 @@ Non_Ficks_Diffusion(T dt)
         for(unsigned i=0;i<simulated_particles.size();++i){
             const int id=simulated_particles(i); 
             T_Particle &p=particles(id);
-            T_INDEX closest_cell=p.closest_cell; 
+            T_INDEX& closest_cell=p.closest_cell; 
             T p_lap_saturation=(T)0.;
             for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
                 T_INDEX current_cell=iterator.Current_Cell();
@@ -746,7 +767,7 @@ Non_Ficks_Diffusion(T dt)
     const T coeff2=dt*tau/(dt+tau);
     const T coeff3=dt*diff_coeff*(1-Fc)/(dt+tau);
     const T coeff4=tau/(dt+tau);
-    Log::cout<<"coeff1: "<<coeff1<<", coeff2: "<<coeff2<<", coeff3: "<<coeff3<<", coeff4: "<<coeff4<<std::endl;
+    // Log::cout<<"coeff1: "<<coeff1<<", coeff2: "<<coeff2<<", coeff3: "<<coeff3<<", coeff4: "<<coeff4<<std::endl;
     if(explicit_diffusion){
         for(int level=0;level<levels;++level) Explicit_Lap_Saturation_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,one_over_dx2);        
     auto lap_saturation=hierarchy->Channel(0,lap_saturation_channel);
@@ -754,7 +775,7 @@ Non_Ficks_Diffusion(T dt)
         for(unsigned i=0;i<simulated_particles.size();++i){
             const int id=simulated_particles(i); 
             T_Particle &p=particles(id);
-            T_INDEX closest_cell=p.closest_cell; 
+            T_INDEX& closest_cell=p.closest_cell; 
             T p_lap_saturation=(T)0.;
             for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
                 T_INDEX current_cell=iterator.Current_Cell();
@@ -889,14 +910,16 @@ Update_Particle_Velocities_And_Positions(const T dt)
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             auto data=iterator.Current_Cell()._data; T weight=iterator.Weight();
             if(weight>(T)0.){
-                TV V_grid({vs0(data),vs1(data),vs2(data)}),delta_V_grid({vs0(data)-v0(data),vs1(data)-v1(data),vs2(data)-v1(data)});
+                TV V_grid({vs0(data),vs1(data),vs2(data)}),delta_V_grid({vs0(data)-v0(data),vs1(data)-v1(data),vs2(data)-v2(data)});
                 V_pic+=weight*V_grid; 
                 V_flip+=weight*delta_V_grid;
                 grad_Vp+=T_Mat::Outer_Product(V_grid,iterator.Weight_Gradient());}}
             p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
+            // Log::cout<<"dFe: "<<dt*grad_Vp*p.constitutive_model.Fe<<std::endl;
             p.V=V_flip*flip+V_pic*((T)1.-flip);
             p.X+=V_pic*dt;
             const T J=p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
+            // Log::cout<<"Je: "<<p.constitutive_model.Fe.Determinant()<<std::endl;
             p.mass_fluid=p.volume*J*p.volume_fraction_0*p.saturation;
             p.mass=p.mass_solid+p.mass_fluid;
         if(!grid.domain.Inside(p.X)){
@@ -1021,8 +1044,6 @@ Apply_Explicit_Force(const T dt)
 #pragma omp parallel for
     for(int tid_process=0;tid_process<threads;++tid_process){
         const Interval<int>& thread_x_interval=x_intervals(tid_process);
-        // T& rt=thread_rt(tid_process);
-        // int& cnt=thread_cnt(tid_process);
         for(int tid_collect=0;tid_collect<threads;++tid_collect){
             const Array<int>& index=particle_bins(tid_process,tid_collect);
             for(int i=0;i<index.size();++i){
@@ -1032,8 +1053,8 @@ Apply_Explicit_Force(const T dt)
                 const T saturation=p.saturation; const T eta=p.constitutive_model.eta*saturation; const T k_p=(T)1e4;
                 const T mu=p.constitutive_model.mu; const T lambda=p.constitutive_model.lambda; 
                 const T J=p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
+                // Log::cout<<"s: "<<p.saturation<<", eta: "<<eta<<", J: "<<J<<", mu: "<<mu<<", lambda: "<<lambda<<std::endl;
                 T_Mat extra_sigma=eta*k_p*saturation*I*J;
-                Log::cout<<extra_sigma.Determinant()<<std::endl;
                 T_Mat V0_P_FT=(P.Times_Transpose(F)-extra_sigma)*V0;                    
                 const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_cell(0),thread_x_interval.max_corner-closest_cell(0));  
                 for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){
@@ -1071,8 +1092,7 @@ Grid_Based_Collision(const bool detect_collision)
 template<class T> void MPM_Example<T,2>::
 Estimate_Particle_Volumes()
 {   
-    const T solid_density=(T)10; const T fluid_density=(T)1.;
-    auto mass=hierarchy->Channel(0,mass_channel); const Grid<T,2>& grid=hierarchy->Lattice(0); const T one_over_volume_per_cell=(T)1./grid.dX.Product();
+    auto mass=hierarchy->Channel(0,mass_channel); const Grid<T,2>& grid=hierarchy->Lattice(0); const T one_over_volume_per_cell=grid.one_over_dX.Product();
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){const int id=simulated_particles(i); T_Particle& p=particles(id);     
         T particle_density=(T)0.;
@@ -1087,8 +1107,7 @@ Estimate_Particle_Volumes()
 template<class T> void MPM_Example<T,3>::
 Estimate_Particle_Volumes()
 {   
-    const T solid_density=(T)10; const T fluid_density=(T)1.;
-    auto mass=hierarchy->Channel(0,mass_channel); const Grid<T,3>& grid=hierarchy->Lattice(0); const T one_over_volume_per_cell=(T)1./grid.dX.Product();
+    auto mass=hierarchy->Channel(0,mass_channel); const Grid<T,3>& grid=hierarchy->Lattice(0); const T one_over_volume_per_cell=grid.one_over_dX.Product();
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){const int id=simulated_particles(i); T_Particle& p=particles(id);     
         T particle_density=(T)0.;
