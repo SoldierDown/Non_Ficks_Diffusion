@@ -83,12 +83,15 @@ MPM_Example()
 
     flags_channel                           = &Struct_type::flags;
     mass_channel                            = &Struct_type::ch0;
+    
     velocity_channels(0)                    = &Struct_type::ch1;
     velocity_channels(1)                    = &Struct_type::ch2;
     velocity_channels(2)                    = &Struct_type::ch3;
+    
     velocity_star_channels(0)               = &Struct_type::ch4;
     velocity_star_channels(1)               = &Struct_type::ch5;
     velocity_star_channels(2)               = &Struct_type::ch6;
+
     f_channels(0)                           = &Struct_type::ch7;
     f_channels(1)                           = &Struct_type::ch8;
     f_channels(2)                           = &Struct_type::ch9;
