@@ -20,11 +20,14 @@ class Multiply_Inverse_Diagonal
 
   public:
     Multiply_Inverse_Diagonal(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* source_channel,
-                              T Struct_type::* destination_channel,const unsigned mask,const int level)
-    {Run(hierarchy,blocks,source_channel,destination_channel,mask,level);}
+                              T Struct_type::* destination_channel,const unsigned mask,const int level,
+                                bool FICKS,const T twod_a_plus_one,const T coeff1)
+    {Run(hierarchy,blocks,source_channel,destination_channel,mask,level,FICKS,twod_a_plus_one,coeff1);}
 
     void Run(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* source_channel,
-             T Struct_type::* destination_channel,const unsigned mask,const int level) const
+             T Struct_type::* destination_channel,const unsigned mask,const int level,
+                bool FICKS,const T twod_a_plus_one,const T coeff1)
+                              
     {
         auto flags=hierarchy.Allocator(level).template Get_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto data_source=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,T>(source_channel);
@@ -35,8 +38,7 @@ class Multiply_Inverse_Diagonal
             for(int other_axis=0;other_axis<d;++other_axis) if(other_axis!=axis) face_areas[axis]*=hierarchy.Lattice(level).dX[other_axis];}
 
         double scaling_factor=hierarchy.Lattice(0).one_over_dX.Product();
-        const T laplace_scale_uniform   = scaling_factor*face_areas[0]*hierarchy.Lattice(level).one_over_dX[0];
-        const T diagonal                = (d==2)?(T)4.*laplace_scale_uniform:(T)6.*laplace_scale_uniform;
+        const T diagonal                = (FICKS)?twod_a_plus_one:((T)1.+(T)2.*d*coeff1);
         const T one_over_diagonal       = (T)1./diagonal;
 
         auto multiply_inverse_diagonal=[&](uint64_t offset)

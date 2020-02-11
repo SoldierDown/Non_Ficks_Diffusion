@@ -6,6 +6,6 @@ if(ENABLE_NON_FICKS_DIFFUSION)
 
 add_subdirectory(nfd_2d)
 add_subdirectory(nfd_3d)
-add_subdirectory(plugin_Non_Ficks_Diffusion)
-
+# add_subdirectory(plugin_Non_Ficks_Diffusion)
+add_subdirectory(plugin_Heightfield)
 endif(ENABLE_NON_FICKS_DIFFUSION)

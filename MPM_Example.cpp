@@ -1,6 +1,7 @@
 //!#####################################################################
 //! \file MPM_Example.cpp
 //!#####################################################################
+#include <nova/Dynamics/Hierarchy/Visualization/Grid_Hierarchy_Visualization.h>
 #include <nova/Dynamics/Hierarchy/Grid_Hierarchy_Initializer.h>
 #include <nova/Dynamics/Utilities/SPGrid_Flags.h>
 #include <nova/SPGrid/Tools/SPGrid_Clear.h>
@@ -9,8 +10,8 @@
 #include <nova/Tools/Utilities/Utilities.h>
 #include <nova/Tools/Krylov_Solvers/Conjugate_Gradient.h>
 #include <omp.h>
-#include "MPM_Example.h"
 #include "Traverse_Helper.h"
+#include "MPM_Example.h"
 #include "Velocity_Normalization_Helper.h"
 #include "Explicit_Force_Helper.h"
 #include "Grid_Based_Collision_Helper.h"
@@ -1146,6 +1147,9 @@ Register_Options()
 template<class T> void MPM_Example<T,2>::
 Test()
 {
+
+
+
 
 }
 //######################################################################

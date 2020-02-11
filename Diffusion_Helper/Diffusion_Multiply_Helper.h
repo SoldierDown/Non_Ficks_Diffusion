@@ -10,7 +10,7 @@
 #include <nova/SPGrid/Core/SPGrid_Allocator.h>
 #include <nova/SPGrid/Tools/SPGrid_Threading_Helper.h>
 #include <nova/SPGrid/Tools/SPGrid_Block_Iterator.h>
-
+#include "../MPM_Flags.h"
 namespace Nova{
 template<class Struct_type,class T,int d>
 class Diffusion_Multiply_Helper
@@ -24,8 +24,10 @@ class Diffusion_Multiply_Helper
   public:
     Diffusion_Multiply_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* saturation_channel,T Struct_type::* result_channel,
                             const bool FICKS,const T a,const T twod_a_plus_one,const T coeff1)
-    {Run(allocator,blocks,saturation_channel,result_channel,FICKS,a,twod_a_plus_one,coeff1);}
-
+    {   
+        Run(allocator,blocks,saturation_channel,result_channel,FICKS,a,twod_a_plus_one,coeff1);
+    }
+    
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* saturation_channel,T Struct_type::* result_channel,
                 const bool FICKS,const T a,const T twod_a_plus_one,const T coeff1) const
     {
