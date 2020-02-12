@@ -8,7 +8,6 @@
 #include <nova/SPGrid/Core/SPGrid_Allocator.h>
 #include <nova/SPGrid/Tools/SPGrid_Threading_Helper.h>
 #include <nova/Tools/Vectors/Vector.h>
-#include "MPM_Flags.h"
 
 namespace Nova{
 template<class Struct_type,class T,int d>
@@ -31,7 +30,7 @@ class Velocity_Normalization_Helper
         auto velocity_normalization_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Cell_Saturated) { const T mass_inverse=1/mass(offset);
+                if(flags(offset)&Cell_Type_Interior) { const T mass_inverse=1/mass(offset);
                     v0(offset)*=mass_inverse; v1(offset)*=mass_inverse;}
             }
         };
@@ -45,7 +44,7 @@ class Velocity_Normalization_Helper
         auto velocity_normalization_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Cell_Saturated) { const T mass_inverse=1/mass(offset);
+                if(flags(offset)&Cell_Type_Interior) { const T mass_inverse=1/mass(offset);
                     v0(offset)*=mass_inverse; v1(offset)*=mass_inverse; v2(offset)*=mass_inverse;}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,velocity_normalization_helper);
@@ -60,7 +59,7 @@ class Velocity_Normalization_Helper
             T min_mass=FLT_MAX, max_mass=-FLT_MAX;
             T min_v=FLT_MAX,    max_v=-FLT_MAX;
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Cell_Saturated) {
+                if(flags(offset)&Cell_Type_Interior) {
                     T m=mass(offset);
                     if(m>max_mass) max_mass=m;
                     if(m<min_mass) min_mass=m;

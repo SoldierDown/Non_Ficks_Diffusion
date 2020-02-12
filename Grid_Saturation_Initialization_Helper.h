@@ -11,7 +11,6 @@
 #include <nova/SPGrid/Tools/SPGrid_Threading_Helper.h>
 #include <nova/Dynamics/Hierarchy/Grid_Topology_Helper.h>
 #include <nova/Tools/Vectors/Vector.h>
-#include "MPM_Flags.h"
 
 namespace Nova{
 template<class Struct_type,class T,int d>
@@ -40,8 +39,8 @@ class Grid_Saturation_Initialization_Helper
         {
             const T fluid_density=(T)1.; const T unit_mass_fluid=fluid_density*volume;
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Cell_Type_Interior){ void_fluid_mass(offset)=unit_mass_fluid;
-                    if((flags(offset)&Cell_Saturated)==(unsigned)0) saturation(offset)=unit_mass_fluid;}}
+                if(flags(offset)&Cell_Type_Dirichlet){ void_fluid_mass(offset)=unit_mass_fluid; saturation(offset)=unit_mass_fluid;}
+                else if(flags(offset)&Cell_Type_Interior) void_fluid_mass(offset)=unit_mass_fluid;}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,grid_saturation_initialization_helper);
     }

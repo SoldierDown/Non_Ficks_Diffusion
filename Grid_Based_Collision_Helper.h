@@ -37,7 +37,7 @@ class Grid_Based_Collision_Helper
         auto grid_based_collision_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Cell_Saturated){
+                if(flags(offset)&Cell_Type_Interior){
                     T_INDEX index(Flag_array_mask::LinearToCoord(offset)); TV cell_location=grid.Center(index);
                 for(int id=0;id<barriers.size();++id){
                     const TV& normal_vector=barriers(id).normal; const T& mu=barriers(id).mu;
@@ -64,7 +64,7 @@ class Grid_Based_Collision_Helper
         auto grid_based_collision_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Cell_Saturated){
+                if(flags(offset)&Cell_Type_Interior){
                     T_INDEX index(Flag_array_mask::LinearToCoord(offset)); TV cell_location=grid.Center(index);
                 for(int id=0;id<barriers.size();++id){
                     const TV& normal_vector=barriers(id).normal; const T& mu=barriers(id).mu;

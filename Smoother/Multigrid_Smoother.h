@@ -30,7 +30,6 @@ class Multigrid_Smoother
         for(int level=0;level<hierarchy.Levels();++level)
             Diffusion_Multiply_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),saturation_channel,result_channel,
                                     FICKS,a,twod_a_plus_one,coeff1);  
-        // Hierarchy_Projection::Compute_Laplacian(hierarchy,gradient_channels,u_channel,Lu_channel);
     }
 
     static void Compute_Residual(Hierarchy& hierarchy,Channel_Vector& gradient_channels,T Struct_type::* saturation_channel,

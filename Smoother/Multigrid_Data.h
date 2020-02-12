@@ -16,11 +16,12 @@ struct Multigrid_Data
 
     T_FLAGS flags;  // flags
     T ch0;          // saturation_channel
-    T ch1;          // rhs_channel
-    T ch2;          // result_channel
-    T ch3;          // x_gradient_channel
-    T ch4;          // y_gradient_channel
-    T ch5;          // z_gradient_channel
+    T ch1;          // div_Qc
+    T ch2;          // rhs_channel
+    T ch3;          // result_channel
+    T ch4;          // x_gradient_channel
+    T ch5;          // y_gradient_channel
+    T ch6;          // z_gradient_channel
 };
 }
 #endif

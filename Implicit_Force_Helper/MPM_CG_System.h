@@ -26,7 +26,6 @@
 #include "../MPM_Plane_Barrier.h"
 #include "../MPM_Example.h"
 #include "../MPM_Particle.h"
-#include "../MPM_Flags.h"
 #include "../Tools/Influence_Iterator.h"
 #include "../Tools/Cropped_Influence_Iterator.h"
 #include "../Tools/Interval.h"
@@ -79,7 +78,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
         // Log::cout<<"After Force() x: "<<Convergence_Norm(x)<<", result: "<<Convergence_Norm(result)<<std::endl;
         const T scaled_dt_squared=dt*dt/(1+trapezoidal);
         for(int level=0;level<hierarchy.Levels();++level)
-            Multiply_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),x_channels,result_channels,scaled_dt_squared,(unsigned)Cell_Saturated);        
+            Multiply_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),x_channels,result_channels,scaled_dt_squared,(unsigned)Cell_Type_Interior);        
     }
     
     void Force(Vector<T Struct_type::*,2>& f,const Vector<T Struct_type::*,2>& x) const
@@ -227,7 +226,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
         T result=(T)0.;
 
         for(int level=0;level<hierarchy.Levels();++level)
-            Inner_Product_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v1_channels,v2_channels,result,(unsigned)Cell_Saturated);
+            Inner_Product_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v1_channels,v2_channels,result,(unsigned)Cell_Type_Interior);
         return result;
     }
 
@@ -238,7 +237,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
         
         for(int level=0;level<hierarchy.Levels();++level)
             Convergence_Norm_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
-                                                     v_channels,result,(unsigned)Cell_Saturated);
+                                                     v_channels,result,(unsigned)Cell_Type_Interior);
         return result;
     }
 

@@ -9,7 +9,6 @@
 #include <nova/SPGrid/Core/SPGrid_Allocator.h>
 #include <nova/SPGrid/Tools/SPGrid_Threading_Helper.h>
 #include <nova/Tools/Vectors/Vector.h>
-#include "MPM_Flags.h"
 namespace Nova{
 template<class Struct_type,class T,int d>
 class Traverse_Helper
@@ -32,7 +31,7 @@ class Traverse_Helper
         auto traverse_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Cell_Saturated) if(c1(offset)!=c2(offset))  Log::cout<<"\n**********NOT EQUAL!**********\n"<<c1(offset)-c2(offset)<<std::endl;
+                if(flags(offset)&Cell_Type_Interior) if(c1(offset)!=c2(offset))  Log::cout<<"\n**********NOT EQUAL!**********\n"<<c1(offset)-c2(offset)<<std::endl;
         };
         for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
             uint64_t offset=iterator.Offset();

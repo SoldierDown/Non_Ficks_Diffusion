@@ -9,7 +9,6 @@
 #include <nova/SPGrid/Core/SPGrid_Allocator.h>
 #include <nova/SPGrid/Tools/SPGrid_Threading_Helper.h>
 #include <nova/Tools/Vectors/Vector.h>
-#include "MPM_Flags.h"
 
 
 namespace Nova{
@@ -37,8 +36,7 @@ class Explicit_Force_Helper
         auto explicit_velocity_update_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Cell_Saturated){
-                    vs0(offset)=v0(offset)+dt/mass(offset)*f0(offset); vs1(offset)=v1(offset)+dt/mass(offset)*f1(offset);}}
+                if(flags(offset)&Cell_Type_Interior){vs0(offset)=v0(offset)+dt/mass(offset)*f0(offset); vs1(offset)=v1(offset)+dt/mass(offset)*f1(offset);}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,explicit_velocity_update_helper);        
     }
@@ -53,7 +51,7 @@ class Explicit_Force_Helper
         auto explicit_velocity_update_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Cell_Saturated){vs0(offset)=v0(offset)+dt/mass(offset)*f0(offset); vs1(offset)=v1(offset)+dt/mass(offset)*f1(offset); vs2(offset)=v2(offset)+dt/mass(offset)*f2(offset);}}
+                if(flags(offset)&Cell_Type_Interior){vs0(offset)=v0(offset)+dt/mass(offset)*f0(offset); vs1(offset)=v1(offset)+dt/mass(offset)*f1(offset); vs2(offset)=v2(offset)+dt/mass(offset)*f2(offset);}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,explicit_velocity_update_helper);        
     }

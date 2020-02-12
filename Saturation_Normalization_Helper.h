@@ -29,7 +29,7 @@ class Saturation_Normalization_Helper
         auto saturation_normalization_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Cell_Type_Interior) saturation(offset)/=void_mass_fluid(offset);
+                if(flags(offset)&(Cell_Type_Interior|Cell_Type_Dirichlet)) saturation(offset)/=void_mass_fluid(offset);
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,saturation_normalization_helper);
     }

@@ -9,7 +9,6 @@
 #include <nova/SPGrid/Core/SPGrid_Allocator.h>
 #include <nova/SPGrid/Tools/SPGrid_Threading_Helper.h>
 #include <nova/Tools/Vectors/Vector.h>
-#include "MPM_Flags.h"
 namespace Nova{
 template<class Struct_type,class T,int d>
 class Saturation_Clamp_Heler
@@ -30,7 +29,7 @@ class Saturation_Clamp_Heler
         auto saturation_clamp_heler=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Cell_Type_Interior) saturation(offset)=Nova_Utilities::Clamp(saturation(offset),(T)0.,(T)1.);
+                if(flags(offset)&(Cell_Type_Interior|Cell_Type_Dirichlet)) saturation(offset)=Nova_Utilities::Clamp(saturation(offset),(T)0.,(T)1.);
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,saturation_clamp_heler);
     }

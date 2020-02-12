@@ -10,7 +10,6 @@
 #include <nova/SPGrid/Core/SPGrid_Allocator.h>
 #include <nova/SPGrid/Tools/SPGrid_Threading_Helper.h>
 #include <nova/SPGrid/Tools/SPGrid_Block_Iterator.h>
-#include "../MPM_Flags.h"
 namespace Nova{
 template<class Struct_type,class T,int d>
 class Diffusion_Multiply_Helper
@@ -39,10 +38,10 @@ class Diffusion_Multiply_Helper
         auto ficks_diffusion_multiply_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Cell_Saturated){result(offset)=twod_a_plus_one*saturation(offset);
+                if(flags(offset)&Cell_Type_Interior){result(offset)=twod_a_plus_one*saturation(offset);
                     for(int face=0;face<Topology_Helper::number_of_faces_per_cell;++face){
                         int64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
-                        if(flags(neighbor_offset)&Cell_Saturated) result(offset)-=a*saturation(neighbor_offset);}}}
+                        if(flags(neighbor_offset)&Cell_Type_Interior) result(offset)-=a*saturation(neighbor_offset);}}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,ficks_diffusion_multiply_helper);
         }
@@ -55,10 +54,10 @@ class Diffusion_Multiply_Helper
         auto non_ficks_diffusion_multiply_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Cell_Saturated){ result(offset)=(1.+2.*d*coeff1)*saturation(offset);
+                if(flags(offset)&Cell_Type_Interior){ result(offset)=(1.+2.*d*coeff1)*saturation(offset);
                     for(int face=0;face<Topology_Helper::number_of_faces_per_cell;++face){
                         int64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
-                        if(flags(neighbor_offset)&Cell_Saturated) result(offset)-=coeff1*saturation(neighbor_offset);}}}
+                        if(flags(neighbor_offset)&Cell_Type_Interior) result(offset)-=coeff1*saturation(neighbor_offset);}}}
         };
         
         SPGrid_Computations::Run_Parallel_Blocks(blocks,non_ficks_diffusion_multiply_helper);}

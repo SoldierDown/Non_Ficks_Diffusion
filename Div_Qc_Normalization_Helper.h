@@ -8,7 +8,6 @@
 #include <nova/SPGrid/Core/SPGrid_Allocator.h>
 #include <nova/SPGrid/Tools/SPGrid_Threading_Helper.h>
 #include <nova/Tools/Vectors/Vector.h>
-#include "MPM_Flags.h"
 
 namespace Nova{
 template<class Struct_type,class T,int d>
@@ -32,7 +31,7 @@ class Div_Qc_Normalization_Helper
         auto div_qc_normalization_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Cell_Saturated){
+                if(flags(offset)&Cell_Type_Interior){
                     if(volume(offset)>(T)0.) div_Qc(offset)/=volume(offset);
                     else div_Qc(offset)=(T)0.;}
         };

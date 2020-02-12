@@ -28,36 +28,25 @@ class Flag_Helper
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks) const
     {
-        int n_active=0;
-        int n_saturated=0;
-        int n_both=0;
+        int n_interior=0;
+        int n_dirichlet=0;
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        auto active_counter=[&](uint64_t offset)
+        auto interior_counter=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Cell_Type_Interior) n_active++;//Log::cout<<c(offset)<<std::endl;
+                if(flags(offset)&Cell_Type_Interior) n_interior++;//Log::cout<<c(offset)<<std::endl;
         };
-        auto saturated_counter=[&](uint64_t offset)
+        auto dirichlet_counter=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Cell_Saturated) n_saturated++;//Log::cout<<c(offset)<<std::endl;
+                if(flags(offset)&Cell_Type_Dirichlet) n_dirichlet++;//Log::cout<<c(offset)<<std::endl;
         };
-
-        auto sna_counter=[&](uint64_t offset)
-        {
-            for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if((flags(offset)&Cell_Saturated)&&(flags(offset)&Cell_Type_Interior)) n_both++;//Log::cout<<c(offset)<<std::endl;
-        };
-
-        
         
         for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
             uint64_t offset=iterator.Offset();
-            active_counter(offset);
-            saturated_counter(offset);
-            sna_counter(offset);
-            }
-        Log::cout<<"Active: "<<n_active<<", Saturated: "<<n_saturated<<", Both: "<<n_both<<std::endl;
+            interior_counter(offset);
+            dirichlet_counter(offset);}
+        Log::cout<<"Interior: "<<n_interior<<", Dirichlet: "<<n_dirichlet<<", Both: "<<n_dirichlet+n_dirichlet<<std::endl;
     }
 };
 }

@@ -25,7 +25,6 @@
 #include "Saturation_Clamp_Helper.h"
 #include "Channel_Vector_Norm_Helper.h"
 #include "Compare_Helper.h"
-#include "MPM_Flags.h"
 #include "Flag_Setup_Helper.h"
 #include "Grid_Saturation_Initialization_Helper.h"
 
@@ -320,7 +319,7 @@ Rasterize_Voxels()
     const Grid<T,2>& grid=hierarchy->Lattice(0);
     Range<int,2> bounding_grid_cells(grid.Clamp_To_Cell(bbox.min_corner),grid.Clamp_To_Cell(bbox.max_corner));
     for(Cell_Iterator iterator(grid,bounding_grid_cells);iterator.Valid();iterator.Next())
-        hierarchy->Activate_Cell(0,iterator.Cell_Index(),Cell_Type_Interior);
+        hierarchy->Activate_Cell(0,iterator.Cell_Index(),Cell_Type_Dirichlet);
     
     hierarchy->Update_Block_Offsets();
     hierarchy->Initialize_Red_Black_Partition(2*threads);
@@ -342,7 +341,7 @@ Rasterize_Voxels()
     const Grid<T,3>& grid=hierarchy->Lattice(0);
     Range<int,3> bounding_grid_cells(grid.Clamp_To_Cell(bbox.min_corner),grid.Clamp_To_Cell(bbox.max_corner));
     for(Cell_Iterator iterator(grid,bounding_grid_cells);iterator.Valid();iterator.Next())
-        hierarchy->Activate_Cell(0,iterator.Cell_Index(),Cell_Type_Interior);
+        hierarchy->Activate_Cell(0,iterator.Cell_Index(),Cell_Type_Dirichlet);
     
     hierarchy->Update_Block_Offsets();
     hierarchy->Initialize_Red_Black_Partition(2*threads);

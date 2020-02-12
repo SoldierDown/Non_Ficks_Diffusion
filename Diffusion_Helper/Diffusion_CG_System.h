@@ -11,7 +11,6 @@
 #include "Diffusion_Convergence_Norm_Helper.h"
 #include "Diffusion_Inner_Product_Helper.h"
 #include "Diffusion_Multiply_Helper.h"
-#include "../MPM_Flags.h"
 
 namespace Nova{
 template<class Base_struct_type,class T,int d>
@@ -66,7 +65,7 @@ class Diffusion_CG_System: public Krylov_System_Base<T>
 
         for(int level=0;level<hierarchy.Levels();++level)
             Diffusion_Inner_Product_Helper<Base_struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v1_channel,
-                                                  v2_channel,result,(unsigned)Cell_Saturated);
+                                                  v2_channel,result,(unsigned)Cell_Type_Interior);
         return result;
     }
 
@@ -79,7 +78,7 @@ class Diffusion_CG_System: public Krylov_System_Base<T>
 
         for(int level=0;level<hierarchy.Levels();++level)
             Diffusion_Convergence_Norm_Helper<Base_struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
-                                                  v_channel,result,(unsigned)Cell_Saturated);
+                                                  v_channel,result,(unsigned)Cell_Type_Interior);
         return result;
     }
 
