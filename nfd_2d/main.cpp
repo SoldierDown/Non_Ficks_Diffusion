@@ -18,6 +18,9 @@
 #include "../Smoother/Multigrid_RHS_Helper.h"
 #include "../Diffusion_Helper/Diffusion_CG_System.h"
 #include "../Diffusion_Helper/Diffusion_CG_Vector.h"
+#include "../Ficks_RHS_Helper.h"
+#include "../Non_Ficks_RHS_Helper.h"
+#include "../Saturation_Clamp_Helper.h"
 
 #include <omp.h>
 
@@ -87,11 +90,11 @@ int main(int argc,char** argv)
         File_Utilities::Write_To_Text_File(surface_directory+"/info.nova-animation",std::to_string(frame));
 
 
-        Hierarchy *hierarchy=new Hierarchy(cell_counts,Range<T,d>(TV(-.5),TV(.5)),levels);
+        Hierarchy *hierarchy=new Hierarchy(cell_counts,Range<T,d>(TV(-1),TV(1)),levels);
 
 
         const Grid<T,2>& grid=hierarchy->Lattice(0);
-        Range<int,2> bounding_grid_cells(grid.Clamp_To_Cell(TV(-.5)),grid.Clamp_To_Cell(TV(.5)));
+        Range<int,2> bounding_grid_cells(grid.Clamp_To_Cell(TV(-1)),grid.Clamp_To_Cell(TV(1)));
         for(Cell_Iterator iterator(grid,bounding_grid_cells);iterator.Valid();iterator.Next()){
             T_INDEX cell_index=iterator.Cell_Index();
             if(cell_index(0)==1||cell_index(1)==1||cell_index(0)==cell_counts(0)||cell_index(1)==cell_counts(1)) hierarchy->Activate_Cell(0,cell_index,Cell_Type_Dirichlet);
@@ -120,14 +123,16 @@ int main(int argc,char** argv)
         // velocity_channels as gradient_channels
         // mass_channel as result_channel
         const T diff_coeff=(T)1e-3; const T one_over_dx2=grid.one_over_dX(0)*grid.one_over_dX(1); 
-        const T dt=(T)1e-3; const T Fc=(T)0.; const T tau=(T)0.;
-        const T a=diff_coeff*dt*one_over_dx2; const T coeff1=dt*diff_coeff*(Fc*tau+dt)*one_over_dx2/(dt+tau);
+        const T dt=(T)1e-3; const T Fc=(T)0.; const T tau=(T)0.; const T a=diff_coeff*dt*one_over_dx2; 
+        const T coeff1=dt*diff_coeff*(Fc*tau+dt)*one_over_dx2/(dt+tau);
+        const T coeff2=dt*tau/(dt+tau);
         const T twod_a_plus_one=(T)2.*d*a+(T)1.;
         const T_INDEX pin_cell=T_INDEX(20);
         Log::cout<<"dt: "<<dt<<", diff_coeff: "<<diff_coeff<<", one_over_dx2: "<<one_over_dx2<<", tau: "<<tau<<", a: "<<a<<", coeff1: "<<coeff1<<", twod_a_plus_one: "<<twod_a_plus_one<<std::endl;
         for(int level=0;level<levels;++level) {hierarchy->Channel(level,saturation_channel)(pin_cell._data)=(T)1.;hierarchy->Channel(level,rhs_channel)(pin_cell._data)=(T)1.;}
-        for(int level=0;level<levels;++level) Multigrid_RHS_Helper<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,rhs_channel);     
-
+        if(FICKS) for(int level=0;level<levels;++level) Ficks_RHS_Helper<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,rhs_channel,a);     
+        // else for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,div_Qc_channel,rhs_channel,coeff1,coeff2);     
+        
         Diffusion_CG_System<Multigrid_struct_type,T,d> cg_system(*hierarchy,FICKS);
         Hierarchy_Visualization::Visualize_Heightfield(*hierarchy,saturation_channel,surface_directory,frame);
 
@@ -146,12 +151,14 @@ int main(int argc,char** argv)
             }
 
 
-            for(int level=0;level<levels;++level) Multigrid_RHS_Helper<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,rhs_channel);     
+            if(FICKS) for(int level=0;level<levels;++level) Ficks_RHS_Helper<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,rhs_channel,a);     
         
             Multigrid_Smoother<Multigrid_struct_type,T,d>::Exact_Solve(*hierarchy,gradient_channels,saturation_channel,rhs_channel,
                                                              result_channel,1,(unsigned)Cell_Saturated,FICKS,a,twod_a_plus_one,coeff1);
             Multigrid_Smoother<Multigrid_struct_type,T,d>::Compute_Residual(*hierarchy,gradient_channels,saturation_channel,rhs_channel,
                                                                   result_channel,(unsigned)Cell_Saturated,FICKS,a,twod_a_plus_one,coeff1);
+            if(FICKS) for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);     
+
             Diffusion_CG_Vector<Multigrid_struct_type,T,d> r_V(*hierarchy,result_channel);
             Log::cout<<cg_system.Convergence_Norm(r_V)<<std::endl;
             File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(frame));

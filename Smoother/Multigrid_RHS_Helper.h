@@ -12,7 +12,6 @@
 #include <nova/Dynamics/Utilities/SPGrid_Flags.h>
 #include "../MPM_Flags.h"
 
-
 namespace Nova{
 template<class Struct_type,class T,int d>
 class Multigrid_RHS_Helper
