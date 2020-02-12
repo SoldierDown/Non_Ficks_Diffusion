@@ -9,7 +9,6 @@
 #include <nova/SPGrid/Core/SPGrid_Allocator.h>
 #include <nova/SPGrid/Tools/SPGrid_Threading_Helper.h>
 #include <nova/Tools/Vectors/Vector.h>
-#include "MPM_Flags.h"
 namespace Nova{
 template<class Struct_type,class T,int d>
 class Compare_Helper
@@ -33,7 +32,7 @@ class Compare_Helper
         auto compare_helper=[&](uint64_t offset, T& l2_norm)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Cell_Saturated) 
+                if(flags(offset)&Cell_Type_Interior) 
                     l2_norm+=fabs(Nova_Utilities::Sqr(c1(offset)-c2(offset)));
         };
         for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
