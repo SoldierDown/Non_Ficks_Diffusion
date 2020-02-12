@@ -9,7 +9,6 @@
 #include <nova/SPGrid/Core/SPGrid_Allocator.h>
 #include <nova/SPGrid/Tools/SPGrid_Threading_Helper.h>
 #include <nova/Tools/Vectors/Vector.h>
-#include "MPM_Flags.h"
 namespace Nova{
 template<class Struct_type,class T,int d>
 class Channel_Vector_Norm_Helper
@@ -31,7 +30,7 @@ class Channel_Vector_Norm_Helper
         auto channel_vector_norm_helper=[&](uint64_t offset,T& result)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Cell_Saturated) for(int v=0;v<d;++v) result+=Nova_Utilities::Sqr(allocator.template Get_Const_Array<Struct_type,T>(channel_vector(v))(offset));
+                if(flags(offset)&Cell_Type_Interior) for(int v=0;v<d;++v) result+=Nova_Utilities::Sqr(allocator.template Get_Const_Array<Struct_type,T>(channel_vector(v))(offset));
         };
         for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
             uint64_t offset=iterator.Offset();

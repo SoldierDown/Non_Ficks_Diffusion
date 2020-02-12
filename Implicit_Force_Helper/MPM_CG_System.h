@@ -26,7 +26,6 @@
 #include "../MPM_Plane_Barrier.h"
 #include "../MPM_Example.h"
 #include "../MPM_Particle.h"
-#include "../MPM_Flags.h"
 #include "../Tools/Influence_Iterator.h"
 #include "../Tools/Cropped_Influence_Iterator.h"
 #include "../Tools/Interval.h"
@@ -76,17 +75,9 @@ class MPM_CG_System: public Krylov_System_Base<T>
         Channel_Vector& x_channels           = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(x).channel;
         Channel_Vector& result_channels      = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(result).channel;
         Force(result_channels,x_channels);
-        // Log::cout<<"After Force() x: "<<Convergence_Norm(x)<<", result: "<<Convergence_Norm(result)<<std::endl;
         const T scaled_dt_squared=dt*dt/(1+trapezoidal);
         for(int level=0;level<hierarchy.Levels();++level)
-            Multiply_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),x_channels,result_channels,scaled_dt_squared,(unsigned)Cell_Saturated);
-        
-        // for(int level=0;level<hierarchy.Levels();++level)
-        //     Channel_Vector_Traverse_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),x_channels,(unsigned)Cell_Saturated);
-        // Log::cout<<std::endl;
-        // for(int level=0;level<hierarchy.Levels();++level)
-        //     Channel_Vector_Traverse_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),result_channels,(unsigned)Cell_Saturated);
-        
+            Multiply_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),x_channels,result_channels,scaled_dt_squared,(unsigned)Cell_Type_Interior);        
     }
     
     void Force(Vector<T Struct_type::*,2>& f,const Vector<T Struct_type::*,2>& x) const
@@ -111,19 +102,10 @@ class MPM_CG_System: public Krylov_System_Base<T>
             for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){          
                 auto data=iterator.Current_Cell()._data;
                 TV v_vec({v0(data),v1(data)});
-                // Log::cout<<"Node: "<<iterator.Current_Node()<<", node location: "<<grid.Node(iterator.Current_Node())<<std::endl;
-                // Log::cout<<"x: "<<v_vec(0)<<", "<<v_vec(1)<<", weight: "<<iterator.Weight()<<", weight grad: "<<iterator.Weight_Gradient()<<", matrix: "<<Matrix<T,d>::Outer_Product(iterator.Weight_Gradient(),v_vec)<<std::endl;
-                // Log::cout<<"matrix: "<<Matrix<T,d>::Outer_Product(iterator.Weight_Gradient(),v_vec)<<std::endl;
-                tmp_mat+=Matrix<T,d>::Outer_Product(iterator.Weight_Gradient(),v_vec);
-                // Log::cout<<"tmp_mat: "<<tmp_mat<<std::endl;
-            }
+                tmp_mat+=Matrix<T,d>::Outer_Product(iterator.Weight_Gradient(),v_vec);}
             Matrix<T,d> F=p.constitutive_model.Fe;
-            // Log::cout<<"F: "<<F<<std::endl;
-            // Log::cout<<"transpose_times: "<<tmp_mat.Transpose_Times(F)<<std::endl;
-            // Log::cout<<"times_dp_df: "<<p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F))<<std::endl;
             tmp_mat=F.Times_Transpose(p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F)));
             tmp_mat*=p.volume;
-            // Log::cout<<tmp_mat<<std::endl;
             if(false){ high_resolution_clock::time_point te = high_resolution_clock::now();
     	    duration<double> dur = duration_cast<duration<double>>(te-tb);
     	    Log::cout<<"single particle: "<<dur.count()<<std::endl;}
@@ -179,19 +161,10 @@ class MPM_CG_System: public Krylov_System_Base<T>
             for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){          
                 auto data=iterator.Current_Cell()._data;
                 TV v_vec({v0(data),v1(data),v2(data)});
-                // Log::cout<<"Node: "<<iterator.Current_Node()<<", node location: "<<grid.Node(iterator.Current_Node())<<std::endl;
-                // Log::cout<<"x: "<<v_vec(0)<<", "<<v_vec(1)<<", weight: "<<iterator.Weight()<<", weight grad: "<<iterator.Weight_Gradient()<<", matrix: "<<Matrix<T,d>::Outer_Product(iterator.Weight_Gradient(),v_vec)<<std::endl;
-                // Log::cout<<"matrix: "<<Matrix<T,d>::Outer_Product(iterator.Weight_Gradient(),v_vec)<<std::endl;
-                tmp_mat+=T_Mat::Outer_Product(iterator.Weight_Gradient(),v_vec);
-                // Log::cout<<"tmp_mat: "<<tmp_mat<<std::endl;
-            }
+                tmp_mat+=T_Mat::Outer_Product(iterator.Weight_Gradient(),v_vec);}
             Matrix<T,d> F=p.constitutive_model.Fe;
-            // Log::cout<<"F: "<<F<<std::endl;
-            // Log::cout<<"transpose_times: "<<tmp_mat.Transpose_Times(F)<<std::endl;
-            // Log::cout<<"times_dp_df: "<<p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F))<<std::endl;
             tmp_mat=F.Times_Transpose(p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F)));
             tmp_mat*=p.volume;
-            // Log::cout<<tmp_mat<<std::endl;
             if(false){ high_resolution_clock::time_point te = high_resolution_clock::now();
     	    duration<double> dur = duration_cast<duration<double>>(te-tb);
     	    Log::cout<<"single particle: "<<dur.count()<<std::endl;}
@@ -231,11 +204,8 @@ class MPM_CG_System: public Krylov_System_Base<T>
     void Project(Vector_Base& v) const
     {
         Channel_Vector& v_channels              = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(v).channel;
-
         for(int level=0;level<hierarchy.Levels();++level)
             Project_Helper<Struct_type,T,d>(hierarchy.Lattice(0),hierarchy.Allocator(level),hierarchy.Blocks(level),v_channels,barriers);
-        // for(int level=0;level<hierarchy.Levels();++level)
-        //     Channel_Vector_Traverse_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v_channels,(unsigned)Cell_Saturated);
     }
 
     double Inner_Product(const Vector_Base& v1,const Vector_Base& v2) const
@@ -246,17 +216,9 @@ class MPM_CG_System: public Krylov_System_Base<T>
         Channel_Vector const v2_channels        = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(v2).channel;
         assert(&hierarchy == &v1_hierarchy);
         assert(&hierarchy == &v2_hierarchy);
-
-        // for(int level=0;level<hierarchy.Levels();++level)
-        //     Channel_Vector_Traverse_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v1_channels,(unsigned)Cell_Saturated);
-        // Log::cout<<std::endl;
-        // for(int level=0;level<hierarchy.Levels();++level)
-        //     Channel_Vector_Traverse_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v2_channels,(unsigned)Cell_Saturated);
-
         T result=(T)0.;
-
         for(int level=0;level<hierarchy.Levels();++level)
-            Inner_Product_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v1_channels,v2_channels,result,(unsigned)Cell_Saturated);
+            Inner_Product_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v1_channels,v2_channels,result,(unsigned)Cell_Type_Interior);
         return result;
     }
 
@@ -264,13 +226,9 @@ class MPM_CG_System: public Krylov_System_Base<T>
     {
         Channel_Vector& v_channels              = MPM_CG_Vector<Struct_type,T,d>::Cg_Vector(v).channel;
         T result=(T)0.;
-        
-        // for(int level=0;level<hierarchy.Levels();++level)
-        //     Channel_Vector_Traverse_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v_channels,(unsigned)Cell_Saturated);
-        
         for(int level=0;level<hierarchy.Levels();++level)
             Convergence_Norm_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
-                                                     v_channels,result,(unsigned)Cell_Saturated);
+                                                     v_channels,result,(unsigned)Cell_Type_Interior);
         return result;
     }
 

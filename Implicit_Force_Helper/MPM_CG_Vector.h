@@ -12,7 +12,6 @@
 #include <nova/Tools/Krylov_Solvers/Krylov_Vector_Base.h>
 #include <nova/Tools/Log/Debug_Utilities.h>
 #include <cassert>
-#include "../MPM_Flags.h"
 #include "../Channel_Vector_Traverse_Helper.h"
 
 namespace Nova{
@@ -55,7 +54,7 @@ class MPM_CG_Vector: public Krylov_Vector_Base<T>
 
         for(int level=0;level<hierarchy.Levels();++level) for(int v=0;v<d;++v)
             SPGrid::Masked_Add<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),channel(v),
-                                                bv_channel(v),channel(v),(unsigned)Cell_Saturated);
+                                                bv_channel(v),channel(v),(unsigned)Cell_Type_Interior);
     }
 
     Base& operator-=(const Base& bv)
@@ -66,14 +65,14 @@ class MPM_CG_Vector: public Krylov_Vector_Base<T>
 
         for(int level=0;level<hierarchy.Levels();++level) for(int v=0;v<d;++v)
             SPGrid::Masked_Subtract<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),channel(v),
-                                                     bv_channel(v),channel(v),(unsigned)Cell_Saturated);
+                                                     bv_channel(v),channel(v),(unsigned)Cell_Type_Interior);
     }
 
     Base& operator*=(const T a)
     {
         for(int level=0;level<hierarchy.Levels();++level) for(int v=0;v<d;++v)
             SPGrid::Masked_Scalar_Multiply<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
-                                                            channel(v),a,channel(v),(unsigned)Cell_Saturated);
+                                                            channel(v),a,channel(v),(unsigned)Cell_Type_Interior);
     }
 
     void Copy(const T c,const Base& bv)
@@ -84,7 +83,7 @@ class MPM_CG_Vector: public Krylov_Vector_Base<T>
 
         for(int level=0;level<hierarchy.Levels();++level) for(int v=0;v<d;++v)
             SPGrid::Masked_Scalar_Multiply<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
-                                                            bv_channel(v),c,channel(v),(unsigned)Cell_Saturated);
+                                                            bv_channel(v),c,channel(v),(unsigned)Cell_Type_Interior);
     }
 
     void Copy(const T c1,const Base& bv1,const Base& bv2)
@@ -98,9 +97,7 @@ class MPM_CG_Vector: public Krylov_Vector_Base<T>
 
         for(int level=0;level<hierarchy.Levels();++level) for(int v=0;v<d;++v)
             SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),c1,bv1_channel(v),
-                                                  bv2_channel(v),channel(v),(unsigned)Cell_Saturated);
-        // for(int level=0;level<hierarchy.Levels();++level)
-        //     Channel_Vector_Traverse_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),channel,(unsigned)Cell_Saturated);
+                                                  bv2_channel(v),channel(v),(unsigned)Cell_Type_Interior);
     }
 };
 }

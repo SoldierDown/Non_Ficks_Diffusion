@@ -18,7 +18,6 @@
 #include "MPM_RHS_Helper.h"
 #include "Channel_Vector_Norm_Helper.h"
 #include "Compare_Helper.h"
-#include "MPM_Flags.h"
 #include "Flag_Setup_Helper.h"
 
 
@@ -272,7 +271,7 @@ Rasterize_Voxels()
     const Grid<T,2>& grid=hierarchy->Lattice(0);
     Range<int,2> bounding_grid_cells(grid.Clamp_To_Cell(bbox.min_corner),grid.Clamp_To_Cell(bbox.max_corner));
     for(Cell_Iterator iterator(grid,bounding_grid_cells);iterator.Valid();iterator.Next())
-        hierarchy->Activate_Cell(0,iterator.Cell_Index(),Cell_Type_Interior);
+        hierarchy->Activate_Cell(0,iterator.Cell_Index(),Cell_Type_Dirichlet);
     
     hierarchy->Update_Block_Offsets();
     hierarchy->Initialize_Red_Black_Partition(2*threads);
@@ -294,7 +293,7 @@ Rasterize_Voxels()
     const Grid<T,3>& grid=hierarchy->Lattice(0);
     Range<int,3> bounding_grid_cells(grid.Clamp_To_Cell(bbox.min_corner),grid.Clamp_To_Cell(bbox.max_corner));
     for(Cell_Iterator iterator(grid,bounding_grid_cells);iterator.Valid();iterator.Next())
-        hierarchy->Activate_Cell(0,iterator.Cell_Index(),Cell_Type_Interior);
+        hierarchy->Activate_Cell(0,iterator.Cell_Index(),Cell_Type_Dirichlet);
     
     hierarchy->Update_Block_Offsets();
     hierarchy->Initialize_Red_Black_Partition(2*threads);
@@ -728,18 +727,10 @@ Apply_Explicit_Force(const T dt)
                 T_Mat V0_P_FT=P.Times_Transpose(F)*V0;                    
                 const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_cell(0),thread_x_interval.max_corner-closest_cell(0));  
                 for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){
-                    // high_resolution_clock::time_point tbt=high_resolution_clock::now();
                     auto data=iterator.Current_Cell()._data;         
                     TV body_force=gravity*p.mass*iterator.Weight(); TV inner_force=V0_P_FT*iterator.Weight_Gradient();
                     f0(data)-=inner_force(0); f1(data)-=inner_force(1);
-                    f0(data)+=body_force(0); f1(data)+=body_force(1);
-                }}}}
-    
-    // T total_rt=0;
-    // int total_cnt=0;
-    // for(int i=0;i<threads;++i){ total_cnt+=thread_cnt(i); total_rt+=thread_rt(i);}
-    // Log::cout<<"per particle: "<<total_rt/total_cnt<<std::endl;
-
+                    f0(data)+=body_force(0); f1(data)+=body_force(1);}}}}
     for(int level=0;level<levels;++level) Explicit_Force_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),f_channels,velocity_channels,velocity_star_channels,dt);
     high_resolution_clock::time_point te=high_resolution_clock::now();
 	duration<double> dur=duration_cast<duration<double>>(te-tb);
@@ -770,17 +761,10 @@ Apply_Explicit_Force(const T dt)
                 T_Mat V0_P_FT=P.Times_Transpose(F)*V0;                    
                 const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_cell(0),thread_x_interval.max_corner-closest_cell(0));  
                 for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){
-                    // high_resolution_clock::time_point tbt=high_resolution_clock::now();
                     auto data=iterator.Current_Cell()._data;         
                     TV body_force=gravity*p.mass*iterator.Weight(); TV inner_force=V0_P_FT*iterator.Weight_Gradient();
                     f0(data)-=inner_force(0); f1(data)-=inner_force(1); f2(data)-=inner_force(2); 
                     f0(data)+=body_force(0); f1(data)+=body_force(1); f2(data)+=body_force(2);}}}}
-    
-    // T total_rt=0;
-    // int total_cnt=0;
-    // for(int i=0;i<threads;++i){ total_cnt+=thread_cnt(i); total_rt+=thread_rt(i);}
-    // Log::cout<<"per particle: "<<total_rt/total_cnt<<std::endl;
-
     for(int level=0;level<levels;++level) Explicit_Force_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),f_channels,velocity_channels,velocity_star_channels,dt);
     high_resolution_clock::time_point te=high_resolution_clock::now();
 	duration<double> dur=duration_cast<duration<double>>(te-tb);
@@ -865,41 +849,6 @@ Register_Options()
 template<class T> void MPM_Example<T,2>::
 Test()
 {
-    // const Grid<T,2>& grid=hierarchy->Lattice(0); 
-    // Log::cout<<"node: "<<grid.Node(T_INDEX(33))<<std::endl;
-    // Log::cout<<"node: "<<grid.Node(T_INDEX(34))<<std::endl;
-    // Log::cout<<"min corner: "<<grid.domain.min_corner<<std::endl;
-    // Log::cout<<"max corner: "<<grid.domain.max_corner<<std::endl;
-    // const int iterations=1e8;
-    // auto mass=hierarchy->Channel(0,mass_channel);
-    // T_INDEX index({0,0}); auto data=index._data;
-    // // read
-    // high_resolution_clock::time_point tb1=high_resolution_clock::now();
-    // for(int i=0;i<iterations;i++) mass(data);
-    // high_resolution_clock::time_point te1=high_resolution_clock::now();
-	// duration<double> dur1=duration_cast<duration<double>>(te1-tb1);
-    // Log::cout<<"read from channel: "<<dur1.count()/iterations<<std::endl;
-
-    // // write
-    // high_resolution_clock::time_point tb2=high_resolution_clock::now();
-    // for(int i=0;i<iterations;i++) mass(data)=(T)0.;
-    // high_resolution_clock::time_point te2=high_resolution_clock::now();
-	// duration<double> dur2=duration_cast<duration<double>>(te2-tb2);
-    // Log::cout<<"write to channel: "<<dur2.count()/iterations<<std::endl;
-
-    
-    // // influence iterator
-    // high_resolution_clock::time_point tb3=high_resolution_clock::now();
-    // for(int it=0;it<iterations;++it){
-    //     for(unsigned i=0;i<particles.size();++i){T_Particle& p=particles(i);     
-    //         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){}}}
-    // high_resolution_clock::time_point te3=high_resolution_clock::now();
-	// duration<double> dur3=duration_cast<duration<double>>(te3-tb3);
-    // Log::cout<<"iterator: "<<dur3.count()/iterations<<std::endl;
-
-
-
-
 }
 //######################################################################
 // Test
