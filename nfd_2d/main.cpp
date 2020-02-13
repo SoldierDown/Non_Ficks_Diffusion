@@ -33,7 +33,7 @@ using namespace std::chrono;
 
 int main(int argc,char** argv)
 {
-    bool run_test=true;
+    bool run_test=false;
     if(run_test){
         typedef float T;
         enum {d=3};
@@ -68,7 +68,7 @@ int main(int argc,char** argv)
         else parse_args.Add_Vector_3D_Argument("-size",Vector<double,3>(64.),"n","Grid resolution");
         parse_args.Parse(argc,argv);
 
-        bool simple_case=parse_args.Get_Option_Value("simple_case");
+        bool simple_case=parse_args.Get_Option_Value("-simple_case");
         bool random_guess=parse_args.Get_Option_Value("-random_guess");
         bool FICKS=parse_args.Get_Option_Value("-ficks");
         int levels=parse_args.Get_Integer_Value("-levels");
@@ -93,7 +93,7 @@ int main(int argc,char** argv)
         File_Utilities::Write_To_Text_File(output_directory+"/info.nova-animation",std::to_string(frame));
         Log::Instance()->Copy_Log_To_File(output_directory+"/common/log.txt",false);
 
-        std::string surface_directory=std::to_string(d)+(FICKS?"d_F_":"d_NF_")+(simple_case?"simple_case":"complex_case")+(random_guess?"random_init_":"0_init_")+"Resolution_"+std::to_string(cell_counts(0));
+        std::string surface_directory=std::to_string(d)+(FICKS?"d_F_":"d_NF_")+(simple_case?"simple_case_":"complex_case_")+(random_guess?"random_init_":"0_init_")+"Resolution_"+std::to_string(cell_counts(0));
         File_Utilities::Create_Directory(surface_directory);
         File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(frame));
         File_Utilities::Write_To_Text_File(surface_directory+"/info.nova-animation",std::to_string(frame));
@@ -102,15 +102,14 @@ int main(int argc,char** argv)
         T Multigrid_struct_type::* div_Qc_channel           = &Multigrid_struct_type::ch1;
         T Multigrid_struct_type::* rhs_channel              = &Multigrid_struct_type::ch2;
         T Multigrid_struct_type::* result_channel           = &Multigrid_struct_type::ch3;
-        T Multigrid_struct_type::* levelset_channel         = &Multigrid_struct_type::ch4;
         Channel_Vector gradient_channels; 
-        gradient_channels(0)                                = &Multigrid_struct_type::ch5;
-        gradient_channels(1)                                = &Multigrid_struct_type::ch6;
-        if(d==3) gradient_channels(2)                       = &Multigrid_struct_type::ch7;
+        gradient_channels(0)                                = &Multigrid_struct_type::ch4;
+        gradient_channels(1)                                = &Multigrid_struct_type::ch5;
+        if(d==3) gradient_channels(2)                       = &Multigrid_struct_type::ch6;
 
         Hierarchy *hierarchy=new Hierarchy(cell_counts,Range<T,d>(TV(-1),TV(1)),levels);
         Sphere_Levelset<T,d>* levelset=new Sphere_Levelset<T,d>(TV(),(T).25);        
-        for(int level=0;level<levels;++level) Levelset_Initializer<Multigrid_struct_type,T,d>(hierarchy->Lattice(level),hierarchy->Allocator(level),hierarchy->Blocks(level),levelset_channel,levelset);
+        for(int level=0;level<levels;++level) Levelset_Initializer<Multigrid_struct_type,T,d>(hierarchy->Lattice(level),hierarchy->Allocator(level),hierarchy->Blocks(level),div_Qc_channel,levelset);
         delete levelset;
         const Grid<T,d>& grid=hierarchy->Lattice(0);
         Range<int,d> bounding_grid_cells(grid.Clamp_To_Cell(TV(-1)),grid.Clamp_To_Cell(TV(1)));
@@ -118,9 +117,7 @@ int main(int argc,char** argv)
             T_INDEX cell_index=iterator.Cell_Index();
             if(cell_index(0)==1||cell_index(1)==1||cell_index(0)==cell_counts(0)||cell_index(1)==cell_counts(1)) hierarchy->Activate_Cell(0,cell_index,Cell_Type_Dirichlet);
             else hierarchy->Activate_Cell(0,cell_index,Cell_Type_Interior);}
-        if(!simple_case){
-            for(int level=0;level<levels;++level) Neumann_BC_Initializer<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),levelset_channel);
-        }
+        if(!simple_case){for(int level=0;level<levels;++level) Neumann_BC_Initializer<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_Qc_channel);}
         hierarchy->Update_Block_Offsets();
         hierarchy->Initialize_Red_Black_Partition(2*number_of_threads);
 
@@ -146,7 +143,7 @@ int main(int argc,char** argv)
         const T coeff3=dt*diff_coeff*(1-Fc)/(dt+tau);
         const T coeff4=tau/(dt+tau);
         const T twod_a_plus_one=(T)2.*d*a+(T)1.;
-        const T_INDEX pin_cell=T_INDEX(20);
+        const T_INDEX pin_cell=T_INDEX(10);
         Log::cout<<"dt: "<<dt<<", diff_coeff: "<<diff_coeff<<", one_over_dx2: "<<one_over_dx2<<", tau: "<<tau<<", a: "<<a<<", coeff1: "<<coeff1<<", twod_a_plus_one: "<<twod_a_plus_one<<std::endl;
         for(int level=0;level<levels;++level) {hierarchy->Channel(level,saturation_channel)(pin_cell._data)=(T)1.;hierarchy->Channel(level,rhs_channel)(pin_cell._data)=(T)1.;}
         if(FICKS) for(int level=0;level<levels;++level) Ficks_RHS_Helper<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,rhs_channel,a);     

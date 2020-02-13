@@ -19,10 +19,9 @@ struct Multigrid_Data
     T ch1;          // div_Qc
     T ch2;          // rhs_channel
     T ch3;          // result_channel
-    T ch4;          // levelset_channel
-    T ch5;          // x_gradient_channel
-    T ch6;          // y_gradient_channel
-    T ch7;          // z_gradient_channel
+    T ch4;          // x_gradient_channel
+    T ch5;          // y_gradient_channel
+    T ch6;          // z_gradient_channel
 };
 }
 #endif

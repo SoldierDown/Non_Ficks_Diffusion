@@ -45,7 +45,7 @@ class Diffusion_CG_System: public Krylov_System_Base<T>
         
         for(int level=0;level<hierarchy.Levels();++level)
             Diffusion_Multiply_Helper<Base_struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v_channel,result_channel,
-                                    FICKS,a,twod_a_plus_one,coeff1);       
+                                    FICKS,a,coeff1);       
         
     }
 

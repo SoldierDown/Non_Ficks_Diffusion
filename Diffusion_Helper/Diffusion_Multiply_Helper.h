@@ -22,13 +22,13 @@ class Diffusion_Multiply_Helper
 
   public:
     Diffusion_Multiply_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* saturation_channel,T Struct_type::* result_channel,
-                            const bool FICKS,const T a,const T twod_a_plus_one,const T coeff1)
+                            const bool FICKS,const T a,const T coeff1)
     {   
-        Run(allocator,blocks,saturation_channel,result_channel,FICKS,a,twod_a_plus_one,coeff1);
+        Run(allocator,blocks,saturation_channel,result_channel,FICKS,a,coeff1);
     }
     
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* saturation_channel,T Struct_type::* result_channel,
-                const bool FICKS,const T a,const T twod_a_plus_one,const T coeff1) const
+                const bool FICKS,const T a,const T coeff1) const
     {
         if(FICKS){
         auto saturation=allocator.template Get_Const_Array<Struct_type,T>(saturation_channel); auto result=allocator.template Get_Array<Struct_type,T>(result_channel);
@@ -38,10 +38,11 @@ class Diffusion_Multiply_Helper
         auto ficks_diffusion_multiply_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Cell_Type_Interior){result(offset)=twod_a_plus_one*saturation(offset);
-                    for(int face=0;face<Topology_Helper::number_of_faces_per_cell;++face){
+                if(flags(offset)&Cell_Type_Interior){result(offset)=saturation(offset);
+                    for(int face=0;face<Topology_Helper::number_of_faces_per_cell;++face){T Gp,Gn;
                         int64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
-                        if(flags(neighbor_offset)&Cell_Type_Interior) result(offset)-=a*saturation(neighbor_offset);}}}
+                        if(flags(neighbor_offset)&Cell_Type_Interior) result(offset)-=a*(saturation(neighbor_offset)-saturation(offset));
+                        else if (flags(neighbor_offset)&Cell_Type_Dirichlet) result(offset)+=a*saturation(offset);}}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,ficks_diffusion_multiply_helper);
         }
@@ -54,10 +55,11 @@ class Diffusion_Multiply_Helper
         auto non_ficks_diffusion_multiply_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Cell_Type_Interior){ result(offset)=(1.+2.*d*coeff1)*saturation(offset);
+                if(flags(offset)&Cell_Type_Interior){ result(offset)=saturation(offset);
                     for(int face=0;face<Topology_Helper::number_of_faces_per_cell;++face){
                         int64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
-                        if(flags(neighbor_offset)&Cell_Type_Interior) result(offset)-=coeff1*saturation(neighbor_offset);}}}
+                        if(flags(neighbor_offset)&Cell_Type_Interior) result(offset)-=coeff1*(saturation(neighbor_offset)-saturation(offset));
+                        else if(flags(neighbor_offset)&Cell_Type_Dirichlet) result(offset)+=coeff1*saturation(offset);}}}
         };
         
         SPGrid_Computations::Run_Parallel_Blocks(blocks,non_ficks_diffusion_multiply_helper);}
