@@ -22,6 +22,9 @@
 #include "../Saturation_Clamp_Helper.h"
 #include "../Smoother/Div_Qc_Updater.h"
 #include "../Smoother/Initial_Guess_Helper.h"
+#include "../Smoother/Sphere_Levelset.h"
+#include "../Smoother/Levelset_Initializer.h"
+#include "../Smoother/Neumann_BC_Initializer.h"
 #include <omp.h>
 
 extern Pthread_Queue* pthread_queue;
@@ -32,9 +35,8 @@ int main(int argc,char** argv)
 {
     bool run_test=true;
     if(run_test){
-        bool FICKS=true;
         typedef float T;
-        enum {d=2};
+        enum {d=3};
         typedef Vector<T,d> TV;
         typedef Vector<int,d> T_INDEX;
 
@@ -58,11 +60,17 @@ int main(int argc,char** argv)
         parse_args.Add_Integer_Argument("-cg_iterations",100,"Number of CG iterations.");
         parse_args.Add_Integer_Argument("-cg_restart_iterations",40,"Number of CG restart iterations.");
         parse_args.Add_Option_Argument("-random_guess","Use random initial guess.");
+        parse_args.Add_Option_Argument("-simple_case","Ran simple case.");
+        parse_args.Add_Option_Argument("-ficks","Fick's diffusion.");
         parse_args.Add_String_Argument("-solver","cg","Choice of solver.");
         parse_args.Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
-        parse_args.Add_Vector_2D_Argument("-size",Vector<double,2>(64.),"n","Grid resolution");
+        if(d==2) parse_args.Add_Vector_2D_Argument("-size",Vector<double,2>(64.),"n","Grid resolution");
+        else parse_args.Add_Vector_3D_Argument("-size",Vector<double,3>(64.),"n","Grid resolution");
         parse_args.Parse(argc,argv);
 
+        bool simple_case=parse_args.Get_Option_Value("simple_case");
+        bool random_guess=parse_args.Get_Option_Value("-random_guess");
+        bool FICKS=parse_args.Get_Option_Value("-ficks");
         int levels=parse_args.Get_Integer_Value("-levels");
         int test_number=parse_args.Get_Integer_Value("-test_number"),frame=0;
         int number_of_threads=parse_args.Get_Integer_Value("-threads");
@@ -74,7 +82,8 @@ int main(int argc,char** argv)
         omp_set_num_threads(number_of_threads);
 
         T_INDEX cell_counts;
-        auto cell_counts_2d=parse_args.Get_Vector_2D_Value("-size");for(int v=0;v<d;++v) cell_counts(v)=cell_counts_2d(v);
+        if(d==2) {auto cell_counts_2d=parse_args.Get_Vector_2D_Value("-size");for(int v=0;v<d;++v) cell_counts(v)=cell_counts_2d(v);}
+        else if(d==3) {auto cell_counts_3d=parse_args.Get_Vector_3D_Value("-size");for(int v=0;v<d;++v) cell_counts(v)=cell_counts_3d(v);}
 
 
         std::string output_directory="Test_"+std::to_string(test_number)+"_Resolution_"+std::to_string(cell_counts(0));
@@ -84,33 +93,39 @@ int main(int argc,char** argv)
         File_Utilities::Write_To_Text_File(output_directory+"/info.nova-animation",std::to_string(frame));
         Log::Instance()->Copy_Log_To_File(output_directory+"/common/log.txt",false);
 
-        std::string surface_directory="Surface_"+std::to_string(test_number)+"_Resolution_"+std::to_string(cell_counts(0));
+        std::string surface_directory=std::to_string(d)+(FICKS?"d_F_":"d_NF_")+(simple_case?"simple_case":"complex_case")+(random_guess?"random_init_":"0_init_")+"Resolution_"+std::to_string(cell_counts(0));
         File_Utilities::Create_Directory(surface_directory);
         File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(frame));
         File_Utilities::Write_To_Text_File(surface_directory+"/info.nova-animation",std::to_string(frame));
 
+        T Multigrid_struct_type::* saturation_channel       = &Multigrid_struct_type::ch0;
+        T Multigrid_struct_type::* div_Qc_channel           = &Multigrid_struct_type::ch1;
+        T Multigrid_struct_type::* rhs_channel              = &Multigrid_struct_type::ch2;
+        T Multigrid_struct_type::* result_channel           = &Multigrid_struct_type::ch3;
+        T Multigrid_struct_type::* levelset_channel         = &Multigrid_struct_type::ch4;
+        Channel_Vector gradient_channels; 
+        gradient_channels(0)                                = &Multigrid_struct_type::ch5;
+        gradient_channels(1)                                = &Multigrid_struct_type::ch6;
+        if(d==3) gradient_channels(2)                       = &Multigrid_struct_type::ch7;
 
         Hierarchy *hierarchy=new Hierarchy(cell_counts,Range<T,d>(TV(-1),TV(1)),levels);
-
-
+        Sphere_Levelset<T,d>* levelset=new Sphere_Levelset<T,d>(TV(),(T).25);        
+        for(int level=0;level<levels;++level) Levelset_Initializer<Multigrid_struct_type,T,d>(hierarchy->Lattice(level),hierarchy->Allocator(level),hierarchy->Blocks(level),levelset_channel,levelset);
+        delete levelset;
         const Grid<T,d>& grid=hierarchy->Lattice(0);
         Range<int,d> bounding_grid_cells(grid.Clamp_To_Cell(TV(-1)),grid.Clamp_To_Cell(TV(1)));
         for(Cell_Iterator iterator(grid,bounding_grid_cells);iterator.Valid();iterator.Next()){
             T_INDEX cell_index=iterator.Cell_Index();
             if(cell_index(0)==1||cell_index(1)==1||cell_index(0)==cell_counts(0)||cell_index(1)==cell_counts(1)) hierarchy->Activate_Cell(0,cell_index,Cell_Type_Dirichlet);
             else hierarchy->Activate_Cell(0,cell_index,Cell_Type_Interior);}
+        if(!simple_case){
+            for(int level=0;level<levels;++level) Neumann_BC_Initializer<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),levelset_channel);
+        }
         hierarchy->Update_Block_Offsets();
         hierarchy->Initialize_Red_Black_Partition(2*number_of_threads);
 
 
-        T Multigrid_struct_type::* saturation_channel       = &Multigrid_struct_type::ch0;
-        T Multigrid_struct_type::* div_Qc_channel           = &Multigrid_struct_type::ch1;
-        T Multigrid_struct_type::* rhs_channel              = &Multigrid_struct_type::ch2;
-        T Multigrid_struct_type::* result_channel           = &Multigrid_struct_type::ch3;
-        Channel_Vector gradient_channels; 
-        gradient_channels(0)                                = &Multigrid_struct_type::ch4;
-        gradient_channels(1)                                = &Multigrid_struct_type::ch5;
-        if(d==3) gradient_channels(2)                       = &Multigrid_struct_type::ch6;
+
 
         for(int level=0;level<levels;++level){
             SPGrid::Clear<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);
@@ -152,7 +167,7 @@ int main(int argc,char** argv)
         Log::cout<<"rhs norm: "<<cg_system.Convergence_Norm(r_V_before)<<std::endl;
         
         // initial guess
-        for(int level=0;level<levels;++level) Initial_Guess_Helper<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,true);     
+        for(int level=0;level<levels;++level) Initial_Guess_Helper<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,random_guess);     
             
 
         for(int i=1;i<=cg_iterations;++i){ ++frame;
@@ -163,7 +178,7 @@ int main(int argc,char** argv)
             }
 
             Multigrid_Smoother<Multigrid_struct_type,T,d>::Exact_Solve(*hierarchy,gradient_channels,saturation_channel,rhs_channel,
-                                                             result_channel,100,(unsigned)Cell_Type_Interior,FICKS,a,twod_a_plus_one,coeff1);
+                                                             result_channel,1,(unsigned)Cell_Type_Interior,FICKS,a,twod_a_plus_one,coeff1);
             Multigrid_Smoother<Multigrid_struct_type,T,d>::Compute_Residual(*hierarchy,gradient_channels,saturation_channel,rhs_channel,
                                                                   result_channel,(unsigned)Cell_Type_Interior,FICKS,a,twod_a_plus_one,coeff1);
             for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);     
