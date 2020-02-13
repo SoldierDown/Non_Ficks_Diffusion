@@ -11,6 +11,7 @@
 #include <nova/Tools/Utilities/Constants.h>
 #include "Multiply_Inverse_Diagonal.h"
 #include "../Diffusion_Helper/Diffusion_Multiply_Helper.h"
+#include "../Diffusion_Helper/Diffusion_Convergence_Norm_Helper.h"
 
 namespace Nova{
 template<class Struct_type,class T,int d>
@@ -49,6 +50,11 @@ class Multigrid_Smoother
         for(int level=0;level<levels;++level)
             SPGrid::Masked_Subtract<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
                                                      rhs_channel,result_channel,result_channel,mask);
+        T cnorm=(T)0.;
+        for(int level=0;level<levels;++level)
+            Diffusion_Convergence_Norm_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
+                                                  result_channel,cnorm,(unsigned)Cell_Type_Interior);
+        Log::cout<<"convergence norm: "<<cnorm<<std::endl;
     }
 
     static void Compute_Residual(Hierarchy& hierarchy,Channel_Vector& gradient_channels,const std::pair<const uint64_t*,unsigned>& blocks,

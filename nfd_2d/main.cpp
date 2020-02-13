@@ -33,10 +33,10 @@ using namespace std::chrono;
 
 int main(int argc,char** argv)
 {
-    bool run_test=false;
+    bool run_test=true;
     if(run_test){
         typedef float T;
-        enum {d=3};
+        enum {d=2};
         typedef Vector<T,d> TV;
         typedef Vector<int,d> T_INDEX;
 
@@ -55,6 +55,7 @@ int main(int argc,char** argv)
 
         Parse_Args parse_args;
         parse_args.Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
+        parse_args.Add_Integer_Argument("-sm_iterations",1,"Number of smoother iterations.");
         parse_args.Add_Integer_Argument("-test_number",1,"Test number.");
         parse_args.Add_Integer_Argument("-mg_levels",1,"Number of levels in the Multigrid hierarchy.");
         parse_args.Add_Integer_Argument("-cg_iterations",100,"Number of CG iterations.");
@@ -68,6 +69,7 @@ int main(int argc,char** argv)
         else parse_args.Add_Vector_3D_Argument("-size",Vector<double,3>(64.),"n","Grid resolution");
         parse_args.Parse(argc,argv);
 
+        int sm_iterations=parse_args.Get_Integer_Value("-sm_iterations");
         bool simple_case=parse_args.Get_Option_Value("-simple_case");
         bool random_guess=parse_args.Get_Option_Value("-random_guess");
         bool FICKS=parse_args.Get_Option_Value("-ficks");
@@ -146,8 +148,8 @@ int main(int argc,char** argv)
         const T_INDEX pin_cell=T_INDEX(10);
         Log::cout<<"dt: "<<dt<<", diff_coeff: "<<diff_coeff<<", one_over_dx2: "<<one_over_dx2<<", tau: "<<tau<<", a: "<<a<<", coeff1: "<<coeff1<<", twod_a_plus_one: "<<twod_a_plus_one<<std::endl;
         for(int level=0;level<levels;++level) {hierarchy->Channel(level,saturation_channel)(pin_cell._data)=(T)1.;hierarchy->Channel(level,rhs_channel)(pin_cell._data)=(T)1.;}
-        if(FICKS) for(int level=0;level<levels;++level) Ficks_RHS_Helper<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,rhs_channel,a);     
-        else for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,div_Qc_channel,rhs_channel,coeff1,coeff2);     
+        // if(FICKS) for(int level=0;level<levels;++level) Ficks_RHS_Helper<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,rhs_channel,a);     
+        // else for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,div_Qc_channel,rhs_channel,coeff1,coeff2);     
         
 
 
@@ -167,6 +169,7 @@ int main(int argc,char** argv)
         for(int level=0;level<levels;++level) Initial_Guess_Helper<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,random_guess);     
             
 
+        Log::cout<<"sm iterations: "<<sm_iterations<<std::endl;
         for(int i=1;i<=cg_iterations;++i){ ++frame;
             for(int level=0;level<levels;++level){
                 SPGrid::Clear<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),result_channel);
@@ -175,7 +178,7 @@ int main(int argc,char** argv)
             }
 
             Multigrid_Smoother<Multigrid_struct_type,T,d>::Exact_Solve(*hierarchy,gradient_channels,saturation_channel,rhs_channel,
-                                                             result_channel,1,(unsigned)Cell_Type_Interior,FICKS,a,twod_a_plus_one,coeff1);
+                                                             result_channel,sm_iterations,(unsigned)Cell_Type_Interior,FICKS,a,twod_a_plus_one,coeff1);
             Multigrid_Smoother<Multigrid_struct_type,T,d>::Compute_Residual(*hierarchy,gradient_channels,saturation_channel,rhs_channel,
                                                                   result_channel,(unsigned)Cell_Type_Interior,FICKS,a,twod_a_plus_one,coeff1);
             for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);     

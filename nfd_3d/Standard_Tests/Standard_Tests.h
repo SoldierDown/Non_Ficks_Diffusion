@@ -23,7 +23,7 @@ class Standard_Tests: public MPM_Example<T,d>
 
   public:
     using Base::output_directory;using Base::test_number;using Base::particles;using Base::parse_args;using Base::counts;using Base::domain;
-    using Base::barriers;
+    using Base::barriers; using Base::FICKS;
     /****************************
      * example explanation:
      *
@@ -38,7 +38,7 @@ class Standard_Tests: public MPM_Example<T,d>
     void Parse_Options() override
     {
         Base::Parse_Options();
-        output_directory="nfd_3d_"+std::to_string(test_number);
+        output_directory=std::to_string(d)+"d_"+(FICKS?"F_":"NF_");
 
         domain.min_corner=TV();domain.max_corner=TV(1);
     }
@@ -51,18 +51,18 @@ class Standard_Tests: public MPM_Example<T,d>
         case 1:{
             Random_Numbers<T> random;
             random.Set_Seed(0);
-            T_Barrier ground(0.,TV({0.,1.,0.}),TV({0.,.1,0.}));
-            barriers.Append(ground);
-            T_Barrier ceiling(0.,TV({0.,-1.,0.}),TV({0.,.9,0.}));
-            Base::barriers.Append(ceiling);
-            T_Barrier left_wall(0.,TV({1.,0.,0.}),TV({.1,0.,0.}));
-            barriers.Append(left_wall);
-            T_Barrier right_wall(0.,TV({-1.,0.,0.}),TV({.9,0.,0.}));
-            barriers.Append(right_wall);
-            T_Barrier front_wall(0.,TV({0.,0.,1.}),TV({0.,0.,.1}));
-            barriers.Append(front_wall);
-            T_Barrier back_wall(0.,TV({0.,0.,-1.}),TV({0.,0.,.9}));
-            barriers.Append(back_wall);
+            // T_Barrier ground(0.,TV({0.,1.,0.}),TV({0.,.1,0.}));
+            // barriers.Append(ground);
+            // T_Barrier ceiling(0.,TV({0.,-1.,0.}),TV({0.,.9,0.}));
+            // Base::barriers.Append(ceiling);
+            // T_Barrier left_wall(0.,TV({1.,0.,0.}),TV({.1,0.,0.}));
+            // barriers.Append(left_wall);
+            // T_Barrier right_wall(0.,TV({-1.,0.,0.}),TV({.9,0.,0.}));
+            // barriers.Append(right_wall);
+            // T_Barrier front_wall(0.,TV({0.,0.,1.}),TV({0.,0.,.1}));
+            // barriers.Append(front_wall);
+            // T_Barrier back_wall(0.,TV({0.,0.,-1.}),TV({0.,0.,.9}));
+            // barriers.Append(back_wall);
             {
                 const T solid_density=(T)10.;
                 const T fluid_density=(T)1.;

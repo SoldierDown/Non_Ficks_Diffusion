@@ -1126,6 +1126,7 @@ Register_Options()
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
     parse_args->Add_Double_Argument("-cfl",(T)0.1,"CFL number.");
+    parse_args->Add_Option_Argument("-ficks","Fick's diffusion.");
     parse_args->Add_Vector_2D_Argument("-size",Vector<double,2>(32.),"n","Grid resolution");
 }
 //######################################################################
@@ -1138,6 +1139,7 @@ Register_Options()
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
     parse_args->Add_Double_Argument("-cfl",(T)0.1,"CFL number.");
+    parse_args->Add_Option_Argument("-ficks","Fick's diffusion.");
     parse_args->Add_Vector_3D_Argument("-size",Vector<double,3>(32.),"n","Grid resolution");
 }
 //######################################################################
@@ -1172,6 +1174,7 @@ Parse_Options()
     Base::test_number=parse_args->Get_Integer_Value("-test_number");
     cfl=parse_args->Get_Double_Value("-cfl");
     levels=parse_args->Get_Integer_Value("-levels");
+    FICKS=parse_args->Get_Option_Value("-ficks");
     auto cell_counts_2d=parse_args->Get_Vector_2D_Value("-size");for(int v=0;v<2;++v) counts(v)=cell_counts_2d(v);
 }
 //######################################################################
@@ -1187,6 +1190,7 @@ Parse_Options()
     Base::test_number=parse_args->Get_Integer_Value("-test_number");
     cfl=parse_args->Get_Double_Value("-cfl");
     levels=parse_args->Get_Integer_Value("-levels");
+    FICKS=parse_args->Get_Option_Value("-ficks");
     auto cell_counts_3d=parse_args->Get_Vector_3D_Value("-size");for(int v=0;v<3;++v) counts(v)=cell_counts_3d(v);
 }
 //######################################################################
