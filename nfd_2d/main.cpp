@@ -25,6 +25,7 @@
 #include "../Smoother/Sphere_Levelset.h"
 #include "../Smoother/Levelset_Initializer.h"
 #include "../Smoother/Neumann_BC_Initializer.h"
+#include "../Smoother/Mark_Boundary.h"
 #include <omp.h>
 
 extern Pthread_Queue* pthread_queue;
@@ -36,19 +37,21 @@ int main(int argc,char** argv)
     bool run_test=true;
     if(run_test){
         typedef float T;
-        enum {d=2};
+        enum {d=3};
         typedef Vector<T,d> TV;
         typedef Vector<int,d> T_INDEX;
 
         using Cell_Iterator                         = Grid_Iterator_Cell<T,d>;
         using Multigrid_struct_type                 = Multigrid_Data<T>;
-        using Allocator_type                        = SPGrid::SPGrid_Allocator<Multigrid_struct_type,d>;
-        using Flag_array_mask                       = typename Allocator_type::template Array_mask<unsigned>;
+        using Multigrid_allocator_type              = SPGrid::SPGrid_Allocator<Multigrid_struct_type,d>;
+        using Flag_array_mask                       = typename Multigrid_allocator_type::template Array_mask<unsigned>;
         using Topology_Helper                       = Grid_Topology_Helper<Flag_array_mask>;
         using Channel_Vector                        = Vector<T Multigrid_struct_type::*,d>;
         using Hierarchy                             = Grid_Hierarchy<Multigrid_struct_type,T,d>;
         using Hierarchy_Initializer                 = Grid_Hierarchy_Initializer<Multigrid_struct_type,T,d>;
         using Hierarchy_Visualization               = Grid_Hierarchy_Visualization<Multigrid_struct_type,T>;
+        using Multigrid_flag_array_mask             = typename Multigrid_allocator_type::template Array_mask<unsigned>;
+        
         enum {number_of_faces_per_cell              = Topology_Helper::number_of_faces_per_cell};
 
         Log::Initialize_Logging();
@@ -61,6 +64,8 @@ int main(int argc,char** argv)
         parse_args.Add_Integer_Argument("-cg_iterations",100,"Number of CG iterations.");
         parse_args.Add_Integer_Argument("-cg_restart_iterations",40,"Number of CG restart iterations.");
         parse_args.Add_Option_Argument("-random_guess","Use random initial guess.");
+        parse_args.Add_Option_Argument("-bs","Run for boundary only");
+        parse_args.Add_Option_Argument("-is","Run for interior only");
         parse_args.Add_Option_Argument("-simple_case","Ran simple case.");
         parse_args.Add_Option_Argument("-ficks","Fick's diffusion.");
         parse_args.Add_String_Argument("-solver","cg","Choice of solver.");
@@ -72,6 +77,8 @@ int main(int argc,char** argv)
         int sm_iterations=parse_args.Get_Integer_Value("-sm_iterations");
         bool simple_case=parse_args.Get_Option_Value("-simple_case");
         bool random_guess=parse_args.Get_Option_Value("-random_guess");
+        bool bs=parse_args.Get_Option_Value("-bs");
+        bool is=parse_args.Get_Option_Value("-is");
         bool FICKS=parse_args.Get_Option_Value("-ficks");
         int levels=parse_args.Get_Integer_Value("-levels");
         int test_number=parse_args.Get_Integer_Value("-test_number"),frame=0;
@@ -96,22 +103,19 @@ int main(int argc,char** argv)
         Log::Instance()->Copy_Log_To_File(output_directory+"/common/log.txt",false);
 
         std::string surface_directory=std::to_string(d)+(FICKS?"d_F_":"d_NF_")+(simple_case?"simple_case_":"complex_case_")+(random_guess?"random_init_":"0_init_")+"Resolution_"+std::to_string(cell_counts(0));
+        surface_directory="Slice";
         File_Utilities::Create_Directory(surface_directory);
         File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(frame));
         File_Utilities::Write_To_Text_File(surface_directory+"/info.nova-animation",std::to_string(frame));
 
-        T Multigrid_struct_type::* saturation_channel       = &Multigrid_struct_type::ch0;
-        T Multigrid_struct_type::* div_Qc_channel           = &Multigrid_struct_type::ch1;
-        T Multigrid_struct_type::* rhs_channel              = &Multigrid_struct_type::ch2;
-        T Multigrid_struct_type::* result_channel           = &Multigrid_struct_type::ch3;
-        Channel_Vector gradient_channels; 
-        gradient_channels(0)                                = &Multigrid_struct_type::ch4;
-        gradient_channels(1)                                = &Multigrid_struct_type::ch5;
-        if(d==3) gradient_channels(2)                       = &Multigrid_struct_type::ch6;
+        T Multigrid_struct_type::* x_channel                = &Multigrid_struct_type::ch0;
+        T Multigrid_struct_type::* b_channel                = &Multigrid_struct_type::ch1;
+        T Multigrid_struct_type::* r_channel                = &Multigrid_struct_type::ch2;
 
         Hierarchy *hierarchy=new Hierarchy(cell_counts,Range<T,d>(TV(-1),TV(1)),levels);
         Sphere_Levelset<T,d>* levelset=new Sphere_Levelset<T,d>(TV(),(T).25);        
-        for(int level=0;level<levels;++level) Levelset_Initializer<Multigrid_struct_type,T,d>(hierarchy->Lattice(level),hierarchy->Allocator(level),hierarchy->Blocks(level),div_Qc_channel,levelset);
+        // reuse x_channel to set up level set
+        for(int level=0;level<levels;++level) Levelset_Initializer<Multigrid_struct_type,T,d>(hierarchy->Lattice(level),hierarchy->Allocator(level),hierarchy->Blocks(level),x_channel,levelset);
         delete levelset;
         const Grid<T,d>& grid=hierarchy->Lattice(0);
         Range<int,d> bounding_grid_cells(grid.Clamp_To_Cell(TV(-1)),grid.Clamp_To_Cell(TV(1)));
@@ -119,21 +123,24 @@ int main(int argc,char** argv)
             T_INDEX cell_index=iterator.Cell_Index();
             if(cell_index(0)==1||cell_index(1)==1||cell_index(0)==cell_counts(0)||cell_index(1)==cell_counts(1)) hierarchy->Activate_Cell(0,cell_index,Cell_Type_Dirichlet);
             else hierarchy->Activate_Cell(0,cell_index,Cell_Type_Interior);}
-        if(!simple_case){for(int level=0;level<levels;++level) Neumann_BC_Initializer<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_Qc_channel);}
+        if(!simple_case){for(int level=0;level<levels;++level) Neumann_BC_Initializer<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),x_channel);}
         hierarchy->Update_Block_Offsets();
         hierarchy->Initialize_Red_Black_Partition(2*number_of_threads);
 
-
-
-
         for(int level=0;level<levels;++level){
-            SPGrid::Clear<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);
-            SPGrid::Clear<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_Qc_channel);
-            SPGrid::Clear<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),rhs_channel);
-            SPGrid::Clear<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),result_channel);
-            for(int v=0;v<d;++v) SPGrid::Clear<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),gradient_channels(v));
+            SPGrid::Clear<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),x_channel);
+            SPGrid::Clear<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),b_channel);
+            SPGrid::Clear<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channel);
         }
 
+        int boundary_radius=3;
+        Array<uint64_t> neighbor_offsets;
+        const T_INDEX boundary_radius_vector(boundary_radius),zero_vector=T_INDEX();
+        for(Range_Iterator<d> iterator(-boundary_radius_vector,boundary_radius_vector);iterator.Valid();iterator.Next()){const T_INDEX& index=iterator.Index();
+            if(index!=zero_vector) neighbor_offsets.Append(Multigrid_flag_array_mask::Linear_Offset(index._data));}
+        for(int level=0;level<levels;++level)
+                Mark_Boundary<Multigrid_struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),neighbor_offsets,level,(unsigned)MG_Boundary);
+        hierarchy->Initialize_Boundary_Blocks((unsigned)MG_Boundary);
 
         // saturation_channel
         // velocity_channels as gradient_channels
@@ -147,52 +154,33 @@ int main(int argc,char** argv)
         const T twod_a_plus_one=(T)2.*d*a+(T)1.;
         const T_INDEX pin_cell=T_INDEX(10);
         Log::cout<<"dt: "<<dt<<", diff_coeff: "<<diff_coeff<<", one_over_dx2: "<<one_over_dx2<<", tau: "<<tau<<", a: "<<a<<", coeff1: "<<coeff1<<", twod_a_plus_one: "<<twod_a_plus_one<<std::endl;
-        for(int level=0;level<levels;++level) {hierarchy->Channel(level,saturation_channel)(pin_cell._data)=(T)1.;hierarchy->Channel(level,rhs_channel)(pin_cell._data)=(T)1.;}
-        // if(FICKS) for(int level=0;level<levels;++level) Ficks_RHS_Helper<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,rhs_channel,a);     
-        // else for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,div_Qc_channel,rhs_channel,coeff1,coeff2);     
-        for(int level=0;level<levels;++level) Initial_Guess_Helper<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,random_guess);     
+        for(int level=0;level<levels;++level) hierarchy->Channel(level,b_channel)(pin_cell._data)=(T)1.;
+        for(int level=0;level<levels;++level) Initial_Guess_Helper<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),x_channel,random_guess);     
         
-
-
         Diffusion_CG_System<Multigrid_struct_type,T,d> cg_system(*hierarchy,FICKS);
-        Hierarchy_Visualization::Visualize_Heightfield(*hierarchy,saturation_channel,surface_directory,frame);
+        Hierarchy_Visualization::Visualize_Heightfield(*hierarchy,x_channel,surface_directory,frame);
 
         // write hierarchy
         File_Utilities::Write_To_Text_File(output_directory+"/"+std::to_string(frame)+"/levels",levels);
         hierarchy->Write_Hierarchy(output_directory,frame);
 
-
-
-        Diffusion_CG_Vector<Multigrid_struct_type,T,d> r_V_before(*hierarchy,rhs_channel);
+        Diffusion_CG_Vector<Multigrid_struct_type,T,d> r_V_before(*hierarchy,b_channel);
         Log::cout<<"rhs norm: "<<cg_system.Convergence_Norm(r_V_before)<<std::endl;
         
-        // initial guess
-            
-
         Log::cout<<"sm iterations: "<<sm_iterations<<std::endl;
         for(int i=1;i<=cg_iterations;++i){ ++frame;
-            for(int level=0;level<levels;++level){
-                SPGrid::Clear<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),result_channel);
-                SPGrid::Clear<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),gradient_channels(0));
-                SPGrid::Clear<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),gradient_channels(1));   
-            }
-
-            Multigrid_Smoother<Multigrid_struct_type,T,d>::Exact_Solve(*hierarchy,gradient_channels,saturation_channel,rhs_channel,
-                                                             result_channel,sm_iterations,(unsigned)Cell_Type_Interior,FICKS,a,twod_a_plus_one,coeff1);
-            Multigrid_Smoother<Multigrid_struct_type,T,d>::Compute_Residual(*hierarchy,gradient_channels,saturation_channel,rhs_channel,
-                                                                  result_channel,(unsigned)Cell_Type_Interior,FICKS,a,twod_a_plus_one,coeff1);
-            for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);     
-            // update Qc
-            if(!FICKS) for(int level=0;level<levels;++level) Div_Qc_Updater<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,div_Qc_channel,coeff3,coeff4,one_over_dx2);     
+            if(bs) for(int level=0;level<levels;++level) Multigrid_Smoother<Multigrid_struct_type,T,d>::Jacobi_Iteration(*hierarchy,hierarchy->Boundary_Blocks(level),level,x_channel,b_channel,r_channel,sm_iterations,(unsigned)MG_Boundary,FICKS,a,twod_a_plus_one,coeff1);
+            if(is) for(int level=0;level<levels;++level) Multigrid_Smoother<Multigrid_struct_type,T,d>::Jacobi_Iteration(*hierarchy,hierarchy->Blocks(level),level,x_channel,b_channel,r_channel,sm_iterations,(unsigned)Cell_Type_Interior,FICKS,a,twod_a_plus_one,coeff1);
+            Multigrid_Smoother<Multigrid_struct_type,T,d>::Compute_Residual(*hierarchy,x_channel,b_channel,r_channel,(unsigned)Cell_Type_Interior,FICKS,a,twod_a_plus_one,coeff1);
+            for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),x_channel);     
             
-            Diffusion_CG_Vector<Multigrid_struct_type,T,d> r_V(*hierarchy,result_channel);
-            Log::cout<<cg_system.Convergence_Norm(r_V)<<std::endl;
+            Diffusion_CG_Vector<Multigrid_struct_type,T,d> r_V(*hierarchy,r_channel);
+            Diffusion_CG_Vector<Multigrid_struct_type,T,d> x_V(*hierarchy,x_channel);
+            Log::cout<<"residual norm: "<<cg_system.Convergence_Norm(r_V)<<std::endl;
+            Log::cout<<"x norm: "<<cg_system.Convergence_Norm(x_V)<<std::endl;
             File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(frame));
             File_Utilities::Write_To_Text_File(surface_directory+"/info.nova-animation",std::to_string(frame));
-            Hierarchy_Visualization::Visualize_Heightfield(*hierarchy,saturation_channel,surface_directory,frame);
-            if(FICKS) for(int level=0;level<levels;++level) Ficks_RHS_Helper<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,rhs_channel,a);     
-            else for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Multigrid_struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,div_Qc_channel,rhs_channel,coeff1,coeff2);     
-
+            Hierarchy_Visualization::Visualize_Heightfield(*hierarchy,x_channel,surface_directory,frame);
         }
         delete hierarchy;
         Log::Finish_Logging();
