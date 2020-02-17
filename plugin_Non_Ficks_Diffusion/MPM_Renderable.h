@@ -79,6 +79,7 @@ class MPM_Renderable: public Simulation_Renderable<T,d>
 
         File_Utilities::Read_From_File(directory_name+"/common/fine_grid",grid);
         app.GetIOService().On("DISPLAY-VOXELS",[&](IOEvent& event){this->Display_Voxels();});
+        
     }
 
     virtual ~MPM_Renderable()

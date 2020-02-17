@@ -176,6 +176,9 @@ class MPM_Example<T,2>: public Example<T,2>
 
 
     // Hydrogel variables
+    T E;
+    T nu;
+    T eta;
     T diff_coeff;
     T tau;
     T Fc;
@@ -292,6 +295,9 @@ class MPM_Example<T,3>: public Example<T,3>
 
 
     // Hydrogel variables
+    T E;
+    T nu;
+    T eta;
     T diff_coeff;
     T tau;
     T Fc;

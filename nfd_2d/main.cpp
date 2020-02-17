@@ -26,6 +26,7 @@
 #include "../Smoother/Levelset_Initializer.h"
 #include "../Smoother/Neumann_BC_Initializer.h"
 #include "../Smoother/Mark_Boundary.h"
+#include "../Multigrid_Solver/Multigrid_Solver.h"
 #include <omp.h>
 
 extern Pthread_Queue* pthread_queue;
@@ -103,7 +104,6 @@ int main(int argc,char** argv)
         Log::Instance()->Copy_Log_To_File(output_directory+"/common/log.txt",false);
 
         std::string surface_directory=std::to_string(d)+(FICKS?"d_F_":"d_NF_")+(simple_case?"simple_case_":"complex_case_")+(random_guess?"random_init_":"0_init_")+"Resolution_"+std::to_string(cell_counts(0));
-        surface_directory="Slice";
         File_Utilities::Create_Directory(surface_directory);
         File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(frame));
         File_Utilities::Write_To_Text_File(surface_directory+"/info.nova-animation",std::to_string(frame));

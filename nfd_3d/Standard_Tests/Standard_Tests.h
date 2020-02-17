@@ -23,7 +23,7 @@ class Standard_Tests: public MPM_Example<T,d>
 
   public:
     using Base::output_directory;using Base::test_number;using Base::particles;using Base::parse_args;using Base::counts;using Base::domain;
-    using Base::barriers; using Base::FICKS;
+    using Base::barriers;using Base::FICKS;using Base::E;using Base::nu;using Base::eta;using Base::Fc;using Base::tau;using Base::diff_coeff;
     /****************************
      * example explanation:
      *
@@ -38,9 +38,10 @@ class Standard_Tests: public MPM_Example<T,d>
     void Parse_Options() override
     {
         Base::Parse_Options();
-        output_directory=std::to_string(d)+"d_"+(FICKS?"F_":"NF_");
+        output_directory=std::to_string(d)+"d_"+(FICKS?"F_":"NF_")+"E_"+std::to_string(E)+"_nu_"+std::to_string(nu)+"_diff_"+std::to_string(diff_coeff)
+                                +"_eta_"+std::to_string(eta)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau);
 
-        domain.min_corner=TV();domain.max_corner=TV(1);
+        domain.min_corner=TV();domain.max_corner=TV(5);
     }
 //######################################################################
     void Initialize_Particles(int test_case) override
@@ -67,17 +68,16 @@ class Standard_Tests: public MPM_Example<T,d>
                 const T solid_density=(T)10.;
                 const T fluid_density=(T)1.;
                 const int number_of_particles=40000;
-                const Range<T,d> block(TV({.45,.45,.49}),TV({.55,.55,.51}));
+                const Range<T,d> block(TV({2.45,2.45,2.49}),TV({2.55,2.55,2.51}));
                 const T block_area=block.Area();
                 const T area_per_particle=block_area/number_of_particles;
                 std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
-                const T E=(T)100.,nu=(T).4;
                 for(int i=0;i<number_of_particles;++i){
                     T_Particle p;
                     p.X=random.Get_Uniform_Vector(block);
                     p.V=TV();
                     p.constitutive_model.Compute_Lame_Parameters(E,nu);
-                    p.constitutive_model.eta=(T).01;
+                    p.constitutive_model.eta=eta;
                     p.constitutive_model.plastic=false;
                     p.saturation=(T)0.;
                     p.volume_fraction_0=(T).7;

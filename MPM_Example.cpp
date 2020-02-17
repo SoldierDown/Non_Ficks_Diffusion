@@ -49,12 +49,8 @@ MPM_Example()
 {
     solver_tolerance=(T)1e-7;
     solver_iterations=10000;
-    diff_coeff=(T)1;
-    tau=(T)1.;
-    Fc=(T)0.;
     gravity=TV::Axis_Vector(1)*(T)0.;
     flip=(T).9;
-    FICKS=false;
     explicit_diffusion=false;
      
     flags_channel                           = &Struct_type::flags;
@@ -96,12 +92,8 @@ MPM_Example()
 {
     solver_tolerance=(T)1e-7;
     solver_iterations=10000;
-    diff_coeff=(T)1e-3;
-    tau=(T)1.0;
-    Fc=(T)0.;
     gravity=TV::Axis_Vector(1)*(T)0.;
     flip=(T).9;
-    FICKS=false;
     explicit_diffusion=false;
      
     flags_channel                           = &Struct_type::flags;
@@ -272,7 +264,7 @@ Compute_Bounding_Box(Range<T,2>& bbox)
     
     for(int v=0;v<2;++v){ 
         bbox.min_corner(v)=std::max((T)0.,bbox.min_corner(v));
-        bbox.max_corner(v)=std::min((T)1.,bbox.max_corner(v));}
+        bbox.max_corner(v)=std::min((T)5.,bbox.max_corner(v));}
 }
 //######################################################################
 // Compute_Bounding_Box
@@ -305,7 +297,8 @@ Compute_Bounding_Box(Range<T,3>& bbox)
     
     for(int v=0;v<3;++v){ 
         bbox.min_corner(v)=std::max((T)0.,bbox.min_corner(v));
-        bbox.max_corner(v)=std::min((T)1.,bbox.max_corner(v));}
+        bbox.max_corner(v)=std::min((T)5.,bbox.max_corner(v));}
+    Log::cout<<"min corner: "<<bbox.min_corner<<", max corner: "<<bbox.max_corner<<std::endl;
 }
 //######################################################################
 // Rasterize_Voxels
@@ -726,7 +719,6 @@ Non_Ficks_Diffusion(T dt)
     non_ficks_diffusion_system.use_preconditioner=false;
     Conjugate_Gradient<T> cg;
     Krylov_Solver<T>* solver_nfd=(Krylov_Solver<T>*)&cg;
-    solver_nfd->print_residuals=true;
     // reset solver channels
     Reset_Solver_Channels();    
     // set up rhs
@@ -790,7 +782,6 @@ Non_Ficks_Diffusion(T dt)
     non_ficks_diffusion_system.use_preconditioner=false;
     Conjugate_Gradient<T> cg;
     Krylov_Solver<T>* solver_nfd=(Krylov_Solver<T>*)&cg;
-    solver_nfd->print_residuals=true;
     // reset solver channels
     Reset_Solver_Channels();
     // set up rhs
@@ -1126,6 +1117,12 @@ Register_Options()
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
     parse_args->Add_Double_Argument("-cfl",(T)0.1,"CFL number.");
+    parse_args->Add_Double_Argument("-diff_coeff",(T)1e-3,"diffusion coefficient.");
+    parse_args->Add_Double_Argument("-E",(T)40.,"E.");
+    parse_args->Add_Double_Argument("-nu",(T)0.2,"nu.");
+    parse_args->Add_Double_Argument("-eta",(T)0.1,"eta.");
+    parse_args->Add_Double_Argument("-fc",(T)0.,"fc.");
+    parse_args->Add_Double_Argument("-tau",(T)1.,"tau.");
     parse_args->Add_Option_Argument("-ficks","Fick's diffusion.");
     parse_args->Add_Vector_2D_Argument("-size",Vector<double,2>(32.),"n","Grid resolution");
 }
@@ -1139,6 +1136,12 @@ Register_Options()
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
     parse_args->Add_Double_Argument("-cfl",(T)0.1,"CFL number.");
+    parse_args->Add_Double_Argument("-diff_coeff",(T)1e-3,"diffusion coefficient.");
+    parse_args->Add_Double_Argument("-E",(T)40.,"E.");
+    parse_args->Add_Double_Argument("-nu",(T)0.2,"nu.");
+    parse_args->Add_Double_Argument("-eta",(T)0.1,"eta.");
+    parse_args->Add_Double_Argument("-fc",(T)0.,"fc.");
+    parse_args->Add_Double_Argument("-tau",(T)1.,"tau.");
     parse_args->Add_Option_Argument("-ficks","Fick's diffusion.");
     parse_args->Add_Vector_3D_Argument("-size",Vector<double,3>(32.),"n","Grid resolution");
 }
@@ -1175,6 +1178,13 @@ Parse_Options()
     cfl=parse_args->Get_Double_Value("-cfl");
     levels=parse_args->Get_Integer_Value("-levels");
     FICKS=parse_args->Get_Option_Value("-ficks");
+    diff_coeff=parse_args->Get_Double_Value("-diff_coeff");
+    E=parse_args->Get_Double_Value("-E");
+    nu=parse_args->Get_Double_Value("-nu");
+    eta=parse_args->Get_Double_Value("-eta");
+    Fc=parse_args->Get_Double_Value("-fc");
+    tau=parse_args->Get_Double_Value("-tau");
+    FICKS=parse_args->Get_Option_Value("-ficks");
     auto cell_counts_2d=parse_args->Get_Vector_2D_Value("-size");for(int v=0;v<2;++v) counts(v)=cell_counts_2d(v);
 }
 //######################################################################
@@ -1190,6 +1200,13 @@ Parse_Options()
     Base::test_number=parse_args->Get_Integer_Value("-test_number");
     cfl=parse_args->Get_Double_Value("-cfl");
     levels=parse_args->Get_Integer_Value("-levels");
+    FICKS=parse_args->Get_Option_Value("-ficks");
+    diff_coeff=parse_args->Get_Double_Value("-diff_coeff");
+    E=parse_args->Get_Double_Value("-E");
+    nu=parse_args->Get_Double_Value("-nu");
+    eta=parse_args->Get_Double_Value("-eta");
+    Fc=parse_args->Get_Double_Value("-fc");
+    tau=parse_args->Get_Double_Value("-tau");
     FICKS=parse_args->Get_Option_Value("-ficks");
     auto cell_counts_3d=parse_args->Get_Vector_3D_Value("-size");for(int v=0;v<3;++v) counts(v)=cell_counts_3d(v);
 }

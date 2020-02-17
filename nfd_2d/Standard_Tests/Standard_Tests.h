@@ -25,7 +25,7 @@ class Standard_Tests: public MPM_Example<T,d>
 
   public:
     using Base::output_directory;using Base::test_number;using Base::particles;using Base::parse_args;using Base::counts;using Base::domain;
-    using Base::barriers;
+    using Base::barriers;using Base::FICKS;using Base::E;using Base::nu;using Base::eta;using Base::Fc;using Base::tau;using Base::diff_coeff;
     /****************************
      * example explanation:
      *
@@ -40,7 +40,8 @@ class Standard_Tests: public MPM_Example<T,d>
     void Parse_Options() override
     {
         Base::Parse_Options();
-        output_directory="nfd_2d_"+std::to_string(test_number);
+        output_directory=std::to_string(d)+"d_"+(FICKS?"F_":"NF_")+"E_"+std::to_string(E)+"_nu_"+std::to_string(nu)+"_diff_"+std::to_string(diff_coeff)
+                            +"_eta_"+std::to_string(eta)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau);
 
         domain.min_corner=TV();domain.max_corner=TV(1);
     }
