@@ -11,11 +11,13 @@
 #include <nova/Tools/Utilities/Range_Iterator.h>
 #include "Clear_Mask.h"
 // #include "Convergence_Norm_Helper.h"
+#include "../Diffusion_Helper/Diffusion_Convergence_Norm_Helper.h"
 #include "Copy_Channel.h"
 #include "Initialize_Mask.h"
 #include "Mark_Boundary.h"
 #include "Multigrid_Refinement.h"
-#include "../Smoother/Multigrid_Smoother.h"
+#include "Multigrid_Smoother.h"
+#include "Initial_Guess_Helper.h"
 
 namespace Nova{
 template<class Base_struct_type,class Multigrid_struct_type,class T,int d>
@@ -33,23 +35,24 @@ class Multigrid_Solver
 
   public:
     Hierarchy_Base& hierarchy;
-    mutable Channel_Vector gradient_channels;
     Array<Hierarchy_Multigrid*> multigrid_hierarchy;
 
-    T Multigrid_struct_type::* u_channel;
+    T Multigrid_struct_type::* x_channel;
     T Multigrid_struct_type::* b_channel;
     T Multigrid_struct_type::* temp_channel;
 
-    Multigrid_Solver(Hierarchy_Base& hierarchy_input,const int mg_levels)
-        :hierarchy(hierarchy_input)
+    bool FICKS;
+    const T a;
+    const T twod_a_plus_one;
+    const T coeff1;
+
+
+    Multigrid_Solver(Hierarchy_Base& hierarchy_input,const int mg_levels,const T FICKS_input,const T a_input,const T twod_a_plus_one_input,const T coeff1_input)
+        :hierarchy(hierarchy_input),FICKS(FICKS_input),a(a_input),twod_a_plus_one(twod_a_plus_one_input),coeff1(coeff1_input)
     {
-        u_channel                       = &Multigrid_struct_type::ch0;
+        x_channel                       = &Multigrid_struct_type::ch0;
         b_channel                       = &Multigrid_struct_type::ch1;
         temp_channel                    = &Multigrid_struct_type::ch2;
-
-        gradient_channels(0)            = &Multigrid_struct_type::ch3;
-        gradient_channels(1)            = &Multigrid_struct_type::ch4;
-        if(d==3) gradient_channels(2)   = &Multigrid_struct_type::ch5;
 
         // clean up
         for(size_t i=0;i<multigrid_hierarchy.size();++i)
@@ -97,7 +100,7 @@ class Multigrid_Solver
 
         // clear all channels
         for(int i=0;i<mg_levels;++i) for(int level=0;level<multigrid_hierarchy(i)->Levels();++level){
-            SPGrid::Clear<Multigrid_struct_type,T,d>(multigrid_hierarchy(i)->Allocator(level),multigrid_hierarchy(i)->Blocks(level),u_channel);
+            SPGrid::Clear<Multigrid_struct_type,T,d>(multigrid_hierarchy(i)->Allocator(level),multigrid_hierarchy(i)->Blocks(level),x_channel);
             SPGrid::Clear<Multigrid_struct_type,T,d>(multigrid_hierarchy(i)->Allocator(level),multigrid_hierarchy(i)->Blocks(level),b_channel);
             SPGrid::Clear<Multigrid_struct_type,T,d>(multigrid_hierarchy(i)->Allocator(level),multigrid_hierarchy(i)->Blocks(level),temp_channel);}
     }
@@ -132,7 +135,10 @@ class Multigrid_Solver
     void Initialize_Guess() const
     {
         for(int level=0;level<multigrid_hierarchy(0)->Levels();++level)
-            SPGrid::Clear<Multigrid_struct_type,T,d>(multigrid_hierarchy(0)->Allocator(level),multigrid_hierarchy(0)->Blocks(level),u_channel);
+            SPGrid::Clear<Multigrid_struct_type,T,d>(multigrid_hierarchy(0)->Allocator(level),multigrid_hierarchy(0)->Blocks(level),x_channel);
+        for(int level=0;level<multigrid_hierarchy(0)->Levels();++level) 
+            Initial_Guess_Helper<Multigrid_struct_type,T,d>(*multigrid_hierarchy(0),multigrid_hierarchy(0)->Allocator(level),multigrid_hierarchy(0)->Blocks(level),x_channel,false);     
+        
     }
 
     void Initialize(const int boundary_radius=3)
@@ -150,18 +156,18 @@ class Multigrid_Solver
 
     void Smooth(const int mg_level,const int boundary_smoothing_iterations,const int interior_smoothing_iterations) const
     {
-        Multigrid_Smoother<Multigrid_struct_type,T,d>::Jacobi_Iteration(*multigrid_hierarchy(mg_level),gradient_channels,multigrid_hierarchy(mg_level)->Boundary_Blocks(mg_level),
-                                                                        mg_level,u_channel,b_channel,temp_channel,boundary_smoothing_iterations,(unsigned)MG_Boundary);
-        Multigrid_Smoother<Multigrid_struct_type,T,d>::Jacobi_Iteration(*multigrid_hierarchy(mg_level),gradient_channels,multigrid_hierarchy(mg_level)->Blocks(mg_level),
-                                                                        mg_level,u_channel,b_channel,temp_channel,interior_smoothing_iterations,(unsigned)Cell_Type_Interior);
-        Multigrid_Smoother<Multigrid_struct_type,T,d>::Jacobi_Iteration(*multigrid_hierarchy(mg_level),gradient_channels,multigrid_hierarchy(mg_level)->Boundary_Blocks(mg_level),
-                                                                        mg_level,u_channel,b_channel,temp_channel,boundary_smoothing_iterations,(unsigned)MG_Boundary);
+        Multigrid_Smoother<Multigrid_struct_type,T,d>::Jacobi_Iteration(*multigrid_hierarchy(mg_level),multigrid_hierarchy(mg_level)->Boundary_Blocks(mg_level),
+                                                                        mg_level,x_channel,b_channel,temp_channel,boundary_smoothing_iterations,(unsigned)MG_Boundary,FICKS,a,twod_a_plus_one,coeff1);
+        Multigrid_Smoother<Multigrid_struct_type,T,d>::Jacobi_Iteration(*multigrid_hierarchy(mg_level),multigrid_hierarchy(mg_level)->Blocks(mg_level),
+                                                                        mg_level,x_channel,b_channel,temp_channel,interior_smoothing_iterations,(unsigned)Cell_Type_Interior,FICKS,a,twod_a_plus_one,coeff1);
+        Multigrid_Smoother<Multigrid_struct_type,T,d>::Jacobi_Iteration(*multigrid_hierarchy(mg_level),multigrid_hierarchy(mg_level)->Boundary_Blocks(mg_level),
+                                                                        mg_level,x_channel,b_channel,temp_channel,boundary_smoothing_iterations,(unsigned)MG_Boundary,FICKS,a,twod_a_plus_one,coeff1);
     }
 
     void V_Cycle(const int boundary_smoothing_iterations,const int interior_smoothing_iterations,const int bottom_smoothing_iterations) const
     {
         const int mg_levels=(int)multigrid_hierarchy.size();
-
+        Log::cout<<"mg levels: "<<mg_levels<<std::endl;
         // downstroke
         for(int i=0;i<mg_levels-1;++i){
             // smooth
@@ -172,42 +178,41 @@ class Multigrid_Solver
             Multigrid_Refinement<Multigrid_struct_type,T,d>::Restrict(*multigrid_hierarchy(i),*multigrid_hierarchy(i+1),temp_channel,b_channel,Vector<int,2>({i,i+1}));
             // clear u
             for(int level=0;level<multigrid_hierarchy(i+1)->Levels();++level)
-                SPGrid::Clear<Multigrid_struct_type,T,d>(multigrid_hierarchy(i+1)->Allocator(level),multigrid_hierarchy(i+1)->Blocks(level),u_channel);}
+                SPGrid::Clear<Multigrid_struct_type,T,d>(multigrid_hierarchy(i+1)->Allocator(level),multigrid_hierarchy(i+1)->Blocks(level),x_channel);}
 
         // exact solve
-        Multigrid_Smoother<Multigrid_struct_type,T,d>::Exact_Solve(*multigrid_hierarchy(mg_levels-1),gradient_channels,u_channel,b_channel,
-                                                                   temp_channel,bottom_smoothing_iterations,(unsigned)Cell_Type_Interior);
+        Multigrid_Smoother<Multigrid_struct_type,T,d>::Exact_Solve(*multigrid_hierarchy(mg_levels-1),x_channel,b_channel,
+                                                                   temp_channel,bottom_smoothing_iterations,(unsigned)Cell_Type_Interior,FICKS,a,twod_a_plus_one,coeff1);
 
         // upstroke
         for(int i=mg_levels-2;i>=0;--i){
             // prolongate
-            Multigrid_Refinement<Multigrid_struct_type,T,d>::Prolongate(*multigrid_hierarchy(i),*multigrid_hierarchy(i+1),temp_channel,u_channel,Vector<int,2>({i,i+1}));
+            Multigrid_Refinement<Multigrid_struct_type,T,d>::Prolongate(*multigrid_hierarchy(i),*multigrid_hierarchy(i+1),temp_channel,x_channel,Vector<int,2>({i,i+1}));
             // add correction
             for(int level=0;level<multigrid_hierarchy(i)->Levels();++level)
                 SPGrid::Masked_Add<Multigrid_struct_type,T,d>(multigrid_hierarchy(i)->Allocator(level),multigrid_hierarchy(i)->Blocks(level),
-                                                              u_channel,temp_channel,u_channel,(unsigned)Cell_Type_Interior);
+                                                              x_channel,temp_channel,x_channel,(unsigned)Cell_Type_Interior);
             // propagate ghost values
-            // Grid_Hierarchy_Projection<Multigrid_struct_type,T,d>::Propagate_Ghost_Values(*multigrid_hierarchy(i),u_channel);
+            // Grid_Hierarchy_Projection<Multigrid_struct_type,T,d>::Propagate_Ghost_Values(*multigrid_hierarchy(i),x_channel);
             // smooth
             Smooth(i,boundary_smoothing_iterations,interior_smoothing_iterations);}
     }
 
     void Compute_Residual(const int mg_level) const
     {
-        Multigrid_Smoother<Multigrid_struct_type,T,d>::Compute_Residual(*multigrid_hierarchy(mg_level),gradient_channels,u_channel,
-                                                                        b_channel,temp_channel,(unsigned)Cell_Type_Interior);
+        Multigrid_Smoother<Multigrid_struct_type,T,d>::Compute_Residual(*multigrid_hierarchy(mg_level),x_channel,b_channel,temp_channel,(unsigned)Cell_Type_Interior,FICKS,a,twod_a_plus_one,coeff1);
     }
 
-    // T Convergence_Norm(const int mg_level,T Multigrid_struct_type::* channel)
-    // {
-    //     T max_value=(T)0.;
+    T Convergence_Norm(const int mg_level,T Multigrid_struct_type::* channel)
+    {
+        T max_value=(T)0.;
 
-    //     for(int level=0;level<multigrid_hierarchy(mg_level)->Levels();++level)
-    //         Convergence_Norm_Helper<Multigrid_struct_type,T,d>(multigrid_hierarchy(mg_level)->Allocator(level),multigrid_hierarchy(mg_level)->Blocks(level),
-    //                                                            channel,max_value,(unsigned)Cell_Type_Interior);
+        for(int level=0;level<multigrid_hierarchy(mg_level)->Levels();++level)
+            Diffusion_Convergence_Norm_Helper<Multigrid_struct_type,T,d>(multigrid_hierarchy(mg_level)->Allocator(level),multigrid_hierarchy(mg_level)->Blocks(level),
+                                                               channel,max_value,(unsigned)Cell_Type_Interior);
 
-    //     return max_value;
-    // }
+        return max_value;
+    }
 };
 }
 #endif
