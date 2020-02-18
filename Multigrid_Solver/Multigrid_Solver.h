@@ -15,7 +15,7 @@
 #include "Initialize_Mask.h"
 #include "Mark_Boundary.h"
 #include "Multigrid_Refinement.h"
-#include "Multigrid_Smoother.h"
+#include "../Smoother/Multigrid_Smoother.h"
 
 namespace Nova{
 template<class Base_struct_type,class Multigrid_struct_type,class T,int d>
