@@ -78,6 +78,9 @@ class Multigrid_Solver
             for(int i=0;i<mg_levels;++i) multigrid_hierarchy(i)->Update_Block_Offsets();
         }
 
+        Log::cout<<"multigrid levels: "<<multigrid_hierarchy(0)->Levels()<<", hierarchy levels: "<<hierarchy.Levels()<<std::endl;
+
+
         {
             Log::Scope scope("Multigrid_Solver::Copy_Interior");
             // copy interior information
@@ -171,9 +174,9 @@ class Multigrid_Solver
         // downstroke
         for(int i=0;i<mg_levels-1;++i){
             // smooth
-            Smooth(i,boundary_smoothing_iterations,interior_smoothing_iterations);
+            // Smooth(i,boundary_smoothing_iterations,interior_smoothing_iterations);
             // compute residual
-            Compute_Residual(i);
+            Compute_Residual(i);    // stored in temp_channel
             // restrict
             Multigrid_Refinement<Multigrid_struct_type,T,d>::Restrict(*multigrid_hierarchy(i),*multigrid_hierarchy(i+1),temp_channel,b_channel,Vector<int,2>({i,i+1}));
             // clear u
@@ -183,6 +186,7 @@ class Multigrid_Solver
         // exact solve
         Multigrid_Smoother<Multigrid_struct_type,T,d>::Exact_Solve(*multigrid_hierarchy(mg_levels-1),x_channel,b_channel,
                                                                    temp_channel,bottom_smoothing_iterations,(unsigned)Cell_Type_Interior,FICKS,a,twod_a_plus_one,coeff1);
+
 
         // upstroke
         for(int i=mg_levels-2;i>=0;--i){
@@ -195,7 +199,8 @@ class Multigrid_Solver
             // propagate ghost values
             // Grid_Hierarchy_Projection<Multigrid_struct_type,T,d>::Propagate_Ghost_Values(*multigrid_hierarchy(i),x_channel);
             // smooth
-            Smooth(i,boundary_smoothing_iterations,interior_smoothing_iterations);}
+            // Smooth(i,boundary_smoothing_iterations,interior_smoothing_iterations);
+            }
     }
 
     void Compute_Residual(const int mg_level) const

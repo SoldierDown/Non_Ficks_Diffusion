@@ -67,6 +67,9 @@ int main(int argc,char** argv)
         Parse_Args parse_args;
         parse_args.Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
         parse_args.Add_Integer_Argument("-sm_iterations",1,"Number of smoother iterations.");
+        parse_args.Add_Integer_Argument("-boundary_iterations",5,"Number of boundary iterations.");
+        parse_args.Add_Integer_Argument("-interior_iterations",1,"Number of interior iterations.");
+        parse_args.Add_Integer_Argument("-bottom_iterations",200,"Number of bottom iterations.");
         parse_args.Add_Integer_Argument("-test_number",1,"Test number.");
         parse_args.Add_Integer_Argument("-mg_levels",2,"Number of levels in the Multigrid hierarchy.");
         parse_args.Add_Integer_Argument("-cg_iterations",100,"Number of CG iterations.");
@@ -84,6 +87,9 @@ int main(int argc,char** argv)
 
 
         int sm_iterations=parse_args.Get_Integer_Value("-sm_iterations");
+        int boundary_iterations=parse_args.Get_Integer_Value("-boundary_iterations");
+        int interior_iterations=parse_args.Get_Integer_Value("-interior_iterations");
+        int bottom_iterations=parse_args.Get_Integer_Value("-bottom_iterations");
         bool simple_case=parse_args.Get_Option_Value("-simple_case");
         bool random_guess=parse_args.Get_Option_Value("-random_guess");
         bool bs=parse_args.Get_Option_Value("-bs");
@@ -169,15 +175,11 @@ int main(int argc,char** argv)
         // File_Utilities::Write_To_Text_File(output_directory+"/"+std::to_string(frame)+"/levels",levels);
         // hierarchy->Write_Hierarchy(output_directory,frame);
 
-        Log::cout<<"base levels: "<<hierarchy->Levels()<<std::endl;
-
         // Diffusion_CG_Vector<Base_Struct_Type,T,d> r_V_before(*hierarchy,b_channel);
         // Log::cout<<"rhs norm: "<<cg_system.Convergence_Norm(r_V_before)<<std::endl;
         
 
         Multigrid_Solver<Base_Struct_Type,Multigrid_Struct_Type,T,d> multigrid_solver(*hierarchy,mg_levels,FICKS,a,twod_a_plus_one,coeff1);
-        const int boundary_smoothing_iterations=10; const int interior_smoothing_iterations=3;
-        const int bottom_smoothing_iterations=200; 
         multigrid_solver.Initialize();
         multigrid_solver.Initialize_Right_Hand_Side(b_channel);
         multigrid_solver.Initialize_Guess();
@@ -190,7 +192,7 @@ int main(int argc,char** argv)
 
 
         frame++;
-        multigrid_solver.V_Cycle(boundary_smoothing_iterations,interior_smoothing_iterations,bottom_smoothing_iterations);
+        multigrid_solver.V_Cycle(boundary_iterations,interior_iterations,bottom_iterations);
         multigrid_solver.Copy_Channel_Values(x_channel,multigrid_solver.x_channel,false);
         File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(frame));
         File_Utilities::Write_To_Text_File(surface_directory+"/info.nova-animation",std::to_string(frame));

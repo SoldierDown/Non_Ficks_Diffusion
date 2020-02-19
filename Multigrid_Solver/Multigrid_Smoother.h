@@ -37,23 +37,18 @@ class Multigrid_Smoother
                                  bool FICKS,const T a,const T twod_a_plus_one,const T coeff1)
     {
         const int levels=hierarchy.Levels();
-
+        Log::cout<<"hierarchy levels: "<<levels<<std::endl;
         // clear temporary channel
         for(int level=0;level<levels;++level)
             SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),r_channel);
 
-        // compute laplace
+        // compute Ax
         Multiply_With_System_Matrix(hierarchy,x_channel,r_channel,FICKS,a,twod_a_plus_one,coeff1);
 
         // subtract from right hand side
         for(int level=0;level<levels;++level)
             SPGrid::Masked_Subtract<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
                                                      b_channel,r_channel,r_channel,mask);
-        T cnorm=(T)0.;
-        for(int level=0;level<levels;++level)
-            Diffusion_Convergence_Norm_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
-                                                  r_channel,cnorm,(unsigned)mask);
-        Log::cout<<"convergence norm: "<<cnorm<<std::endl;
     }
 
     static void Compute_Residual(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,
@@ -61,6 +56,7 @@ class Multigrid_Smoother
                                  bool FICKS,const T a,const T twod_a_plus_one,const T coeff1)
     {
         const int levels=hierarchy.Levels();
+
         // clear temporary channel
         for(int level=0;level<levels;++level)
             SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),r_channel);
@@ -69,16 +65,9 @@ class Multigrid_Smoother
 
         // subtract from right hand side
         SPGrid::Masked_Subtract<Struct_type,T,d>(hierarchy.Allocator(current_level),blocks,b_channel,r_channel,r_channel,mask);
-        
-        T cnorm=(T)0.;
-        for(int level=0;level<levels;++level)
-            Diffusion_Convergence_Norm_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
-                                                  r_channel,cnorm,(unsigned)mask);
-        Log::cout<<"convergence norm: "<<cnorm<<std::endl;
     }
 
-    static void Jacobi_Iteration(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,
-                                 const int level,T Struct_type::* x_channel,T Struct_type::* b_channel,T Struct_type::* r_channel,
+    static void Jacobi_Iteration(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,const int level,T Struct_type::* x_channel,T Struct_type::* b_channel,T Struct_type::* r_channel,
                                  const int iterations,const unsigned mask, bool FICKS,const T a,const T twod_a_plus_one,const T coeff1,
                                  const T omega=(T)two_thirds)
     {
@@ -91,10 +80,9 @@ class Multigrid_Smoother
                                                   r_channel,x_channel,x_channel,mask);}
     }
 
-    static void Exact_Solve(Hierarchy& hierarchy,T Struct_type::* x_channel,T Struct_type::* b_channel,
-                            T Struct_type::* r_channel,const int iterations,const unsigned mask,
-                            bool FICKS,const T a,const T twod_a_plus_one,const T coeff1,
-                            const T omega=(T)two_thirds)
+    static void Exact_Solve(Hierarchy& hierarchy,T Struct_type::* x_channel,T Struct_type::* b_channel,T Struct_type::* r_channel,
+                            const int iterations,const unsigned mask,
+                            bool FICKS,const T a,const T twod_a_plus_one,const T coeff1,const T omega=(T)two_thirds)
     {
         const int levels=hierarchy.Levels();
 

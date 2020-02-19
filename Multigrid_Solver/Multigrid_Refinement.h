@@ -36,6 +36,8 @@ class Multigrid_Refinement
     Multigrid_Refinement() {}
     ~Multigrid_Refinement() {}
 
+    // tmp: fine_data_channel
+    // b:   coarse_data_channel
     static void Restrict(Hierarchy& fine_hierarchy,Hierarchy& coarse_hierarchy,T Struct_type::* fine_data_channel,
                          T Struct_type::* coarse_data_channel,const Vector<int,2>& finest_active_level)
     {
@@ -55,17 +57,20 @@ class Multigrid_Refinement
             auto coarse_flags=coarse_hierarchy.Allocator(coarse_level).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
             const T scale=(T)1./(T)restriction_stencil_denominator;
 
+            // Restriction_Stencil_Helper<Struct_type,T,d> restriction_stencil_helper((T*)coarse_data.Get_Data_Ptr(),(T*)fine_data.Get_Data_Ptr(),
+                // (unsigned*)coarse_flags.Get_Data_Ptr(),coarse_hierarchy.Blocks(coarse_level).first,coarse_hierarchy.Blocks(coarse_level).second,
+                // scale,(unsigned)(Cell_Type_Interior|Cell_Type_Ghost));
             Restriction_Stencil_Helper<Struct_type,T,d> restriction_stencil_helper((T*)coarse_data.Get_Data_Ptr(),(T*)fine_data.Get_Data_Ptr(),
                 (unsigned*)coarse_flags.Get_Data_Ptr(),coarse_hierarchy.Blocks(coarse_level).first,coarse_hierarchy.Blocks(coarse_level).second,
-                scale,(unsigned)(Cell_Type_Interior|Cell_Type_Ghost));
+                scale,(unsigned)Cell_Type_Interior);
             if(number_of_threads) restriction_stencil_helper.Run_Parallel(number_of_threads);
             else restriction_stencil_helper.Run();
         }
 
         // accumulate within coarse
-        for(int level=coarse_level;level<levels-1;++level)
-            Ghost_Value_Accumulate<Struct_type,T,d>(coarse_hierarchy,coarse_hierarchy.Blocks(level+1),
-                                                    coarse_data_channel,coarse_data_channel,level+1);
+        // for(int level=coarse_level;level<levels-1;++level)
+        //     Ghost_Value_Accumulate<Struct_type,T,d>(coarse_hierarchy,coarse_hierarchy.Blocks(level+1),
+        //                                             coarse_data_channel,coarse_data_channel,level+1);
 
         // copy fine to coarse for all higher levels
         for(int level=levels-1;level>=coarse_level;--level){
@@ -103,9 +108,9 @@ class Multigrid_Refinement
             if(number_of_threads) helper.Run_Parallel(number_of_threads);
             else helper.Run();}
 
-        // propagate within coarse
-        for(int level=levels-2;level>coarse_level;--level)
-            Ghost_Value_Propagate<Struct_type,T,d>(coarse_hierarchy,coarse_hierarchy.Blocks(level),coarse_data_channel,coarse_data_channel,level);
+        // // propagate within coarse
+        // for(int level=levels-2;level>coarse_level;--level)
+        //     Ghost_Value_Propagate<Struct_type,T,d>(coarse_hierarchy,coarse_hierarchy.Blocks(level),coarse_data_channel,coarse_data_channel,level);
 
         // prolongate from coarse to fine for finest level
         {
