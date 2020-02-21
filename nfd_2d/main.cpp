@@ -37,6 +37,73 @@ namespace Nova{
     int number_of_threads=0;
 }
 
+template<class Struct_type,class T,int d>
+void Initialize_Guess(Grid_Hierarchy<Struct_type,T,d>& hierarchy,T Struct_type::* u_channel,const bool random_guess)
+{
+    using TV                                    = Vector<T,d>;
+    using T_INDEX                               = Vector<int,d>;
+    using Flags_type                            = typename Struct_type::Flags_type;
+    using Allocator_type                        = SPGrid::SPGrid_Allocator<Struct_type,d>;
+    using Flag_array_mask                       = typename Allocator_type::template Array_mask<unsigned>;
+
+    for(int level=0;level<hierarchy.Levels();++level)
+        SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),u_channel);
+
+    for(int level=0;level<hierarchy.Levels();++level){auto blocks=hierarchy.Blocks(level);
+        auto block_size=hierarchy.Allocator(level).Block_Size();
+        auto data=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(u_channel);
+        auto flags=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
+
+        TV max_corner=hierarchy.Lattice(level).domain.max_corner; TV min_corner=hierarchy.Lattice(level).domain.min_corner;
+        TV domain_range=max_corner-min_corner;
+        for(int b=0;b<blocks.second;b++){uint64_t offset=blocks.first[b];
+            Range_Iterator<d> range_iterator(T_INDEX(),*reinterpret_cast<T_INDEX*>(&block_size)-1);
+            std::array<int,d> base_index_s=Flag_array_mask::LinearToCoord(offset);
+            T_INDEX base_index=*reinterpret_cast<T_INDEX*>(&base_index_s);
+
+            for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
+                const T_INDEX index=base_index+range_iterator.Index();
+                if(flags(offset)&Cell_Type_Interior){const TV X=hierarchy.Lattice(level).Center(index);
+                    TV r_X=(X-min_corner)/domain_range;
+                    data(offset)=(T)sin(two_pi*r_X(0))*sin(two_pi*r_X(1));}
+                range_iterator.Next();}}}
+}
+
+template<class Struct_type,class T,int d>
+void Compute_Right_Hand_Side(Grid_Hierarchy<Struct_type,T,d>& hierarchy,T Struct_type::* channel)
+{
+    using Flags_type                            = typename Struct_type::Flags_type;
+    using Allocator_type                        = SPGrid::SPGrid_Allocator<Struct_type,d>;
+    using Flag_array_mask                       = typename Allocator_type::template Array_mask<unsigned>;
+
+    for(int level=0;level<hierarchy.Levels();++level){auto blocks=hierarchy.Blocks(level);
+        auto data=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(channel);
+        auto flags=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
+        for(int b=0;b<blocks.second;b++){uint64_t offset=blocks.first[b];
+            for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
+                if(flags(offset)&Cell_Type_Interior) data(offset)=(T)0.;}}
+}
+
+template<class Struct_type,class T,int d>
+void Initialize_Dirichlet_Cells(Grid_Hierarchy<Struct_type,T,d>& hierarchy,T Struct_type::* levelset_channel)
+{
+    using Flags_type                            = typename Struct_type::Flags_type;
+    using Allocator_type                        = SPGrid::SPGrid_Allocator<Struct_type,d>;
+    using Flag_array_mask                       = typename Allocator_type::template Array_mask<unsigned>;
+
+    for(int level=0;level<hierarchy.Levels();++level){auto blocks=hierarchy.Blocks(level);
+        auto levelset=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,T>(levelset_channel);
+        auto flags=hierarchy.Allocator(level).template Get_Array<Struct_type,unsigned>(&Struct_type::flags);
+
+        for(int b=0;b<blocks.second;b++){uint64_t offset=blocks.first[b];
+            for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
+                // if(flags(offset)&Cell_Type_Interior && levelset(offset)>(T)0.){
+                if(flags(offset)&Cell_Type_Interior){
+                    Log::cout<<"Here"<<std::endl;
+                    flags(offset)|=Cell_Type_Dirichlet;
+                    flags(offset)&=~Cell_Type_Interior;}}}
+}
+
 int main(int argc,char** argv)
 {
     bool run_test=true;
@@ -47,20 +114,14 @@ int main(int argc,char** argv)
         typedef Vector<int,d> T_INDEX;
 
         using Cell_Iterator                         = Grid_Iterator_Cell<T,d>;
-        using Base_Struct_Type                      = MPM_Data<T>;
-        using Multigrid_Struct_Type                 = Multigrid_Data<T>;
-        using Base_Allocator_Type                   = SPGrid::SPGrid_Allocator<Base_Struct_Type,d>;
-        using Multigrid_Allocator_Type              = SPGrid::SPGrid_Allocator<Multigrid_Struct_Type,d>;
-        using Base_Flag_Array_Mask                  = typename Base_Allocator_Type::template Array_mask<unsigned>;
-        using Multigrid_Flag_Array_Mask             = typename Multigrid_Allocator_Type::template Array_mask<unsigned>;
-        using Base_Topology_Helper                  = Grid_Topology_Helper<Base_Flag_Array_Mask>;
-        using Multigrid_Topology_Helper             = Grid_Topology_Helper<Multigrid_Flag_Array_Mask>;
-        using Base_Hierarchy                        = Grid_Hierarchy<Base_Struct_Type,T,d>;
-        using Multigrid_Hierarchy                   = Grid_Hierarchy<Multigrid_Struct_Type,T,d>;
-
-        using Base_Hierarchy_Initializer            = Grid_Hierarchy_Initializer<Base_Struct_Type,T,d>;
-        using Multigrid_Hierarchy_Initializer       = Grid_Hierarchy_Initializer<Multigrid_Struct_Type,T,d>;
-        using Hierarchy_Visualization               = Grid_Hierarchy_Visualization<Base_Struct_Type,T>;
+        using Struct_type                           = MPM_Data<T>;
+        using Multigrid_struct_type                 = Multigrid_Data<T>;
+        using Allocator_type                        = SPGrid::SPGrid_Allocator<Struct_type,d>;
+        using Flag_array_mask                       = typename Allocator_type::template Array_mask<unsigned>;
+        using Topology_Helper                       = Grid_Topology_Helper<Flag_array_mask>;
+        using Channel_Vector                        = Vector<T Struct_type::*,d>;
+        using Hierarchy                             = Grid_Hierarchy<Struct_type,T,d>;
+        using Hierarchy_Visualization               = Grid_Hierarchy_Visualization<Struct_type,T>;
         
         Log::Initialize_Logging();
 
@@ -123,73 +184,70 @@ int main(int argc,char** argv)
         File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(frame));
         File_Utilities::Write_To_Text_File(surface_directory+"/info.nova-animation",std::to_string(frame));
 
-        T Base_Struct_Type::* x_channel                = &Base_Struct_Type::ch0;
-        T Base_Struct_Type::* b_channel                = &Base_Struct_Type::ch1;
-        T Base_Struct_Type::* r_channel                = &Base_Struct_Type::ch2;
+        T Struct_type::* x_channel                = &Struct_type::ch0;
+        T Struct_type::* b_channel                = &Struct_type::ch1;
+        T Struct_type::* r_channel                = &Struct_type::ch2;
 
-        Base_Hierarchy *hierarchy=new Base_Hierarchy(cell_counts,Range<T,d>(TV(-1),TV(1)),levels);
-        Sphere_Levelset<T,d>* levelset=new Sphere_Levelset<T,d>(TV(),(T).25);        
+        Hierarchy *hierarchy=new Hierarchy(cell_counts,Range<T,d>(TV(-1),TV(1)),levels);
+        
+        // Sphere_Levelset<T,d>* levelset=new Sphere_Levelset<T,d>(TV(),(T).25);        
         // reuse x_channel to set up level set
-        for(int level=0;level<levels;++level) Levelset_Initializer<Base_Struct_Type,T,d>(hierarchy->Lattice(level),hierarchy->Allocator(level),hierarchy->Blocks(level),x_channel,levelset);
-        delete levelset;
+        // for(int level=0;level<levels;++level) Levelset_Initializer<Struct_type,T,d>(hierarchy->Lattice(level),hierarchy->Allocator(level),hierarchy->Blocks(level),x_channel,levelset);
+        // delete levelset;
         const Grid<T,d>& grid=hierarchy->Lattice(0);
         Range<int,d> bounding_grid_cells(grid.Clamp_To_Cell(TV(-1)),grid.Clamp_To_Cell(TV(1)));
         for(Cell_Iterator iterator(grid,bounding_grid_cells);iterator.Valid();iterator.Next()){
             T_INDEX cell_index=iterator.Cell_Index();
             if(cell_index(0)==1||cell_index(1)==1||cell_index(0)==cell_counts(0)||cell_index(1)==cell_counts(1)) hierarchy->Activate_Cell(0,cell_index,Cell_Type_Dirichlet);
             else hierarchy->Activate_Cell(0,cell_index,Cell_Type_Interior);}
-        if(!simple_case){for(int level=0;level<levels;++level) Neumann_BC_Initializer<Base_Struct_Type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),x_channel);}
+        //  if(!simple_case){for(int level=0;level<levels;++level) Neumann_BC_Initializer<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),x_channel);}
         hierarchy->Update_Block_Offsets();
         hierarchy->Initialize_Red_Black_Partition(2*number_of_threads);
 
         for(int level=0;level<levels;++level){
-            SPGrid::Clear<Base_Struct_Type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),x_channel);
-            SPGrid::Clear<Base_Struct_Type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),b_channel);
-            SPGrid::Clear<Base_Struct_Type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channel);
-        }
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),x_channel);
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),b_channel);
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channel);}
 
-
-
-        int boundary_radius=3;
-        Array<uint64_t> neighbor_offsets;
-        const T_INDEX boundary_radius_vector(boundary_radius),zero_vector=T_INDEX();
-        for(Range_Iterator<d> iterator(-boundary_radius_vector,boundary_radius_vector);iterator.Valid();iterator.Next()){const T_INDEX& index=iterator.Index();
-            if(index!=zero_vector) neighbor_offsets.Append(Base_Flag_Array_Mask::Linear_Offset(index._data));}
+        Compute_Right_Hand_Side(*hierarchy,b_channel);
+        Sphere_Levelset<T,d> *levelset=new Sphere_Levelset<T,d>(TV(),(T).25);
         for(int level=0;level<levels;++level)
-                Mark_Boundary<Base_Struct_Type,T,d>(*hierarchy,hierarchy->Blocks(level),neighbor_offsets,level,(unsigned)MG_Boundary);
-        hierarchy->Initialize_Boundary_Blocks((unsigned)MG_Boundary);
+            Levelset_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),x_channel,levelset,level);
+        delete levelset;
+        // Here should be Neumann
+        // Initialize_Dirichlet_Cells(*hierarchy,x_channel);
 
-        const T diff_coeff=(T)1e-3; const T one_over_dx2=grid.one_over_dX(0)*grid.one_over_dX(1); 
-        const T dt=(T)1e-3; const T Fc=(T)0.; const T tau=(T)0.; const T a=diff_coeff*dt*one_over_dx2; 
-        const T coeff1=dt*diff_coeff*(Fc*tau+dt)*one_over_dx2/(dt+tau);
-        const T coeff2=dt*tau/(dt+tau);
-        const T coeff3=dt*diff_coeff*(1-Fc)/(dt+tau);
-        const T coeff4=tau/(dt+tau);
-        const T twod_a_plus_one=(T)2.*d*a+(T)1.;
-        // const T_INDEX pin_cell=T_INDEX(10);
-        Log::cout<<"dt: "<<dt<<", diff_coeff: "<<diff_coeff<<", one_over_dx2: "<<one_over_dx2<<", tau: "<<tau<<", a: "<<a<<", coeff1: "<<coeff1<<", twod_a_plus_one: "<<twod_a_plus_one<<std::endl;
-        // for(int level=0;level<levels;++level) hierarchy->Channel(level,b_channel)(pin_cell._data)=(T)1.;
-        // for(int level=0;level<levels;++level) Initial_Guess_Helper<Base_Struct_Type,T,d>(*hierarchy,hierarchy->Allocator(level),hierarchy->Blocks(level),x_channel,random_guess);     
+        // int boundary_radius=3;
+        // Array<uint64_t> neighbor_offsets;
+        // const T_INDEX boundary_radius_vector(boundary_radius),zero_vector=T_INDEX();
+        // for(Range_Iterator<d> iterator(-boundary_radius_vector,boundary_radius_vector);iterator.Valid();iterator.Next()){const T_INDEX& index=iterator.Index();
+        //     if(index!=zero_vector) neighbor_offsets.Append(Flag_array_mask::Linear_Offset(index._data));}
+        // for(int level=0;level<levels;++level)
+        //         Mark_Boundary<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),neighbor_offsets,level,(unsigned)MG_Boundary);
+        // hierarchy->Initialize_Boundary_Blocks((unsigned)MG_Boundary);
+
+        const T diff_coeff=(T)1; 
+        const T dt=(T)1e-3; const T Fc=(T)0.; const T tau=(T)1.; 
+        // const T one_over_dx2=0;//=grid.one_over_dX(0)*grid.one_over_dX(1); 
+        // const T a=diff_coeff*dt*one_over_dx2; 
+        // const T coeff1=dt*diff_coeff*(Fc*tau+dt)*one_over_dx2/(dt+tau);
+        // const T coeff2=dt*tau/(dt+tau);
+        // const T coeff3=dt*diff_coeff*(1-Fc)/(dt+tau);
+        // const T coeff4=tau/(dt+tau);
+        // const T twod_a_plus_one=(T)2.*d*a+(T)1.;
+        // Log::cout<<"dt: "<<dt<<", diff_coeff: "<<diff_coeff<<", one_over_dx2: "<<one_over_dx2<<", tau: "<<tau<<", a: "<<a<<", coeff1: "<<coeff1<<", twod_a_plus_one: "<<twod_a_plus_one<<std::endl;
         
-        // write hierarchy
-        // File_Utilities::Write_To_Text_File(output_directory+"/"+std::to_string(frame)+"/levels",levels);
-        // hierarchy->Write_Hierarchy(output_directory,frame);
-
-        // Diffusion_CG_Vector<Base_Struct_Type,T,d> r_V_before(*hierarchy,b_channel);
-        // Log::cout<<"rhs norm: "<<cg_system.Convergence_Norm(r_V_before)<<std::endl;
-        
-
-        Multigrid_Solver<Base_Struct_Type,Multigrid_Struct_Type,T,d> multigrid_solver(*hierarchy,mg_levels,FICKS,a,twod_a_plus_one,coeff1);
+        Initialize_Guess(*hierarchy,x_channel,random_guess);
+        Multigrid_Solver<Struct_type,Multigrid_struct_type,T,d> multigrid_solver(*hierarchy,mg_levels,FICKS,dt,diff_coeff,Fc,tau);
         multigrid_solver.Initialize();
         multigrid_solver.Initialize_Right_Hand_Side(b_channel);
         multigrid_solver.Initialize_Guess();
-        multigrid_solver.Copy_Channel_Values(x_channel,multigrid_solver.x_channel,false);
+        multigrid_solver.Copy_Channel_Values(x_channel,multigrid_solver.x_channel);
         File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(frame));
         File_Utilities::Write_To_Text_File(surface_directory+"/info.nova-animation",std::to_string(frame));
         Hierarchy_Visualization::Visualize_Heightfield(*hierarchy,x_channel,surface_directory,frame);
         multigrid_solver.Compute_Residual(0);
         Log::cout<<multigrid_solver.Convergence_Norm(0,multigrid_solver.temp_channel)<<std::endl;
-
 
         frame++;
         multigrid_solver.V_Cycle(boundary_iterations,interior_iterations,bottom_iterations);

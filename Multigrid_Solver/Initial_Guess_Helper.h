@@ -32,7 +32,6 @@ class Initial_Guess_Helper
 
     void Run(Hierarchy_Base& hierarchy,Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* x_channel,const bool random_value) const
     {            
-        Log::cout<<"Here"<<std::endl;
         Random_Numbers<T> random;
         random.Set_Seed(0);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags); auto x=allocator.template Get_Array<Struct_type,T>(x_channel);

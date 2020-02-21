@@ -31,7 +31,7 @@ class Traverse_Helper
         auto traverse_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Cell_Type_Interior) if(c1(offset)!=c2(offset))  Log::cout<<"\n**********NOT EQUAL!**********\n"<<c1(offset)-c2(offset)<<std::endl;
+                if(flags(offset)&Cell_Type_Interior) if(c1(offset)!=(T)0.)  Log::cout<<"NOT ZERO: "<<c1(offset)<<std::endl;
         };
         for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
             uint64_t offset=iterator.Offset();

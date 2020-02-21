@@ -17,6 +17,7 @@ namespace Nova{
 template<class Struct_type,class T,int d>
 class Levelset_Initializer
 {
+    using T_INDEX               = Vector<int,d>;
     using Flags_type            = typename Struct_type::Flags_type;
     using Channel_Vector        = Vector<T Struct_type::*,d>;
     using Allocator_type        = SPGrid::SPGrid_Allocator<Struct_type,d>;
@@ -25,18 +26,28 @@ class Levelset_Initializer
     using Hierarchy             = Grid_Hierarchy<Struct_type,T,d>;
 
   public:
-    Levelset_Initializer(const Grid<T,d>& grid,Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* levelset_channel,Sphere_Levelset<T,d>* sphere_levelset)
-    {Run(grid,allocator,blocks,levelset_channel,sphere_levelset);}
+    Levelset_Initializer(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* levelset_channel,
+                        Sphere_Levelset<T,d> *levelset,const unsigned level)
+    {Run(hierarchy,blocks,levelset_channel,levelset,level);}
 
-    void Run(const Grid<T,d>& grid,Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* levelset_channel,Sphere_Levelset<T,d>* sphere_levelset) const
+    void Run(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* levelset_channel,
+                        Sphere_Levelset<T,d> *levelset,const unsigned level) const
     {            
-        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags); auto levelset=allocator.template Get_Array<Struct_type,T>(levelset_channel);
+        const Grid<T,d>& grid=hierarchy.Lattice(level);
+        auto block_size=hierarchy.Allocator(level).Block_Size();
+        auto data=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(levelset_channel);
+        auto flags=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
+        
         auto levelset_initializer=[&](uint64_t offset)
         {
-            for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&(Cell_Type_Interior|Cell_Type_Dirichlet)){
-                    Vector<int,d> cell_index(Flag_array_mask::LinearToCoord(offset));
-                    levelset(offset)=sphere_levelset->Distance(grid.Center(cell_index));}}
+            Range_Iterator<d> range_iterator(T_INDEX(),*reinterpret_cast<T_INDEX*>(&block_size)-1);
+            std::array<int,d> base_index_s=Flag_array_mask::LinearToCoord(offset);
+            T_INDEX base_index=*reinterpret_cast<T_INDEX*>(&base_index_s);
+
+            for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
+                const T_INDEX index=base_index+range_iterator.Index();
+                if(flags(offset)&Cell_Type_Interior) data(offset)=levelset->Distance(grid.Center(index));
+                range_iterator.Next();}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,levelset_initializer);
     }
