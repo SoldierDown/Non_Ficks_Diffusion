@@ -87,7 +87,7 @@ class Multigrid_Smoother
                             const T omega=(T)two_thirds)
     {
         const int levels=hierarchy.Levels();
-        Log::cout<<"Exact Solve levels: "<<levels<<std::endl;
+        // Exact_Solve levels: 2
         for(int i=0;i<iterations;++i){
             Compute_Residual(hierarchy,x_channel,b_channel,r_channel,mask,FICKS,dt,diff_coeff,Fc,tau);
             // residual <-- residual/diagonal

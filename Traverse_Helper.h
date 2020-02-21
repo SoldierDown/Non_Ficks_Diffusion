@@ -20,22 +20,23 @@ class Traverse_Helper
     using Block_Iterator        = SPGrid::SPGrid_Block_Iterator<Flag_array_mask>;
 
   public:
-    Traverse_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* channel1,T Struct_type::* channel2)
-    {Run(allocator,blocks,channel1,channel2);}
+    Traverse_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* channel)
+    {Run(allocator,blocks,channel);}
 
-    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::*channel1,T Struct_type::* channel2) const
+    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::*channel) const
     {
-        auto c1=allocator.template Get_Const_Array<Struct_type,T>(channel1);
-        auto c2=allocator.template Get_Const_Array<Struct_type,T>(channel2);
+        auto c=allocator.template Get_Const_Array<Struct_type,T>(channel);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto traverse_helper=[&](uint64_t offset)
         {
-            for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Cell_Type_Interior) if(c1(offset)!=(T)0.)  Log::cout<<"NOT ZERO: "<<c1(offset)<<std::endl;
+            for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
+                if(flags(offset)&Cell_Type_Interior) if(abs(c(offset))>(T)1e-10)  Log::cout<<"NOT ZERO: "<<c(offset)<<std::endl;
+            }
         };
         for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
             uint64_t offset=iterator.Offset();
             traverse_helper(offset);}
+        Log::cout<<std::endl;
     }
 };
 }

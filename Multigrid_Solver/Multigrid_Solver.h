@@ -183,8 +183,6 @@ class Multigrid_Solver
 
         // exact solve
         // mg_levels-1=1: coarsest
-        // is rhs still 0?
-        for(int level=0;level<multigrid_hierarchy(mg_levels-1)->Levels();++level) Traverse_Helper<Multigrid_struct_type,T,d>(multigrid_hierarchy(level)->Allocator(level),hierarchy.Blocks(level),b_channel,b_channel);     
         Multigrid_Smoother<Multigrid_struct_type,T,d>::Exact_Solve(*multigrid_hierarchy(mg_levels-1),x_channel,b_channel,
                                                                    temp_channel,bottom_smoothing_iterations,(unsigned)Cell_Type_Interior,FICKS,dt,diff_coeff,Fc,tau);
 
