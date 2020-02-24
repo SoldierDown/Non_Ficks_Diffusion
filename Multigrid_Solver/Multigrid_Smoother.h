@@ -55,7 +55,7 @@ class Multigrid_Smoother
                                  const int current_level,T Struct_type::* x_channel,T Struct_type::* b_channel,T Struct_type::* r_channel,const unsigned mask,
                                  bool FICKS,const T dt,const T diff_coeff,const T Fc,const T tau)
     {
-        Log::cout<<"SHOULD NOT SHOW UP"<<std::endl;
+        // Log::cout<<"SHOULD NOT SHOW UP"<<std::endl;
         const int levels=hierarchy.Levels();
 
         // clear temporary channel

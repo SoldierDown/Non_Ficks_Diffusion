@@ -49,13 +49,12 @@ class Compute_Ax
             for(int other_axis=0;other_axis<d;++other_axis) if(other_axis!=axis) face_areas[axis]*=hierarchy.Lattice(level).dX[other_axis];}
 
         double scaling_factor=hierarchy.Lattice(0).one_over_dX.Product();
-
+        T coeff=FICKS?(dt*diff_coeff):(dt*diff_coeff*(Fc*tau+dt)/(dt*tau));
         auto interior_laplace_helper=[&](uint64_t offset)
         {
             Range_Iterator<d> range_iterator(T_INDEX(),*reinterpret_cast<T_INDEX*>(&block_size)-1);
             std::array<int,d> base_index_s=Flag_array_mask::LinearToCoord(offset);
             T_INDEX base_index=*reinterpret_cast<T_INDEX*>(&base_index_s);
-
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                 const T_INDEX index=base_index+range_iterator.Index();
                 if(flags(offset)&Cell_Type_Interior){T Ax_entry=(T)0.;const TV X=hierarchy.Lattice(level).Center(index);
@@ -70,9 +69,9 @@ class Compute_Ax
                         //     T distance=(T).5*(hierarchy.Lattice(level).dX(axis)+hierarchy.Lattice(coarse_level).dX(axis)),averaging_factor=face_areas[axis]/coarse_face_area;
                         //     gradient(neighbor_offset)+=scaling_factor*averaging_factor*(data(offset)-data(neighbor_offset))/distance;}
                         if(hierarchy.template Set<unsigned>(level,&Struct_type::flags).Is_Set(neighbor_offset,Cell_Type_Interior))
-                            Ax_entry+=dt*diff_coeff*scaling_factor*face_areas[axis]*hierarchy.Lattice(level).one_over_dX[axis]*(x(offset)-x(neighbor_offset));                        
+                            Ax_entry+=coeff*scaling_factor*face_areas[axis]*hierarchy.Lattice(level).one_over_dX[axis]*(x(offset)-x(neighbor_offset));                        
                         else if(hierarchy.template Set<unsigned>(level,&Struct_type::flags).Is_Set(neighbor_offset,Cell_Type_Dirichlet))
-                            Ax_entry+=dt*diff_coeff*scaling_factor*face_areas[axis]*hierarchy.Lattice(level).one_over_dX[axis]*x(offset);}
+                            Ax_entry+=coeff*scaling_factor*face_areas[axis]*hierarchy.Lattice(level).one_over_dX[axis]*x(offset);}
                     Ax(offset)=Ax_entry;}
                 range_iterator.Next();}
         };

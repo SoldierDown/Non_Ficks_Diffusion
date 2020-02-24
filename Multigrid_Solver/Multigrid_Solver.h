@@ -156,10 +156,14 @@ class Multigrid_Solver
 
     void Smooth(const int mg_level,const int boundary_smoothing_iterations,const int interior_smoothing_iterations) const
     {
+        Log::cout<<"Boundary Smoothing: "<<std::endl;
         Multigrid_Smoother<Multigrid_struct_type,T,d>::Jacobi_Iteration(*multigrid_hierarchy(mg_level),multigrid_hierarchy(mg_level)->Boundary_Blocks(mg_level),
                                                                         mg_level,x_channel,b_channel,temp_channel,boundary_smoothing_iterations,(unsigned)MG_Boundary,FICKS,dt,diff_coeff,Fc,tau);
+        Log::cout<<"Interior Smoothing: "<<std::endl;                                                            
         Multigrid_Smoother<Multigrid_struct_type,T,d>::Jacobi_Iteration(*multigrid_hierarchy(mg_level),multigrid_hierarchy(mg_level)->Blocks(mg_level),
                                                                         mg_level,x_channel,b_channel,temp_channel,interior_smoothing_iterations,(unsigned)Cell_Type_Interior,FICKS,dt,diff_coeff,Fc,tau);
+        Log::cout<<"Boundary Smoothing: "<<std::endl;
+
         Multigrid_Smoother<Multigrid_struct_type,T,d>::Jacobi_Iteration(*multigrid_hierarchy(mg_level),multigrid_hierarchy(mg_level)->Boundary_Blocks(mg_level),
                                                                         mg_level,x_channel,b_channel,temp_channel,boundary_smoothing_iterations,(unsigned)MG_Boundary,FICKS,dt,diff_coeff,Fc,tau);
     }
@@ -167,12 +171,12 @@ class Multigrid_Solver
     void V_Cycle(const int boundary_smoothing_iterations,const int interior_smoothing_iterations,const int bottom_smoothing_iterations) const
     {
         const int mg_levels=(int)multigrid_hierarchy.size();
-        Log::cout<<"mg levels: "<<mg_levels<<std::endl;
+        // mg_levels: 2
         // downstroke
         // i: 0
         for(int i=0;i<mg_levels-1;++i){
             // smooth
-            // Smooth(i,boundary_smoothing_iterations,interior_smoothing_iterations);
+            Smooth(i,boundary_smoothing_iterations,interior_smoothing_iterations);
             // compute residual
             Compute_Residual(i);    // stored in temp_channel
             // restrict
@@ -198,7 +202,7 @@ class Multigrid_Solver
             // propagate ghost values
             // Grid_Hierarchy_Projection<Multigrid_struct_type,T,d>::Propagate_Ghost_Values(*multigrid_hierarchy(i),x_channel);
             // smooth
-            // Smooth(i,boundary_smoothing_iterations,interior_smoothing_iterations);
+            Smooth(i,boundary_smoothing_iterations,interior_smoothing_iterations);
             }
     }
 

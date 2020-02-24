@@ -45,7 +45,10 @@ void Initialize_Guess(Grid_Hierarchy<Struct_type,T,d>& hierarchy,T Struct_type::
     using Flags_type                            = typename Struct_type::Flags_type;
     using Allocator_type                        = SPGrid::SPGrid_Allocator<Struct_type,d>;
     using Flag_array_mask                       = typename Allocator_type::template Array_mask<unsigned>;
-
+    
+    Random_Numbers<T> random;
+    random.Set_Seed(0);
+    
     for(int level=0;level<hierarchy.Levels();++level)
         SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),u_channel);
 
@@ -63,9 +66,14 @@ void Initialize_Guess(Grid_Hierarchy<Struct_type,T,d>& hierarchy,T Struct_type::
 
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                 const T_INDEX index=base_index+range_iterator.Index();
-                if(flags(offset)&Cell_Type_Interior){const TV X=hierarchy.Lattice(level).Center(index);
-                    TV r_X=(X-min_corner)/domain_range;
-                    data(offset)=(T)sin(two_pi*r_X(0))*sin(two_pi*r_X(1));}
+                if(flags(offset)&Cell_Type_Interior){
+                    if(random_guess){
+                        data(offset)=random.Get_Uniform_Number(-1,1);}
+                    else data(offset)=(T)0.;
+                    if(false){
+                        const TV X=hierarchy.Lattice(level).Center(index);
+                        TV r_X=(X-min_corner)/domain_range;
+                        data(offset)=(T)sin(two_pi*r_X(0))*sin(two_pi*r_X(1));}}
                 range_iterator.Next();}}}
 }
 
@@ -97,7 +105,6 @@ void Initialize_Dirichlet_Cells(Grid_Hierarchy<Struct_type,T,d>& hierarchy,T Str
 
         for(int b=0;b<blocks.second;b++){uint64_t offset=blocks.first[b];
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                // if(flags(offset)&Cell_Type_Interior && levelset(offset)>(T)0.){
                 if(flags(offset)&Cell_Type_Interior){
                     Log::cout<<"Here"<<std::endl;
                     flags(offset)|=Cell_Type_Dirichlet;
@@ -179,6 +186,7 @@ int main(int argc,char** argv)
         Log::Instance()->Copy_Log_To_File(output_directory+"/common/log.txt",false);
 
         std::string surface_directory=std::to_string(d)+(FICKS?"d_F_":"d_NF_")+(simple_case?"simple_case_":"complex_case_")+(random_guess?"random_init_":"0_init_")+"Resolution_"+std::to_string(cell_counts(0));
+        surface_directory="V_Test";
         File_Utilities::Create_Directory(surface_directory);
         File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(frame));
         File_Utilities::Write_To_Text_File(surface_directory+"/info.nova-animation",std::to_string(frame));
@@ -187,19 +195,19 @@ int main(int argc,char** argv)
         T Struct_type::* b_channel                = &Struct_type::ch1;
         T Struct_type::* r_channel                = &Struct_type::ch2;
 
-        Hierarchy *hierarchy=new Hierarchy(cell_counts,Range<T,d>(TV(-1),TV(1)),levels);
+        Hierarchy *hierarchy=new Hierarchy(cell_counts,Range<T,d>(TV(-1),TV(1)),levels);            
+        Sphere_Levelset<T,d> *levelset=new Sphere_Levelset<T,d>(TV(),(T).25);
+        for(int level=0;level<levels;++level)
+            Levelset_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),x_channel,levelset,level);
+        delete levelset;
         
-        // Sphere_Levelset<T,d>* levelset=new Sphere_Levelset<T,d>(TV(),(T).25);        
-        // reuse x_channel to set up level set
-        // for(int level=0;level<levels;++level) Levelset_Initializer<Struct_type,T,d>(hierarchy->Lattice(level),hierarchy->Allocator(level),hierarchy->Blocks(level),x_channel,levelset);
-        // delete levelset;
         const Grid<T,d>& grid=hierarchy->Lattice(0);
         Range<int,d> bounding_grid_cells(grid.Clamp_To_Cell(TV(-1)),grid.Clamp_To_Cell(TV(1)));
         for(Cell_Iterator iterator(grid,bounding_grid_cells);iterator.Valid();iterator.Next()){
             T_INDEX cell_index=iterator.Cell_Index();
             if(cell_index(0)==1||cell_index(1)==1||cell_index(0)==cell_counts(0)||cell_index(1)==cell_counts(1)) hierarchy->Activate_Cell(0,cell_index,Cell_Type_Dirichlet);
             else hierarchy->Activate_Cell(0,cell_index,Cell_Type_Interior);}
-        //  if(!simple_case){for(int level=0;level<levels;++level) Neumann_BC_Initializer<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),x_channel);}
+        if(!simple_case){for(int level=0;level<levels;++level) Neumann_BC_Initializer<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),x_channel);}
         hierarchy->Update_Block_Offsets();
         hierarchy->Initialize_Red_Black_Partition(2*number_of_threads);
 
@@ -209,10 +217,8 @@ int main(int argc,char** argv)
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channel);}
 
         Compute_Right_Hand_Side(*hierarchy,b_channel);
-        Sphere_Levelset<T,d> *levelset=new Sphere_Levelset<T,d>(TV(),(T).25);
-        for(int level=0;level<levels;++level)
-            Levelset_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),x_channel,levelset,level);
-        delete levelset;
+        const T_INDEX pin_cell=T_INDEX(10);
+        for(int level=0;level<levels;++level) hierarchy->Channel(level,b_channel)(pin_cell._data)=(T)1.;
         // Here should be Neumann
         // Initialize_Dirichlet_Cells(*hierarchy,x_channel);
 
@@ -225,7 +231,7 @@ int main(int argc,char** argv)
         //         Mark_Boundary<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),neighbor_offsets,level,(unsigned)MG_Boundary);
         // hierarchy->Initialize_Boundary_Blocks((unsigned)MG_Boundary);
 
-        const T diff_coeff=(T)1; 
+        const T diff_coeff=(T)1e-3; 
         const T dt=(T)1e-3; const T Fc=(T)0.; const T tau=(T)1.; 
         // const T one_over_dx2=0;//=grid.one_over_dX(0)*grid.one_over_dX(1); 
         // const T a=diff_coeff*dt*one_over_dx2; 

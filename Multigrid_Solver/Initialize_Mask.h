@@ -46,7 +46,9 @@ class Initialize_Mask
                             current_offset=Base_flag_array_mask::DownsampleOffset(current_offset);
                             translated_offset=Multigrid_flag_array_mask::template Translate_Linear_Offset<Base_flag_array_mask>(current_offset);
                             multigrid_hierarchy(mg_level)->Channel(mg_level,&Multigrid_struct_type::flags)(translated_offset)&=~Cell_Type_Interior;
-                            multigrid_hierarchy(mg_level)->Channel(mg_level,&Multigrid_struct_type::flags)(translated_offset)|=mask;}}}
+                            multigrid_hierarchy(mg_level)->Channel(mg_level,&Multigrid_struct_type::flags)(translated_offset)|=mask;}
+                    
+                    }}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,initialize_mask);
     }

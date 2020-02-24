@@ -43,6 +43,7 @@ class Multigrid_Refinement
     {
         Log::cout<<"Start Restrict"<<std::endl;
         // grabbing levels
+        // levels: 1
         const int fine_level=finest_active_level(0),coarse_level=finest_active_level(1),levels=fine_hierarchy.Levels();
         assert(levels==coarse_hierarchy.Levels());
         assert(fine_level>=0 && coarse_level<levels);
