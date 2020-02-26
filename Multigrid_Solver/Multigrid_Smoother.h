@@ -27,7 +27,6 @@ class Multigrid_Smoother
     static void Multiply_With_System_Matrix(Hierarchy& hierarchy,T Struct_type::* x_channel,T Struct_type::* result_channel,
                                                 bool FICKS,const T dt,const T diff_coeff,const T Fc,const T tau)
     {
-        // ONLY level 0 is activated
         for(int level=0;level<hierarchy.Levels();++level)
             Compute_Ax<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),x_channel,result_channel,level,FICKS,dt,diff_coeff,Fc,tau);
     }
@@ -60,7 +59,7 @@ class Multigrid_Smoother
         // clear temporary channel
         for(int level=0;level<levels;++level)
             SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),r_channel);
-        // compute laplace
+        // compute Ax
         Multiply_With_System_Matrix(hierarchy,x_channel,r_channel,FICKS,dt,diff_coeff,Fc,tau);
 
         // subtract from right hand side
@@ -76,8 +75,7 @@ class Multigrid_Smoother
             // residual <-- residual/diagonal
             Multiply_Inverse_Diagonal<Struct_type,T,d>(hierarchy,blocks,r_channel,r_channel,mask,level,FICKS,dt,diff_coeff,Fc,tau);
             // u <-- u + omega*(residual/diagonal)
-            SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy.Allocator(level),blocks,omega,
-                                                  r_channel,x_channel,x_channel,mask);}
+            SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy.Allocator(level),blocks,omega,r_channel,x_channel,x_channel,mask);}
     }
 
     static void Exact_Solve(Hierarchy& hierarchy,T Struct_type::* x_channel,T Struct_type::* b_channel,T Struct_type::* r_channel,
