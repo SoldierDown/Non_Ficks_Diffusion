@@ -48,8 +48,8 @@ class Compute_Ax
         for(int axis=0;axis<d;++axis){face_areas[axis]=(T)1.;
             for(int other_axis=0;other_axis<d;++other_axis) if(other_axis!=axis) face_areas[axis]*=hierarchy.Lattice(level).dX[other_axis];}
 
-        double scaling_factor=hierarchy.Lattice(0).one_over_dX.Product();
-        T coeff=FICKS?(dt*diff_coeff):(dt*diff_coeff*(Fc*tau+dt)/(dt*tau));
+        const double scaling_factor=hierarchy.Lattice(0).one_over_dX.Product();
+        const T coeff=FICKS?(dt*diff_coeff):(dt*diff_coeff*(Fc*tau+dt)/(dt+tau));
         auto interior_laplace_helper=[&](uint64_t offset)
         {
             Range_Iterator<d> range_iterator(T_INDEX(),*reinterpret_cast<T_INDEX*>(&block_size)-1);

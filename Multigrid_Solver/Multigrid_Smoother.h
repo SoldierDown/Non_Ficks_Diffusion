@@ -19,7 +19,6 @@ class Multigrid_Smoother
 {
     using Channel_Vector                        = Vector<T Struct_type::*,d>;
     using Hierarchy                             = Grid_Hierarchy<Struct_type,T,d>;
-    // using Hierarchy_Projection                  = Grid_Hierarchy_Projection<Struct_type,T,d>;
 
   public:
     Multigrid_Smoother() {}

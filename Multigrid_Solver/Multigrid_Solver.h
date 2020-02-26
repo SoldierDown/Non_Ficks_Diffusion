@@ -148,7 +148,7 @@ class Multigrid_Solver
     {
         for(int level=0;level<hierarchy.Levels();++level)
             Copy_Channel<Base_struct_type,Multigrid_struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),*multigrid_hierarchy(0),
-                                                                     channel_base,channel_multigrid,level,copy_to);
+                                                                    channel_base,channel_multigrid,level,copy_to);
     }
 
     void Initialize_Right_Hand_Side(T Base_struct_type::* channel) const
@@ -178,15 +178,18 @@ class Multigrid_Solver
             // smooth
             Smooth(i,boundary_smoothing_iterations,interior_smoothing_iterations);
             // compute residual
-            Compute_Residual(i);    // stored in temp_channel
+            Compute_Residual(i);    // residual vector is stored in temp_channel
             // restrict
             Multigrid_Refinement<Multigrid_struct_type,T,d>::Restrict(*multigrid_hierarchy(i),*multigrid_hierarchy(i+1),temp_channel,b_channel,Vector<int,2>({i,i+1}));
             // clear u
             for(int level=0;level<multigrid_hierarchy(i+1)->Levels();++level)
-                SPGrid::Clear<Multigrid_struct_type,T,d>(multigrid_hierarchy(i+1)->Allocator(level),multigrid_hierarchy(i+1)->Blocks(level),x_channel);}
+                SPGrid::Clear<Multigrid_struct_type,T,d>(multigrid_hierarchy(i+1)->Allocator(level),multigrid_hierarchy(i+1)->Blocks(level),x_channel);
+            }
 
         // exact solve
         // mg_levels-1=1: coarsest
+        // temp_channel is residual vector restricted from fine mesh
+        // the resulting x_channel is the correction
         Multigrid_Smoother<Multigrid_struct_type,T,d>::Exact_Solve(*multigrid_hierarchy(mg_levels-1),x_channel,b_channel,
                                                                    temp_channel,bottom_smoothing_iterations,(unsigned)Cell_Type_Interior,FICKS,dt,diff_coeff,Fc,tau);
 

@@ -78,18 +78,46 @@ void Initialize_Guess(Grid_Hierarchy<Struct_type,T,d>& hierarchy,T Struct_type::
 }
 
 template<class Struct_type,class T,int d>
-void Compute_Right_Hand_Side(Grid_Hierarchy<Struct_type,T,d>& hierarchy,T Struct_type::* channel)
+void Compute_Right_Hand_Side(Grid_Hierarchy<Struct_type,T,d>& hierarchy,T Struct_type::* x_channel,T Struct_type::* b_channel,
+                                const bool FICKS,const T dt,const T diff_coeff,const T Fc,const T tau)
 {
     using Flags_type                            = typename Struct_type::Flags_type;
     using Allocator_type                        = SPGrid::SPGrid_Allocator<Struct_type,d>;
     using Flag_array_mask                       = typename Allocator_type::template Array_mask<unsigned>;
-
-    for(int level=0;level<hierarchy.Levels();++level){auto blocks=hierarchy.Blocks(level);
-        auto data=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(channel);
+    using Topology_Helper                       = Grid_Topology_Helper<Flag_array_mask>;
+    if(FICKS){
+        for(int level=0;level<hierarchy.Levels();++level){auto blocks=hierarchy.Blocks(level);
+            auto x=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(x_channel);
+            auto rhs=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(b_channel);
+            auto flags=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
+            const T one_over_dx2=hierarchy.Lattice(level).one_over_dX(0)*hierarchy.Lattice(level).one_over_dX(1);
+            const T a=diff_coeff*dt*one_over_dx2;
+            uint64_t face_neighbor_offsets[Topology_Helper::number_of_faces_per_cell];
+            Topology_Helper::Face_Neighbor_Offsets(face_neighbor_offsets);
+            for(int b=0;b<blocks.second;b++){uint64_t offset=blocks.first[b];
+                for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
+                    if(flags(offset)&Cell_Type_Interior){rhs(offset)=x(offset);
+                        for(int face=0;face<Topology_Helper::number_of_faces_per_cell;++face){
+                            int64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
+                            if(flags(neighbor_offset)&Cell_Type_Dirichlet) rhs(offset)+=a*x(neighbor_offset);}
+                    }}}}
+    else{for(int level=0;level<hierarchy.Levels();++level){auto blocks=hierarchy.Blocks(level);
+        auto x=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(x_channel);
+        auto rhs=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(b_channel);
         auto flags=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
+        const T one_over_dx2=hierarchy.Lattice(level).one_over_dX(0)*hierarchy.Lattice(level).one_over_dX(1);
+        const T coeff1=dt*diff_coeff*(Fc*tau+dt)*one_over_dx2/(dt+tau);
+        uint64_t face_neighbor_offsets[Topology_Helper::number_of_faces_per_cell];
+        Topology_Helper::Face_Neighbor_Offsets(face_neighbor_offsets);
         for(int b=0;b<blocks.second;b++){uint64_t offset=blocks.first[b];
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Cell_Type_Interior) data(offset)=(T)0.;}}
+                if(flags(offset)&Cell_Type_Interior){rhs(offset)=x(offset);//-coeff2*div_Qc(offset);
+                for(int face=0;face<Topology_Helper::number_of_faces_per_cell;++face){
+                        int64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
+                        if(flags(neighbor_offset)&Cell_Type_Dirichlet) rhs(offset)+=coeff1*x(neighbor_offset);}
+                }}}}
+    Log::cout<<"here"<<std::endl;
+    
 }
 
 template<class Struct_type,class T,int d>
@@ -195,6 +223,17 @@ int main(int argc,char** argv)
         T Struct_type::* b_channel                = &Struct_type::ch1;
         T Struct_type::* r_channel                = &Struct_type::ch2;
 
+        const T diff_coeff=(T)1e-3; 
+        const T dt=(T)1e-3; const T Fc=(T)0.; const T tau=(T)1.; 
+        // const T one_over_dx2=0;//=grid.one_over_dX(0)*grid.one_over_dX(1); 
+        // const T a=diff_coeff*dt*one_over_dx2; 
+        // const T coeff1=dt*diff_coeff*(Fc*tau+dt)*one_over_dx2/(dt+tau);
+        // const T coeff2=dt*tau/(dt+tau);
+        // const T coeff3=dt*diff_coeff*(1-Fc)/(dt+tau);
+        // const T coeff4=tau/(dt+tau);
+        // const T twod_a_plus_one=(T)2.*d*a+(T)1.;
+        // Log::cout<<"dt: "<<dt<<", diff_coeff: "<<diff_coeff<<", one_over_dx2: "<<one_over_dx2<<", tau: "<<tau<<", a: "<<a<<", coeff1: "<<coeff1<<", twod_a_plus_one: "<<twod_a_plus_one<<std::endl;
+
         Hierarchy *hierarchy=new Hierarchy(cell_counts,Range<T,d>(TV(-1),TV(1)),levels);            
         Sphere_Levelset<T,d> *levelset=new Sphere_Levelset<T,d>(TV(),(T).25);
         for(int level=0;level<levels;++level)
@@ -216,9 +255,12 @@ int main(int argc,char** argv)
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),b_channel);
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channel);}
 
-        Compute_Right_Hand_Side(*hierarchy,b_channel);
+        
+        Initialize_Guess(*hierarchy,x_channel,false);
         const T_INDEX pin_cell=T_INDEX(10);
-        for(int level=0;level<levels;++level) hierarchy->Channel(level,b_channel)(pin_cell._data)=(T)1.;
+        for(int level=0;level<levels;++level) hierarchy->Channel(level,x_channel)(pin_cell._data)=(T)1.;
+        Compute_Right_Hand_Side(*hierarchy,x_channel,b_channel,FICKS,dt,diff_coeff,Fc,tau);
+
         // Here should be Neumann
         // Initialize_Dirichlet_Cells(*hierarchy,x_channel);
 
@@ -231,16 +273,7 @@ int main(int argc,char** argv)
         //         Mark_Boundary<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),neighbor_offsets,level,(unsigned)MG_Boundary);
         // hierarchy->Initialize_Boundary_Blocks((unsigned)MG_Boundary);
 
-        const T diff_coeff=(T)1e-3; 
-        const T dt=(T)1e-3; const T Fc=(T)0.; const T tau=(T)1.; 
-        // const T one_over_dx2=0;//=grid.one_over_dX(0)*grid.one_over_dX(1); 
-        // const T a=diff_coeff*dt*one_over_dx2; 
-        // const T coeff1=dt*diff_coeff*(Fc*tau+dt)*one_over_dx2/(dt+tau);
-        // const T coeff2=dt*tau/(dt+tau);
-        // const T coeff3=dt*diff_coeff*(1-Fc)/(dt+tau);
-        // const T coeff4=tau/(dt+tau);
-        // const T twod_a_plus_one=(T)2.*d*a+(T)1.;
-        // Log::cout<<"dt: "<<dt<<", diff_coeff: "<<diff_coeff<<", one_over_dx2: "<<one_over_dx2<<", tau: "<<tau<<", a: "<<a<<", coeff1: "<<coeff1<<", twod_a_plus_one: "<<twod_a_plus_one<<std::endl;
+
         
         Initialize_Guess(*hierarchy,x_channel,random_guess);
         Multigrid_Solver<Struct_type,Multigrid_struct_type,T,d> multigrid_solver(*hierarchy,mg_levels,FICKS,dt,diff_coeff,Fc,tau);
