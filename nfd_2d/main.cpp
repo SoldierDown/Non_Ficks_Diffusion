@@ -289,7 +289,6 @@ int main(int argc,char** argv)
         Log::cout<<multigrid_solver.Convergence_Norm(0,multigrid_solver.temp_channel)<<std::endl;
 
         frame++;
-        // multigrid_solver.Smooth(0,boundary_iterations,interior_iterations);
         multigrid_solver.V_Cycle(boundary_iterations,interior_iterations,bottom_iterations);
         multigrid_solver.Copy_Channel_Values(x_channel,multigrid_solver.x_channel,false);
         File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(frame));

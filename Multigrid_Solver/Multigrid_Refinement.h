@@ -48,12 +48,10 @@ class Multigrid_Refinement
         assert(levels==coarse_hierarchy.Levels());
         assert(fine_level>=0 && coarse_level<levels);
 
-        Log::cout<<"Clear levels: "<<levels<<std::endl;
         // clear coarse data
         for(int level=0;level<levels;++level)
             SPGrid::Clear<Struct_type,T,d>(coarse_hierarchy.Allocator(level),coarse_hierarchy.Blocks(level),coarse_data_channel);
 
-        Log::cout<<"number of threads: "<<number_of_threads<<std::endl;
         // coarse   1 
         // fine     0
         // restrict from fine to coarse for finest level
@@ -65,7 +63,8 @@ class Multigrid_Refinement
 
             Restriction_Stencil_Helper<Struct_type,T,d> restriction_stencil_helper((T*)coarse_data.Get_Data_Ptr(),(T*)fine_data.Get_Data_Ptr(),
                 (unsigned*)coarse_flags.Get_Data_Ptr(),coarse_hierarchy.Blocks(coarse_level).first,coarse_hierarchy.Blocks(coarse_level).second,
-                scale,(unsigned)(Cell_Type_Interior|Cell_Type_Ghost));
+                scale,(unsigned)(Cell_Type_Interior));
+                // scale,(unsigned)(Cell_Type_Interior|Cell_Type_Ghost));
 
             if(number_of_threads) restriction_stencil_helper.Run_Parallel(number_of_threads);
             else restriction_stencil_helper.Run();
@@ -81,7 +80,6 @@ class Multigrid_Refinement
         // coarse_level: 1
         // level: 1
         for(int level=levels-1;level>=coarse_level;--level){
-            Log::cout<<"all higher level "<<level<<" "<<coarse_level<<std::endl;
             SPGrid::Multiple_Allocator_Masked_Plus_Equals_Helper<Struct_type,T,unsigned,d> helper(
                 coarse_hierarchy.Allocator(level),fine_hierarchy.Allocator(level),coarse_hierarchy.Allocator(level),fine_hierarchy.Allocator(level),
                 fine_hierarchy.Blocks(level),coarse_data_channel,fine_data_channel,coarse_data_channel,&Struct_type::flags,(unsigned)Cell_Type_Interior);

@@ -174,27 +174,41 @@ class Multigrid_Solver
         for(int i=0;i<mg_levels-1;++i){
             // smooth
             // Smooth(i,boundary_smoothing_iterations,interior_smoothing_iterations);
-            // compute residual
+            // compute residual of level 0
             Compute_Residual(i);    // residual vector is stored in temp_channel
-            Log::cout<<"residual norm: "<<Convergence_Norm(i,temp_channel)<<std::endl;
-            Log::cout<<"rhs norm: "<<Convergence_Norm(i,b_channel)<<std::endl;
-            Log::cout<<"x norm: "<<Convergence_Norm(i,x_channel)<<std::endl;
-            // restrict
+            // restrict residual to level 1
             Multigrid_Refinement<Multigrid_struct_type,T,d>::Restrict(*multigrid_hierarchy(i),*multigrid_hierarchy(i+1),temp_channel,b_channel,Vector<int,2>({i,i+1}));
-            // clear u
+            // clear x of level 1
             for(int level=0;level<multigrid_hierarchy(i+1)->Levels();++level)
                 SPGrid::Clear<Multigrid_struct_type,T,d>(multigrid_hierarchy(i+1)->Allocator(level),multigrid_hierarchy(i+1)->Blocks(level),x_channel);}
 
         // exact solve
         // mg_levels-1=1: coarsest
         // temp_channel is residual vector restricted from fine mesh
+        // Ax0 = b - r
+        // Ax' = r
+        // x = x0 + x' ==> Ax = b
+        Log::cout<<"Before: "<<std::endl;
+        Log::cout<<"rhs norm: "<<Convergence_Norm(mg_levels-1,b_channel)<<std::endl;
+        Log::cout<<"residual norm: "<<Convergence_Norm(mg_levels-1,temp_channel)<<std::endl;
+        Log::cout<<"x norm: "<<Convergence_Norm(mg_levels-1,x_channel)<<std::endl;
+        // Solve Ax'=r on level 1
         Multigrid_Smoother<Multigrid_struct_type,T,d>::Exact_Solve(*multigrid_hierarchy(mg_levels-1),x_channel,b_channel,
                                                                    temp_channel,bottom_smoothing_iterations,(unsigned)Cell_Type_Interior,FICKS,dt,diff_coeff,Fc,tau);
-
-
+        Log::cout<<"After: "<<std::endl;
+        Log::cout<<"level 0 residual norm: "<<Convergence_Norm(0,temp_channel)<<std::endl;
+        Log::cout<<"level "<<mg_levels-1<<" residual norm: "<<Convergence_Norm(mg_levels-1,temp_channel)<<std::endl;
+        Log::cout<<"level 0 x norm: "<<Convergence_Norm(0,x_channel)<<std::endl;
+        Log::cout<<"level "<<mg_levels-1<<" x norm: "<<Convergence_Norm(mg_levels-1,x_channel)<<std::endl;
+        Log::cout<<"level 0 rhs norm: "<<Convergence_Norm(0,b_channel)<<std::endl;
+        Log::cout<<"level "<<mg_levels-1<<" rhs norm: "<<Convergence_Norm(mg_levels-1,b_channel)<<std::endl;
+        
         // upstroke
         for(int i=mg_levels-2;i>=0;--i){
             // prolongate
+            // (i,i+1) = (0,1)
+            // fine: temp_channel
+            // coarse: x_channel
             Multigrid_Refinement<Multigrid_struct_type,T,d>::Prolongate(*multigrid_hierarchy(i),*multigrid_hierarchy(i+1),temp_channel,x_channel,Vector<int,2>({i,i+1}));
             // add correction
             for(int level=0;level<multigrid_hierarchy(i)->Levels();++level)

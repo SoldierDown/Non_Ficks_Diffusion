@@ -27,8 +27,9 @@ class Multigrid_Smoother
     static void Multiply_With_System_Matrix(Hierarchy& hierarchy,T Struct_type::* x_channel,T Struct_type::* result_channel,
                                                 bool FICKS,const T dt,const T diff_coeff,const T Fc,const T tau)
     {
-        for(int level=0;level<hierarchy.Levels();++level)
-            Compute_Ax<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),x_channel,result_channel,level,FICKS,dt,diff_coeff,Fc,tau);
+        for(int level=0;level<hierarchy.Levels();++level){
+            // Log::cout<<"level "<<level<<std::endl;
+            Compute_Ax<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),x_channel,result_channel,level,FICKS,dt,diff_coeff,Fc,tau);}
     }
 
     static void Compute_Residual(Hierarchy& hierarchy,T Struct_type::* x_channel,T Struct_type::* b_channel,T Struct_type::* r_channel,const unsigned mask,
@@ -83,16 +84,22 @@ class Multigrid_Smoother
                             bool FICKS,const T dt,const T diff_coeff,const T Fc,const T tau,
                             const T omega=(T)two_thirds)
     {
+        // Log::cout<<"dimension: "<<d<<std::endl;
         const int levels=hierarchy.Levels();
         // Exact_Solve levels: 2
         for(int i=0;i<iterations;++i){
+            // Log::cout<<"Compute residual"<<std::endl;
             Compute_Residual(hierarchy,x_channel,b_channel,r_channel,mask,FICKS,dt,diff_coeff,Fc,tau);
+            // Log::cout<<"Finish computing residual"<<std::endl;
             // residual <-- residual/diagonal
             for(int level=0;level<levels;++level){
+                // Log::cout<<"level "<<level<<", Multiply_Inverse_Diagonal"<<std::endl;
                 Multiply_Inverse_Diagonal<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),r_channel,r_channel,mask,level,FICKS,dt,diff_coeff,Fc,tau);}
             // u <-- u + omega*(residual/diagonal)
             for(int level=0;level<levels;++level)
-                SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),omega,r_channel,x_channel,x_channel,mask);}
+                SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),omega,r_channel,x_channel,x_channel,mask);
+        }
+        // Log::cout<<"Finish Exact_Solve"<<std::endl;
     }
 };
 }
