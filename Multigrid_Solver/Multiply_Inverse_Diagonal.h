@@ -39,8 +39,10 @@ class Multiply_Inverse_Diagonal
         const T one_over_diagonal       = (T)1./diagonal;
         auto multiply_inverse_diagonal=[&](uint64_t offset)
         {
+            bool to_print=false;
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
                 if(flags(offset)&mask) data_destination(offset)=data_source(offset)*one_over_diagonal;
+            
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,multiply_inverse_diagonal);
     }

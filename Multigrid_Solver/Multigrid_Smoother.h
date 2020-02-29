@@ -11,7 +11,7 @@
 #include <nova/Tools/Utilities/Constants.h>
 #include "Multiply_Inverse_Diagonal.h"
 #include "Compute_Ax.h"
-#include "../Diffusion_Helper/Diffusion_Convergence_Norm_Helper.h"
+#include "Convergence_Norm_Helper.h"
 
 namespace Nova{
 template<class Struct_type,class T,int d>
@@ -45,7 +45,7 @@ class Multigrid_Smoother
 
         // subtract from right hand side
         // Log::cout<<"Compute_Residual: subtract"<<std::endl;
-        // level==1 is empty VERIFIED
+        // level==1 is empty (verified)
         for(int level=0;level<levels;++level)
             SPGrid::Masked_Subtract<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),b_channel,r_channel,r_channel,mask);
     }
@@ -56,10 +56,10 @@ class Multigrid_Smoother
     {
         // Log::cout<<"SHOULD NOT SHOW UP"<<std::endl;
         const int levels=hierarchy.Levels();
-
         // clear temporary channel
         for(int level=0;level<levels;++level)
             SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),r_channel);
+
         // compute Ax
         Multiply_With_System_Matrix(hierarchy,x_channel,r_channel,FICKS,dt,diff_coeff,Fc,tau);
 
@@ -84,22 +84,22 @@ class Multigrid_Smoother
                             bool FICKS,const T dt,const T diff_coeff,const T Fc,const T tau,
                             const T omega=(T)two_thirds)
     {
-        // Log::cout<<"dimension: "<<d<<std::endl;
         const int levels=hierarchy.Levels();
-        // Exact_Solve levels: 2
         for(int i=0;i<iterations;++i){
-            // Log::cout<<"Compute residual"<<std::endl;
             Compute_Residual(hierarchy,x_channel,b_channel,r_channel,mask,FICKS,dt,diff_coeff,Fc,tau);
-            // Log::cout<<"Finish computing residual"<<std::endl;
             // residual <-- residual/diagonal
-            for(int level=0;level<levels;++level){
-                // Log::cout<<"level "<<level<<", Multiply_Inverse_Diagonal"<<std::endl;
-                Multiply_Inverse_Diagonal<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),r_channel,r_channel,mask,level,FICKS,dt,diff_coeff,Fc,tau);}
+            for(int level=0;level<levels;++level) Multiply_Inverse_Diagonal<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),r_channel,r_channel,mask,level,FICKS,dt,diff_coeff,Fc,tau);
             // u <-- u + omega*(residual/diagonal)
-            for(int level=0;level<levels;++level)
-                SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),omega,r_channel,x_channel,x_channel,mask);
+            for(int level=0;level<levels;++level) SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),omega,r_channel,x_channel,x_channel,mask);
         }
-        // Log::cout<<"Finish Exact_Solve"<<std::endl;
+    }
+    
+    static T Convergence_Norm(Hierarchy& hierarchy,T Struct_type::* channel,const int mg_level)
+    {
+        T max_value=(T)0.;
+        Convergence_Norm_Helper<Struct_type,T,d>(hierarchy.Allocator(mg_level),hierarchy.Blocks(mg_level),
+                                                               channel,max_value,(unsigned)Cell_Type_Interior);
+        return max_value;
     }
 };
 }

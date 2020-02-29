@@ -30,7 +30,7 @@ class Multigrid_Refinement
     using Flag_array_mask                   = typename Allocator_type::template Array_mask<unsigned>;
     using Topology_Helper                   = Grid_Topology_Helper<Flag_array_mask>;
     enum {nodes_per_cell                    = Topology_Helper::number_of_nodes_per_cell};
-    enum {restriction_stencil_denominator   = (d==2)?16:64};
+    enum {restriction_stencil_denominator   = (d==2)?64:512};
 
   public:
     Multigrid_Refinement() {}
@@ -41,7 +41,6 @@ class Multigrid_Refinement
     static void Restrict(Hierarchy& fine_hierarchy,Hierarchy& coarse_hierarchy,T Struct_type::* fine_data_channel,
                          T Struct_type::* coarse_data_channel,const Vector<int,2>& finest_active_level)
     {
-        Log::cout<<"Start Restrict"<<std::endl;
         // grabbing levels
         // levels: 1
         const int fine_level=finest_active_level(0),coarse_level=finest_active_level(1),levels=fine_hierarchy.Levels();
@@ -86,7 +85,6 @@ class Multigrid_Refinement
             if(number_of_threads) helper.Run_Parallel(number_of_threads);
             else helper.Run();}
         
-        Log::cout<<"End Restrict"<<std::endl;
     }
 
     static void Prolongate(Hierarchy& fine_hierarchy,Hierarchy& coarse_hierarchy,T Struct_type::* fine_data_channel,

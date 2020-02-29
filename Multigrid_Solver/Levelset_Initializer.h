@@ -37,7 +37,6 @@ class Levelset_Initializer
         auto block_size=hierarchy.Allocator(level).Block_Size();
         auto data=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(levelset_channel);
         auto flags=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        
         auto levelset_initializer=[&](uint64_t offset)
         {
             Range_Iterator<d> range_iterator(T_INDEX(),*reinterpret_cast<T_INDEX*>(&block_size)-1);
@@ -46,7 +45,9 @@ class Levelset_Initializer
 
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                 const T_INDEX index=base_index+range_iterator.Index();
-                if(flags(offset)&Cell_Type_Interior) data(offset)=levelset->Distance(grid.Center(index));
+                Log::cout<<"Here "<<index<<std::endl;
+                if(flags(offset)&Cell_Type_Interior){data(offset)=levelset->Distance(grid.Center(index));
+                    Log::cout<<data(offset)<<std::endl;}
                 range_iterator.Next();}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,levelset_initializer);

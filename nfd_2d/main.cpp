@@ -70,7 +70,7 @@ void Initialize_Guess(Grid_Hierarchy<Struct_type,T,d>& hierarchy,T Struct_type::
                     if(random_guess){
                         data(offset)=random.Get_Uniform_Number(-1,1);}
                     else data(offset)=(T)0.;
-                    if(true){
+                    if(false){
                         const TV X=hierarchy.Lattice(level).Center(index);
                         TV r_X=(X-min_corner)/domain_range;
                         data(offset)=(T)sin(two_pi*r_X(0))*sin(two_pi*r_X(1));}}
@@ -92,7 +92,7 @@ void Compute_Right_Hand_Side(Grid_Hierarchy<Struct_type,T,d>& hierarchy,T Struct
             auto flags=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
             const T one_over_dx2=hierarchy.Lattice(level).one_over_dX(0)*hierarchy.Lattice(level).one_over_dX(1);
             const T a=diff_coeff*dt*one_over_dx2; 
-            Log::cout<<"a: "<<a<<std::endl;
+            // Log::cout<<"a: "<<a<<std::endl;
             uint64_t face_neighbor_offsets[Topology_Helper::number_of_faces_per_cell];
             Topology_Helper::Face_Neighbor_Offsets(face_neighbor_offsets);
             for(int b=0;b<blocks.second;b++){uint64_t offset=blocks.first[b];
@@ -107,7 +107,7 @@ void Compute_Right_Hand_Side(Grid_Hierarchy<Struct_type,T,d>& hierarchy,T Struct
         auto flags=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         const T one_over_dx2=hierarchy.Lattice(level).one_over_dX(0)*hierarchy.Lattice(level).one_over_dX(1);
         const T coeff1=dt*diff_coeff*(Fc*tau+dt)*one_over_dx2/(dt+tau);
-        Log::cout<<"coeff1: "<<coeff1<<std::endl;
+        // Log::cout<<"coeff1: "<<coeff1<<std::endl;
         uint64_t face_neighbor_offsets[Topology_Helper::number_of_faces_per_cell];
         Topology_Helper::Face_Neighbor_Offsets(face_neighbor_offsets);
         for(int b=0;b<blocks.second;b++){uint64_t offset=blocks.first[b];
@@ -115,8 +115,7 @@ void Compute_Right_Hand_Side(Grid_Hierarchy<Struct_type,T,d>& hierarchy,T Struct
                 if(flags(offset)&Cell_Type_Interior){rhs(offset)=x(offset);//-coeff2*div_Qc(offset);
                 for(int face=0;face<Topology_Helper::number_of_faces_per_cell;++face){
                         int64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
-                        if(flags(neighbor_offset)&Cell_Type_Dirichlet) rhs(offset)+=coeff1*x(neighbor_offset);}
-                }}}}    
+                        if(flags(neighbor_offset)&Cell_Type_Dirichlet) rhs(offset)+=coeff1*x(neighbor_offset);}}}}}    
 }
 
 template<class Struct_type,class T,int d>
@@ -133,13 +132,13 @@ void Initialize_Dirichlet_Cells(Grid_Hierarchy<Struct_type,T,d>& hierarchy,T Str
         for(int b=0;b<blocks.second;b++){uint64_t offset=blocks.first[b];
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
                 if(flags(offset)&Cell_Type_Interior){
-                    Log::cout<<"Here"<<std::endl;
                     flags(offset)|=Cell_Type_Dirichlet;
                     flags(offset)&=~Cell_Type_Interior;}}}
 }
 
 int main(int argc,char** argv)
 {
+    Log::cout.precision(13);
     bool run_test=true;
     if(run_test){
         typedef float T;
@@ -213,7 +212,6 @@ int main(int argc,char** argv)
         Log::Instance()->Copy_Log_To_File(output_directory+"/common/log.txt",false);
 
         std::string surface_directory=std::to_string(d)+(FICKS?"d_F_":"d_NF_")+(simple_case?"simple_case_":"complex_case_")+(random_guess?"random_init_":"0_init_")+"Resolution_"+std::to_string(cell_counts(0));
-        surface_directory="V_Test";
         File_Utilities::Create_Directory(surface_directory);
         File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(frame));
         File_Utilities::Write_To_Text_File(surface_directory+"/info.nova-animation",std::to_string(frame));
@@ -224,28 +222,29 @@ int main(int argc,char** argv)
 
         const T diff_coeff=(T)1e-3; 
         const T dt=(T)1e-3; const T Fc=(T)0.; const T tau=(T)1.; 
-        // const T one_over_dx2=0;//=grid.one_over_dX(0)*grid.one_over_dX(1); 
-        // const T a=diff_coeff*dt*one_over_dx2; 
-        // const T coeff1=dt*diff_coeff*(Fc*tau+dt)*one_over_dx2/(dt+tau);
-        // const T coeff2=dt*tau/(dt+tau);
-        // const T coeff3=dt*diff_coeff*(1-Fc)/(dt+tau);
-        // const T coeff4=tau/(dt+tau);
-        // const T twod_a_plus_one=(T)2.*d*a+(T)1.;
-        // Log::cout<<"dt: "<<dt<<", diff_coeff: "<<diff_coeff<<", one_over_dx2: "<<one_over_dx2<<", tau: "<<tau<<", a: "<<a<<", coeff1: "<<coeff1<<", twod_a_plus_one: "<<twod_a_plus_one<<std::endl;
-
+        
         Hierarchy *hierarchy=new Hierarchy(cell_counts,Range<T,d>(TV(-1),TV(1)),levels);            
-        Sphere_Levelset<T,d> *levelset=new Sphere_Levelset<T,d>(TV(),(T).25);
-        for(int level=0;level<levels;++level)
-            Levelset_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),x_channel,levelset,level);
-        delete levelset;
+
         
         const Grid<T,d>& grid=hierarchy->Lattice(0);
         Range<int,d> bounding_grid_cells(grid.Clamp_To_Cell(TV(-1)),grid.Clamp_To_Cell(TV(1)));
         for(Cell_Iterator iterator(grid,bounding_grid_cells);iterator.Valid();iterator.Next()){
             T_INDEX cell_index=iterator.Cell_Index();
-            if(cell_index(0)==1||cell_index(1)==1||cell_index(0)==cell_counts(0)||cell_index(1)==cell_counts(1)) hierarchy->Activate_Cell(0,cell_index,Cell_Type_Dirichlet);
-            else hierarchy->Activate_Cell(0,cell_index,Cell_Type_Interior);}
-        // if(!simple_case){for(int level=0;level<levels;++level) Neumann_BC_Initializer<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),x_channel);}
+            if(simple_case){
+                if(cell_index(0)==1||cell_index(1)==1||cell_index(0)==cell_counts(0)||cell_index(1)==cell_counts(1)) hierarchy->Activate_Cell(0,cell_index,Cell_Type_Dirichlet);
+                else hierarchy->Activate_Cell(0,cell_index,Cell_Type_Interior);}
+            else{
+                // Log::cout<<"set up flags for complex case "<<cell_index<<std::endl;
+                if(cell_index(0)==1||cell_index(0)==cell_counts(0)||cell_index(1)==cell_counts(1)){}// set as exteriror do nothing
+                else if(cell_index(1)==1) hierarchy->Activate_Cell(0,cell_index,Cell_Type_Dirichlet);
+                else hierarchy->Activate_Cell(0,cell_index,Cell_Type_Interior);}}
+        
+        Sphere_Levelset<T,d> *levelset=new Sphere_Levelset<T,d>(TV(),(T).25);
+        for(int level=0;level<levels;++level)
+            Levelset_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),x_channel,levelset,level);
+        delete levelset;
+        if(!simple_case)
+            for(int level=0;level<levels;++level) Neumann_BC_Initializer<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),x_channel);
         hierarchy->Update_Block_Offsets();
         hierarchy->Initialize_Red_Black_Partition(2*number_of_threads);
 
@@ -254,7 +253,6 @@ int main(int argc,char** argv)
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),b_channel);
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channel);}
 
-        
         Initialize_Guess(*hierarchy,x_channel,false);
         const T_INDEX pin_cell=T_INDEX(10);
         for(int level=0;level<levels;++level) hierarchy->Channel(level,x_channel)(pin_cell._data)=(T)1.;
@@ -278,17 +276,27 @@ int main(int argc,char** argv)
         Multigrid_Solver<Struct_type,Multigrid_struct_type,T,d> multigrid_solver(*hierarchy,mg_levels,FICKS,dt,diff_coeff,Fc,tau);
         multigrid_solver.Initialize();
         multigrid_solver.Initialize_Right_Hand_Side(b_channel);
-        Log::cout<<"init rhs norm: "<<multigrid_solver.Convergence_Norm(0,multigrid_solver.b_channel)<<std::endl;
         multigrid_solver.Initialize_Guess();
         multigrid_solver.Copy_Channel_Values(x_channel,multigrid_solver.x_channel);
-        Log::cout<<"init guess norm: "<<multigrid_solver.Convergence_Norm(0,multigrid_solver.x_channel)<<std::endl;
         File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(frame));
         File_Utilities::Write_To_Text_File(surface_directory+"/info.nova-animation",std::to_string(frame));
         Hierarchy_Visualization::Visualize_Heightfield(*hierarchy,x_channel,surface_directory,frame);
         multigrid_solver.Compute_Residual(0);
         Log::cout<<multigrid_solver.Convergence_Norm(0,multigrid_solver.temp_channel)<<std::endl;
 
+
         frame++;
+        // Multigrid_Smoother<Multigrid_struct_type,T,d>::Exact_Solve(*multigrid_solver.multigrid_hierarchy(0),multigrid_solver.x_channel,multigrid_solver.b_channel,
+        //                                                         multigrid_solver.temp_channel,bottom_iterations,(unsigned)Cell_Type_Interior,FICKS,dt,diff_coeff,Fc,tau);
+        // Log::cout<<"Before: "<<std::endl;
+        // Log::cout<<"x: "<<multigrid_solver.Convergence_Norm(0,multigrid_solver.x_channel)<<std::endl;
+        // Log::cout<<"rhs: "<<multigrid_solver.Convergence_Norm(0,multigrid_solver.b_channel)<<std::endl;
+        // Log::cout<<"residual: "<<multigrid_solver.Convergence_Norm(0,multigrid_solver.temp_channel)<<std::endl;
+        // for(int level=0;level<levels;++level) Multigrid_Smoother<Multigrid_struct_type,T,d>::Jacobi_Iteration(*multigrid_solver.multigrid_hierarchy(0),multigrid_solver.multigrid_hierarchy(0)->Blocks(level),level,multigrid_solver.x_channel,multigrid_solver.b_channel,multigrid_solver.temp_channel,bottom_iterations,(unsigned)Cell_Type_Interior,FICKS,dt,diff_coeff,Fc,tau);
+        // Log::cout<<"After: "<<std::endl;
+        // Log::cout<<"x: "<<multigrid_solver.Convergence_Norm(0,multigrid_solver.x_channel)<<std::endl;
+        // Log::cout<<"rhs: "<<multigrid_solver.Convergence_Norm(0,multigrid_solver.b_channel)<<std::endl;
+        // Log::cout<<"residual: "<<multigrid_solver.Convergence_Norm(0,multigrid_solver.temp_channel)<<std::endl;        
         multigrid_solver.V_Cycle(boundary_iterations,interior_iterations,bottom_iterations);
         multigrid_solver.Copy_Channel_Values(x_channel,multigrid_solver.x_channel,false);
         File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(frame));
