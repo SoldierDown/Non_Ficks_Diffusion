@@ -142,7 +142,7 @@ int main(int argc,char** argv)
     bool run_test=true;
     if(run_test){
         typedef float T;
-        enum {d=2};
+        enum {d=3};
         typedef Vector<T,d> TV;
         typedef Vector<int,d> T_INDEX;
 
@@ -239,15 +239,14 @@ int main(int argc,char** argv)
                 else if(cell_index(1)==1) hierarchy->Activate_Cell(0,cell_index,Cell_Type_Dirichlet);
                 else hierarchy->Activate_Cell(0,cell_index,Cell_Type_Interior);}}
         
+
+        hierarchy->Update_Block_Offsets();
+        hierarchy->Initialize_Red_Black_Partition(2*number_of_threads);
         Sphere_Levelset<T,d> *levelset=new Sphere_Levelset<T,d>(TV(),(T).25);
-        for(int level=0;level<levels;++level)
-            Levelset_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),x_channel,levelset,level);
+        Levelset_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Allocator(0),hierarchy->Blocks(0),x_channel,*levelset);
         delete levelset;
         if(!simple_case)
             for(int level=0;level<levels;++level) Neumann_BC_Initializer<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),x_channel);
-        hierarchy->Update_Block_Offsets();
-        hierarchy->Initialize_Red_Black_Partition(2*number_of_threads);
-
         for(int level=0;level<levels;++level){
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),x_channel);
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),b_channel);

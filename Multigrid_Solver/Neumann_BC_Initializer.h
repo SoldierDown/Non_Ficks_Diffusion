@@ -34,7 +34,6 @@ class Neumann_BC_Initializer
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
                 if(flags(offset)&Cell_Type_Interior){
                     if(levelset(offset)<(T)0.) {
-                        Log::cout<<"signed distance: "<<levelset(offset)<<std::endl;
                         flags(offset)&=~Cell_Type_Interior;}
                 }
         };

@@ -246,7 +246,6 @@ class Restriction_Stencil_Helper<Struct_type,T,3>
                 if(coarse_mask_value&active_flag_mask){T value=(T)0.;
                     const int ii(2*(i-1)),jj(2*(j-1)),kk(2*(k-1));
                     
-                    // 64
                     value+=(T) 1.*(*reinterpret_cast<T*>(fine_data_base_addr+o_grid[ii+0][jj+0][kk+0]));
                     value+=(T) 3.*(*reinterpret_cast<T*>(fine_data_base_addr+o_grid[ii+0][jj+0][kk+1]));
                     value+=(T) 3.*(*reinterpret_cast<T*>(fine_data_base_addr+o_grid[ii+0][jj+0][kk+2]));
@@ -264,7 +263,6 @@ class Restriction_Stencil_Helper<Struct_type,T,3>
                     value+=(T) 3.*(*reinterpret_cast<T*>(fine_data_base_addr+o_grid[ii+0][jj+3][kk+2]));
                     value+=(T) 1.*(*reinterpret_cast<T*>(fine_data_base_addr+o_grid[ii+0][jj+3][kk+3]));
                     
-                    // 64 * 3
                     value+=(T) 3.*(*reinterpret_cast<T*>(fine_data_base_addr+o_grid[ii+1][jj+0][kk+0]));
                     value+=(T) 9.*(*reinterpret_cast<T*>(fine_data_base_addr+o_grid[ii+1][jj+0][kk+1]));
                     value+=(T) 9.*(*reinterpret_cast<T*>(fine_data_base_addr+o_grid[ii+1][jj+0][kk+2]));
@@ -282,7 +280,6 @@ class Restriction_Stencil_Helper<Struct_type,T,3>
                     value+=(T) 9.*(*reinterpret_cast<T*>(fine_data_base_addr+o_grid[ii+1][jj+3][kk+2]));
                     value+=(T) 3.*(*reinterpret_cast<T*>(fine_data_base_addr+o_grid[ii+1][jj+3][kk+3]));
                     
-                    // 64 * 3
                     value+=(T) 3.*(*reinterpret_cast<T*>(fine_data_base_addr+o_grid[ii+2][jj+0][kk+0]));
                     value+=(T) 9.*(*reinterpret_cast<T*>(fine_data_base_addr+o_grid[ii+2][jj+0][kk+1]));
                     value+=(T) 9.*(*reinterpret_cast<T*>(fine_data_base_addr+o_grid[ii+2][jj+0][kk+2]));
@@ -300,7 +297,6 @@ class Restriction_Stencil_Helper<Struct_type,T,3>
                     value+=(T) 9.*(*reinterpret_cast<T*>(fine_data_base_addr+o_grid[ii+2][jj+3][kk+2]));
                     value+=(T) 3.*(*reinterpret_cast<T*>(fine_data_base_addr+o_grid[ii+2][jj+3][kk+3]));
                     
-                    // 64
                     value+=(T) 1.*(*reinterpret_cast<T*>(fine_data_base_addr+o_grid[ii+3][jj+0][kk+0]));
                     value+=(T) 3.*(*reinterpret_cast<T*>(fine_data_base_addr+o_grid[ii+3][jj+0][kk+1]));
                     value+=(T) 3.*(*reinterpret_cast<T*>(fine_data_base_addr+o_grid[ii+3][jj+0][kk+2]));

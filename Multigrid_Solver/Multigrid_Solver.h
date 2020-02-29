@@ -179,7 +179,9 @@ class Multigrid_Solver
             Log::cout<<"level 0 residual norm: "<<Convergence_Norm(0,temp_channel)<<std::endl;
             Log::cout<<"level 0 rhs norm: "<<Convergence_Norm(0,b_channel)<<std::endl;
             // restrict residual to level 1
+            Log::cout<<"before restrict"<<std::endl;
             Multigrid_Refinement<Multigrid_struct_type,T,d>::Restrict(*multigrid_hierarchy(i),*multigrid_hierarchy(i+1),temp_channel,b_channel,Vector<int,2>({i,i+1}));
+            Log::cout<<"after restrict"<<std::endl;
             // clear x of level 1
             for(int level=0;level<multigrid_hierarchy(i+1)->Levels();++level)
                 SPGrid::Clear<Multigrid_struct_type,T,d>(multigrid_hierarchy(i+1)->Allocator(level),multigrid_hierarchy(i+1)->Blocks(level),x_channel);}
