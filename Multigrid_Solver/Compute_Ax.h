@@ -44,10 +44,6 @@ class Compute_Ax
         uint64_t face_neighbor_offsets[number_of_faces_per_cell];
         Topology_Helper::Face_Neighbor_Offsets(face_neighbor_offsets);
 
-        T face_areas[d];
-        for(int axis=0;axis<d;++axis){face_areas[axis]=(T)1.;
-            for(int other_axis=0;other_axis<d;++other_axis) if(other_axis!=axis) face_areas[axis]*=hierarchy.Lattice(level).dX[other_axis];}
-
         const T one_over_dx2=hierarchy.Lattice(0).one_over_dX(0)*hierarchy.Lattice(0).one_over_dX(1);
         const T coeff=FICKS?(dt*diff_coeff*one_over_dx2):(dt*diff_coeff*(Fc*tau+dt)*one_over_dx2/(dt+tau));
         auto interior_laplace_helper=[&](uint64_t offset)
@@ -67,6 +63,48 @@ class Compute_Ax
 
         SPGrid_Computations::Run_Parallel_Blocks(blocks,interior_laplace_helper);
     }
+
+    // void Run(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,
+    //                         T Struct_type::* x_channel,T Struct_type::* Ax_channel,const int level,
+    //                         const bool FICKS,const T dt,const T diff_coeff,const T Fc,const T tau) const
+    // {
+    //     auto block_size=hierarchy.Allocator(level).Block_Size();
+    //     auto Ax=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(Ax_channel);
+    //     auto x=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,T>(x_channel);
+    //     auto flags=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
+
+    //     uint64_t face_neighbor_offsets[number_of_faces_per_cell];
+    //     Topology_Helper::Face_Neighbor_Offsets(face_neighbor_offsets);
+
+    //     T face_areas[d];
+    //     for(int axis=0;axis<d;++axis){face_areas[axis]=(T)1.;
+    //         for(int other_axis=0;other_axis<d;++other_axis) if(other_axis!=axis) face_areas[axis]*=hierarchy.Lattice(level).dX[other_axis];}
+        
+    //     double scaling_factor=hierarchy.Lattice(0).one_over_dX.Product();
+
+    //     const T one_over_dx2=hierarchy.Lattice(0).one_over_dX(0)*hierarchy.Lattice(0).one_over_dX(1);
+    //     const T coeff=FICKS?(dt*diff_coeff):(dt*diff_coeff*(Fc*tau+dt)/(dt+tau));
+
+    //     auto interior_laplace_helper=[&](uint64_t offset)
+    //     {
+    //         Range_Iterator<d> range_iterator(T_INDEX(),*reinterpret_cast<T_INDEX*>(&block_size)-1);
+    //         std::array<int,d> base_index_s=Flag_array_mask::LinearToCoord(offset);
+    //         T_INDEX base_index=*reinterpret_cast<T_INDEX*>(&base_index_s);
+
+    //         for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){const T_INDEX index=base_index+range_iterator.Index();
+    //             if(flags(offset)&Cell_Type_Interior){T Ax_entry=(T)0.;const TV X=hierarchy.Lattice(level).Center(index);
+    //                 for(int face=0;face<number_of_faces_per_cell;++face){int axis=(face/2),side=(face%2);
+    //                     uint64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
+    //                     if(hierarchy.template Set<unsigned>(level,&Struct_type::flags).Is_Set(neighbor_offset,Cell_Type_Interior))
+    //                         Ax_entry+=coeff*scaling_factor*face_areas[axis]*hierarchy.Lattice(level).one_over_dX[axis]*(x(offset)-x(neighbor_offset));
+    //                     else if(hierarchy.template Set<unsigned>(level,&Struct_type::flags).Is_Set(neighbor_offset,Cell_Type_Dirichlet))
+    //                         Ax_entry+=coeff*scaling_factor*face_areas[axis]*hierarchy.Lattice(level).one_over_dX[axis]*x(offset);}
+    //                 Ax(offset)=Ax_entry;}
+    //             range_iterator.Next();}
+    //     };
+
+    //     SPGrid_Computations::Run_Parallel_Blocks(blocks,interior_laplace_helper);
+    // }
 };
 }
 #endif
