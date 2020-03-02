@@ -110,7 +110,7 @@ int main(int argc,char** argv)
         T Struct_type::* b_channel                = &Struct_type::ch1;
         T Struct_type::* r_channel                = &Struct_type::ch2;
 
-        const T diff_coeff=(T)10.; 
+        const T diff_coeff=(T)1e-3; 
         const T dt=(T)1e-3; const T Fc=(T)0.; const T tau=(T)1.; 
         
         Hierarchy *hierarchy=new Hierarchy(cell_counts,Range<T,d>(TV(-1),TV(1)),levels);            
