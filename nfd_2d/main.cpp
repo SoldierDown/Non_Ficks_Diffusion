@@ -101,7 +101,7 @@ int main(int argc,char** argv)
         Log::Instance()->Copy_Log_To_File(output_directory+"/common/log.txt",false);
 
         std::string surface_directory=std::to_string(d)+"d_"+std::to_string(mg_levels)+(FICKS?"levels_F_":"levels_NF_")+(simple_case?"simple_case_":"complex_case_")+(random_guess?"random_init_":"0_init_")+"Resolution_"+std::to_string(cell_counts(0));
-        surface_directory="V_test";
+        // surface_directory="V_test";
         File_Utilities::Create_Directory(surface_directory);
         File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(frame));
         File_Utilities::Write_To_Text_File(surface_directory+"/info.nova-animation",std::to_string(frame));
