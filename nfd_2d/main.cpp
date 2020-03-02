@@ -142,7 +142,7 @@ int main(int argc,char** argv)
 
         Initialize_Guess(*hierarchy,x_channel,false);
         const T_INDEX pin_cell=T_INDEX(int(cell_counts(0)/6));
-        for(int level=0;level<levels;++level) hierarchy->Channel(level,x_channel)(pin_cell._data)=(T)10.;
+        for(int level=0;level<levels;++level) hierarchy->Channel(level,x_channel)(pin_cell._data)=(T)1.;
         Compute_Right_Hand_Side(*hierarchy,x_channel,b_channel,FICKS,dt,diff_coeff,Fc,tau);
 
         Initialize_Guess(*hierarchy,x_channel,random_guess);
