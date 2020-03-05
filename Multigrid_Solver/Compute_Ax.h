@@ -57,6 +57,7 @@ class Compute_Ax
                     for(int face=0;face<number_of_faces_per_cell;++face){uint64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
                         if(hierarchy.template Set<unsigned>(level,&Struct_type::flags).Is_Set(neighbor_offset,Cell_Type_Interior)) Ax_entry+=coeff*(x(offset)-x(neighbor_offset));                        
                         else if(hierarchy.template Set<unsigned>(level,&Struct_type::flags).Is_Set(neighbor_offset,Cell_Type_Dirichlet)) Ax_entry+=coeff*x(offset);}
+                        // Log::cout<<"Ax entry: "<<Ax_entry<<std::endl;
                     Ax(offset)=Ax_entry;}
                 range_iterator.Next();}
         };

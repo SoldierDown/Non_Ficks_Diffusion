@@ -28,7 +28,7 @@ namespace Nova{
 int main(int argc,char** argv)
 {
     Log::cout.precision(13);
-    bool run_test=true;
+    bool run_test=false;
     if(run_test){
         typedef float T;
         enum {d=2};
@@ -101,7 +101,7 @@ int main(int argc,char** argv)
         Log::Instance()->Copy_Log_To_File(output_directory+"/common/log.txt",false);
 
         std::string surface_directory=std::to_string(d)+"d_"+std::to_string(mg_levels)+(FICKS?"levels_F_":"levels_NF_")+(simple_case?"simple_case_":"complex_case_")+(random_guess?"random_init_":"0_init_")+"Resolution_"+std::to_string(cell_counts(0));
-        // surface_directory="V_test";
+        surface_directory="V_test";
         File_Utilities::Create_Directory(surface_directory);
         File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(frame));
         File_Utilities::Write_To_Text_File(surface_directory+"/info.nova-animation",std::to_string(frame));
@@ -110,12 +110,11 @@ int main(int argc,char** argv)
         T Struct_type::* b_channel                = &Struct_type::ch1;
         T Struct_type::* r_channel                = &Struct_type::ch2;
 
-        const T diff_coeff=(T)1e-3; 
-        const T dt=(T)1e-3; const T Fc=(T)0.; const T tau=(T)1.; 
+        const T diff_coeff=(T)1; 
+        const T dt=(T)1; const T Fc=(T)0.; const T tau=(T)1.; 
         
         Hierarchy *hierarchy=new Hierarchy(cell_counts,Range<T,d>(TV(-1),TV(1)),levels);            
 
-        
         const Grid<T,d>& grid=hierarchy->Lattice(0);
         Range<int,d> bounding_grid_cells(grid.Clamp_To_Cell(TV(-1)),grid.Clamp_To_Cell(TV(1)));
         for(Cell_Iterator iterator(grid,bounding_grid_cells);iterator.Valid();iterator.Next()){
@@ -159,10 +158,9 @@ int main(int argc,char** argv)
         File_Utilities::Write_To_Text_File(surface_directory+"/info.nova-animation",std::to_string(frame));
         Hierarchy_Visualization::Visualize_Heightfield(*hierarchy,x_channel,surface_directory,frame);
         multigrid_solver.Compute_Residual(0);
-        Log::cout<<multigrid_solver.Convergence_Norm(0,multigrid_solver.temp_channel)<<std::endl;
+        Log::cout<<"residual norm: "<<multigrid_solver.Convergence_Norm(0,multigrid_solver.temp_channel)<<std::endl;
 
         frame++;
-  
         // for(int level=0;level<levels;++level) Multigrid_Smoother<Multigrid_struct_type,T,d>::Jacobi_Iteration(*(multigrid_solver.multigrid_hierarchy(level)),multigrid_solver.multigrid_hierarchy(level)->Blocks(level),level,multigrid_solver.x_channel,multigrid_solver.b_channel,multigrid_solver.temp_channel,bottom_iterations,Cell_Type_Interior,FICKS,dt,diff_coeff,Fc,tau);  
         multigrid_solver.V_Cycle(boundary_iterations,interior_iterations,bottom_iterations);
         multigrid_solver.Copy_Channel_Values(x_channel,multigrid_solver.x_channel,false);
