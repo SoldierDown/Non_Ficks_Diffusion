@@ -125,8 +125,6 @@ int main(int argc,char** argv)
             else{
                 if(cell_index(0)!=1&&cell_index(0)!=cell_counts(0)&&cell_index(1)!=cell_counts(1)) hierarchy->Activate_Cell(0,cell_index,Cell_Type_Interior);// set as exteriror do nothing
                 else if(cell_index(1)==1) hierarchy->Activate_Cell(0,cell_index,Cell_Type_Dirichlet);}}
-        
-
         hierarchy->Update_Block_Offsets();
         hierarchy->Initialize_Red_Black_Partition(2*number_of_threads);
         Sphere_Levelset<T,d> *levelset=new Sphere_Levelset<T,d>(TV(),(T).25);
