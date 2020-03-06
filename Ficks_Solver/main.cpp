@@ -16,6 +16,8 @@
 #include <nova/Tools/Utilities/Constants.h>
 #include <nova/Tools/Utilities/File_Utilities.h>
 #include <nova/Tools/Utilities/Pthread_Queue.h>
+#include "Ficks_CG_System.h"
+#include "Ficks_Smoother.h"
 #include "../Initialize_Dirichlet_Cells.h"
 #include "../MPM_Data.h"
 #include "../Multigrid_Solver/Multigrid_Data.h"
@@ -99,7 +101,27 @@ int main(int argc,char** argv)
     T Struct_type::* x_channel          = &Struct_type::ch0;
     T Struct_type::* b_channel          = &Struct_type::ch1;
 
+    // initialize right hand side
+    TV X=hierarchy->Lattice(0).domain.Center()*(T).25;
+    X(1)=(T)-.4;
+    const T value=hierarchy->Lattice(0).one_over_dX.Product();
+    uint64_t offset;int level;
+    Hierarchy_Lookup::Cell_Lookup(*hierarchy,X,offset,level);
+    hierarchy->Allocator(level).template Get_Array<Struct_type,T>(b_channel)(offset)=value;
+
+    Ficks_CG_System<Struct_type,Multigrid_struct_type,T,d> cg_system(*hierarchy,mg_levels,3,1,200);
+
     Hierarchy_Visualization::Visualize_Heightfield(*hierarchy,x_channel,surface_directory,frame);
+
+    if(solver=="smoother") for(int i=1;i<=cg_iterations;++i){++frame;
+        T Struct_type::* temp_channel   = &Struct_type::ch5;
+        Ficks_Smoother<Struct_type,T,d>::Exact_Solve(*hierarchy,x_channel,b_channel,temp_channel,1,(unsigned)Cell_Type_Interior);
+        Ficks_Smoother<Struct_type,T,d>::Compute_Residual(*hierarchy,x_channel,b_channel,temp_channel,(unsigned)Cell_Type_Interior);
+        CG_Vector<Struct_type,T,d> r_V(*hierarchy,temp_channel);
+        Log::cout<<cg_system.Convergence_Norm(r_V)<<std::endl;
+        File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(frame));
+        File_Utilities::Write_To_Text_File(surface_directory+"/info.nova-animation",std::to_string(frame));
+        Hierarchy_Visualization::Visualize_Heightfield(*hierarchy,x_channel,surface_directory,frame);}
 
     delete hierarchy;
 
