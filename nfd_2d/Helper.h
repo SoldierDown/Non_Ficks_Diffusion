@@ -68,18 +68,15 @@ void Compute_Right_Hand_Side(Grid_Hierarchy<Struct_type,T,d>& hierarchy,T Struct
             auto rhs=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(b_channel);
             auto flags=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
             const T one_over_dx2=hierarchy.Lattice(level).one_over_dX(0)*hierarchy.Lattice(level).one_over_dX(1);
-            const T a=diff_coeff*dt*one_over_dx2; 
+            const T a=diff_coeff*dt*one_over_dx2;
             uint64_t face_neighbor_offsets[Topology_Helper::number_of_faces_per_cell];
             Topology_Helper::Face_Neighbor_Offsets(face_neighbor_offsets);
             for(int b=0;b<blocks.second;b++){uint64_t offset=blocks.first[b];
                 for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                    if(flags(offset)&Cell_Type_Interior){
-                        rhs(offset)=x(offset);
+                    if(flags(offset)&Cell_Type_Interior){rhs(offset)=x(offset);
                         for(int face=0;face<Topology_Helper::number_of_faces_per_cell;++face){
                             int64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
-                            if(flags(neighbor_offset)&Cell_Type_Dirichlet) rhs(offset)+=a*x(neighbor_offset);}
-                            // rhs(offset)=x(offset);
-                            }}}}
+                            if(hierarchy.template Set<unsigned>(level,&Struct_type::flags).Is_Set(neighbor_offset,Cell_Type_Dirichlet)) rhs(offset)+=a*x(neighbor_offset);}}}}}
     else{for(int level=0;level<hierarchy.Levels();++level){auto blocks=hierarchy.Blocks(level);
         auto x=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(x_channel);
         auto rhs=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(b_channel);
@@ -93,10 +90,7 @@ void Compute_Right_Hand_Side(Grid_Hierarchy<Struct_type,T,d>& hierarchy,T Struct
                 if(flags(offset)&Cell_Type_Interior){rhs(offset)=x(offset);//-coeff2*div_Qc(offset);
                 for(int face=0;face<Topology_Helper::number_of_faces_per_cell;++face){
                         int64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
-                        if(flags(neighbor_offset)&Cell_Type_Dirichlet) rhs(offset)+=coeff1*x(neighbor_offset);}
-                        
-                        // rhs(offset)=x(offset);
-                        }}}}    
+                        if(hierarchy.template Set<unsigned>(level,&Struct_type::flags).Is_Set(neighbor_offset,Cell_Type_Dirichlet)) rhs(offset)+=coeff1*x(neighbor_offset);}}}}}    
 }
 
 template<class Struct_type,class T,int d>

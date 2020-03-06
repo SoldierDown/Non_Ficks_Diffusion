@@ -537,7 +537,7 @@ Rasterize()
                     TV V=p.V; T p_mass=p.mass; T weight=iterator.Weight(); auto data=iterator.Current_Cell()._data; const T Vft=p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant()*p.volume_fraction_0;
                     mass(data)+=weight*p_mass; v0(data)+=weight*(p_mass*V(0)); v1(data)+=weight*(p_mass*V(1));
                     saturation(data)+=weight*p.mass_fluid; void_mass_fluid(data)+=weight*fluid_density*Vft;
-                    if(!FICKS&&!explicit_diffusion){div_Qc(data)+=weight*p.div_Qc*p.volume; volume(data)+=weight*p.volume;}}}}}
+                    if(!FICKS&&!explicit_diffusion){div_Qc(data)+=weight*p.div_Qc*p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant(); volume(data)+=weight*p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();}}}}}
 
     // set flags
     for(int level=0;level<levels;++level) Flag_Setup_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level));     

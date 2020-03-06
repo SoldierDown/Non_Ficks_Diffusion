@@ -40,7 +40,7 @@ class Multigrid_Smoother
 
         // compute Ax
         Multiply_With_System_Matrix(hierarchy,x_channel,r_channel,FICKS,dt,diff_coeff,Fc,tau);
-
+        Log::cout<<"level 0 Ax: "<<Convergence_Norm(hierarchy,r_channel,0)<<", level 1 Ax: "<<Convergence_Norm(hierarchy,r_channel,1)<<std::endl;
         // subtract from right hand side
         // level==1 is empty (verified)
         for(int level=0;level<levels;++level)
@@ -83,7 +83,7 @@ class Multigrid_Smoother
         const int levels=hierarchy.Levels();
         for(int i=0;i<iterations;++i){
             Compute_Residual(hierarchy,x_channel,b_channel,r_channel,mask,FICKS,dt,diff_coeff,Fc,tau);
-            Log::cout<<Convergence_Norm(hierarchy,r_channel,1)<<std::endl;
+            Log::cout<<"residual norm: "<<Convergence_Norm(hierarchy,r_channel,1)<<", rhs norm: "<<Convergence_Norm(hierarchy,b_channel,1)<<std::endl;
             // residual <-- residual/diagonal
             for(int level=0;level<levels;++level) Multiply_Inverse_Diagonal<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),r_channel,r_channel,mask,level,FICKS,dt,diff_coeff,Fc,tau);
             // u <-- u + omega*(residual/diagonal)
