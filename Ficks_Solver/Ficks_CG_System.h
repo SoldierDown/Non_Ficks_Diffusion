@@ -10,6 +10,7 @@
 #include "../CG_Vector.h"
 #include "../Clear_Non_Active.h"
 #include "../Convergence_Norm_Helper.h"
+#include "Ficks_Smoother.h"
 #include "../Inner_Product_Helper.h"
 
 namespace Nova{
@@ -28,7 +29,7 @@ class Ficks_CG_System: public Krylov_System_Base<T>
 
     Ficks_CG_System(Hierarchy& hierarchy_input,const int mg_levels_input,const int boundary_smoothing_iterations_input,
                     const int interior_smoothing_iterations_input,const int bottom_smoothing_iterations_input)
-        :Base(true,false),hierarchy(hierarchy_input),mg_levels(mg_levels_input),
+        :Base(false,false),hierarchy(hierarchy_input),mg_levels(mg_levels_input),
         //multigrid_solver(hierarchy,mg_levels),
         boundary_smoothing_iterations(boundary_smoothing_iterations_input),
         interior_smoothing_iterations(interior_smoothing_iterations_input),bottom_smoothing_iterations(bottom_smoothing_iterations_input)
@@ -45,6 +46,8 @@ class Ficks_CG_System: public Krylov_System_Base<T>
     {
         T Base_struct_type::* v_channel         = CG_Vector<Base_struct_type,T,d>::Cg_Vector(v).channel;
         T Base_struct_type::* result_channel    = CG_Vector<Base_struct_type,T,d>::Cg_Vector(result).channel;
+
+        Ficks_Smoother<Base_struct_type,T,d>::Multiply_With_System_Matrix(hierarchy,v_channel,result_channel);
     }
 
     void Project(Vector_Base& v) const
@@ -85,11 +88,11 @@ class Ficks_CG_System: public Krylov_System_Base<T>
         return max_value;
     }
 
-    void Apply_Preconditioner(const Vector_Base& r,Vector_Base& z) const
-    {
-        T Base_struct_type::* r_channel         = CG_Vector<Base_struct_type,T,d>::Cg_Vector(r).channel;
-        T Base_struct_type::* z_channel         = CG_Vector<Base_struct_type,T,d>::Cg_Vector(z).channel;
-    }
+    //void Apply_Preconditioner(const Vector_Base& r,Vector_Base& z) const
+    //{
+    //    T Base_struct_type::* r_channel         = CG_Vector<Base_struct_type,T,d>::Cg_Vector(r).channel;
+    //    T Base_struct_type::* z_channel         = CG_Vector<Base_struct_type,T,d>::Cg_Vector(z).channel;
+    //}
 };
 }
 #endif

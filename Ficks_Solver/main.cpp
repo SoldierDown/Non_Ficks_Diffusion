@@ -17,7 +17,6 @@
 #include <nova/Tools/Utilities/File_Utilities.h>
 #include <nova/Tools/Utilities/Pthread_Queue.h>
 #include "Ficks_CG_System.h"
-#include "Ficks_Smoother.h"
 #include "../Initialize_Dirichlet_Cells.h"
 #include "../MPM_Data.h"
 #include "../Multigrid_Solver/Multigrid_Data.h"
@@ -113,7 +112,43 @@ int main(int argc,char** argv)
 
     Hierarchy_Visualization::Visualize_Heightfield(*hierarchy,x_channel,surface_directory,frame);
 
-    if(solver=="smoother") for(int i=1;i<=cg_iterations;++i){++frame;
+    if(solver=="mgpcg"){
+        T Struct_type::* q_channel      = &Struct_type::ch5;
+        T Struct_type::* r_channel      = &Struct_type::ch6;
+        T Struct_type::* s_channel      = &Struct_type::ch7;
+        T Struct_type::* k_channel      = &Struct_type::ch7;
+        T Struct_type::* z_channel      = &Struct_type::ch8;
+
+        // clear all channels
+        for(int level=0;level<levels;++level){
+            Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),q_channel);
+            Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channel);
+            Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),s_channel);
+            Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),z_channel);}
+
+        CG_Vector<Struct_type,T,d> x_V(*hierarchy,x_channel);
+        CG_Vector<Struct_type,T,d> b_V(*hierarchy,b_channel);
+        CG_Vector<Struct_type,T,d> q_V(*hierarchy,q_channel);
+        CG_Vector<Struct_type,T,d> r_V(*hierarchy,r_channel);
+        CG_Vector<Struct_type,T,d> s_V(*hierarchy,s_channel);
+        CG_Vector<Struct_type,T,d> k_V(*hierarchy,k_channel);
+        CG_Vector<Struct_type,T,d> z_V(*hierarchy,z_channel);
+
+        Conjugate_Gradient<T> cg;
+        cg_system.Multiply(x_V,r_V);
+        r_V-=b_V;
+        const T b_norm=cg_system.Convergence_Norm(r_V);
+        Log::cout<<"Norm: "<<b_norm<<std::endl;
+        cg.print_residuals=true;
+        cg.print_diagnostics=true;
+        cg.restart_iterations=cg_restart_iterations;
+        const T tolerance=std::max((T)1e-6*b_norm,(T)1e-6);
+        cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
+
+        File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(++frame));
+        File_Utilities::Write_To_Text_File(surface_directory+"/info.nova-animation",std::to_string(frame));
+        Hierarchy_Visualization::Visualize_Heightfield(*hierarchy,x_channel,surface_directory,frame);}
+    else if(solver=="smoother") for(int i=1;i<=cg_iterations;++i){++frame;
         T Struct_type::* temp_channel   = &Struct_type::ch5;
         Ficks_Smoother<Struct_type,T,d>::Exact_Solve(*hierarchy,x_channel,b_channel,temp_channel,1,(unsigned)Cell_Type_Interior);
         Ficks_Smoother<Struct_type,T,d>::Compute_Residual(*hierarchy,x_channel,b_channel,temp_channel,(unsigned)Cell_Type_Interior);
