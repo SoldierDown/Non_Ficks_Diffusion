@@ -16,8 +16,10 @@
 #include <nova/Tools/Utilities/Constants.h>
 #include <nova/Tools/Utilities/File_Utilities.h>
 #include <nova/Tools/Utilities/Pthread_Queue.h>
+#include "../Initialize_Dirichlet_Cells.h"
 #include "../MPM_Data.h"
 #include "../Multigrid_Solver/Multigrid_Data.h"
+#include "../Rasterizers/Adaptive_Sphere_Rasterizer.h"
 #include <omp.h>
 
 using namespace Nova;
@@ -48,6 +50,58 @@ int main(int argc,char** argv)
     enum {number_of_faces_per_cell              = Topology_Helper::number_of_faces_per_cell};
 
     Log::Initialize_Logging();
+
+    Parse_Args parse_args;
+    parse_args.Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
+    parse_args.Add_Integer_Argument("-test_number",1,"Test number.");
+    parse_args.Add_Integer_Argument("-mg_levels",1,"Number of levels in the Multigrid hierarchy.");
+    parse_args.Add_Integer_Argument("-cg_iterations",100,"Number of CG iterations.");
+    parse_args.Add_Integer_Argument("-cg_restart_iterations",40,"Number of CG restart iterations.");
+    parse_args.Add_Option_Argument("-random_guess","Use random initial guess.");
+    parse_args.Add_String_Argument("-solver","cg","Choice of solver.");
+    parse_args.Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
+    if(d==2) parse_args.Add_Vector_2D_Argument("-size",Vector<double,2>(64.),"n","Grid resolution");
+    else if(d==3) parse_args.Add_Vector_3D_Argument("-size",Vector<double,3>(64.),"n","Grid resolution");
+    parse_args.Parse(argc,argv);
+
+    int levels=parse_args.Get_Integer_Value("-levels");
+    int test_number=parse_args.Get_Integer_Value("-test_number"),frame=0;
+    number_of_threads=parse_args.Get_Integer_Value("-threads");
+    if(number_of_threads) pthread_queue=new Pthread_Queue(number_of_threads);
+
+    int mg_levels=parse_args.Get_Integer_Value("-mg_levels");
+    int cg_iterations=parse_args.Get_Integer_Value("-cg_iterations");
+    int cg_restart_iterations=parse_args.Get_Integer_Value("-cg_restart_iterations");
+    bool random_guess=parse_args.Is_Value_Set("-random_guess");
+    std::string solver=parse_args.Get_String_Value("-solver");
+    omp_set_num_threads(number_of_threads);
+
+    T_INDEX cell_counts;
+    if(d==2){auto cell_counts_2d=parse_args.Get_Vector_2D_Value("-size");for(int v=0;v<d;++v) cell_counts(v)=cell_counts_2d(v);}
+    else{auto cell_counts_3d=parse_args.Get_Vector_3D_Value("-size");for(int v=0;v<d;++v) cell_counts(v)=cell_counts_3d(v);}
+
+    std::string surface_directory="Surface_"+std::to_string(test_number)+"_Resolution_"+std::to_string(cell_counts(0));
+    File_Utilities::Create_Directory(surface_directory);
+    File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(frame));
+    File_Utilities::Write_To_Text_File(surface_directory+"/info.nova-animation",std::to_string(frame));
+
+    Hierarchy *hierarchy = new Hierarchy(cell_counts,Range<T,d>(TV(-.5),TV(.5)),levels);
+    Adaptive_Sphere_Rasterizer<Struct_type,T,d> rasterizer(*hierarchy,TV(),(T).1);
+    for(Grid_Hierarchy_Iterator<d,Hierarchy_Rasterizer> iterator(hierarchy->Lattice(levels-1).Cell_Indices(),levels-1,rasterizer);iterator.Valid();iterator.Next());
+    hierarchy->Update_Block_Offsets();
+
+    Vector<Vector<bool,2>,d> domain_walls;
+    if(test_number==1) for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=false;
+    else if(test_number==2){for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=true;
+        domain_walls(1)(1)=false;}
+    Initialize_Dirichlet_Cells<Struct_type,T,d>(*hierarchy,domain_walls);
+
+    T Struct_type::* x_channel          = &Struct_type::ch0;
+    T Struct_type::* b_channel          = &Struct_type::ch1;
+
+    Hierarchy_Visualization::Visualize_Heightfield(*hierarchy,x_channel,surface_directory,frame);
+
+    delete hierarchy;
 
     Log::Finish_Logging();
     return 0;
