@@ -40,7 +40,7 @@ class Multigrid_Smoother
 
         // compute Ax
         Multiply_With_System_Matrix(hierarchy,x_channel,r_channel,FICKS,dt,diff_coeff,Fc,tau);
-        Log::cout<<"level 0 Ax: "<<Convergence_Norm(hierarchy,r_channel,0)<<", level 1 Ax: "<<Convergence_Norm(hierarchy,r_channel,1)<<std::endl;
+        // Log::cout<<"level 0 Ax: "<<Convergence_Norm(hierarchy,r_channel,0)<<", level 1 Ax: "<<Convergence_Norm(hierarchy,r_channel,1)<<std::endl;
         // subtract from right hand side
         // level==1 is empty (verified)
         for(int level=0;level<levels;++level)

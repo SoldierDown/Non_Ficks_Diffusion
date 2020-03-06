@@ -28,7 +28,7 @@ class Saturation_Normalization_Helper
         auto void_mass_fluid=allocator.template Get_Const_Array<Struct_type,T>(void_mass_fluid_channel); auto saturation=allocator.template Get_Array<Struct_type,T>(saturation_channel);
         auto saturation_normalization_helper=[&](uint64_t offset)
         {
-            for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))void_mass_fluid
+            for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
                 if(flags(offset)&(Cell_Type_Interior|Cell_Type_Dirichlet)) saturation(offset)/=(offset);
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,saturation_normalization_helper);

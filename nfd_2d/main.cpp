@@ -6,6 +6,7 @@
 #include "Standard_Tests/Standard_Tests.h"
 
 // for test
+#include <nova/Dynamics/Hierarchy/Grid_Hierarchy_Lookup.h>
 #include <nova/Tools/Utilities/Pthread_Queue.h>
 #include <nova/Dynamics/Hierarchy/Visualization/Grid_Hierarchy_Visualization.h>
 #include <nova/Dynamics/Hierarchy/Grid_Hierarchy_Initializer.h>
@@ -28,13 +29,12 @@ namespace Nova{
 int main(int argc,char** argv)
 {
     Log::cout.precision(13);
-    bool run_test=false;
+    bool run_test=true;
     if(run_test){
         typedef float T;
         enum {d=2};
         typedef Vector<T,d> TV;
         typedef Vector<int,d> T_INDEX;
-
         using Cell_Iterator                         = Grid_Iterator_Cell<T,d>;
         using Struct_type                           = MPM_Data<T>;
         using Multigrid_struct_type                 = Multigrid_Data<T>;
@@ -42,6 +42,7 @@ int main(int argc,char** argv)
         using Flag_array_mask                       = typename Allocator_type::template Array_mask<unsigned>;
         using Topology_Helper                       = Grid_Topology_Helper<Flag_array_mask>;
         using Channel_Vector                        = Vector<T Struct_type::*,d>;
+        using Hierarchy_Lookup                      = Grid_Hierarchy_Lookup<Struct_type,T,d>;
         using Hierarchy                             = Grid_Hierarchy<Struct_type,T,d>;
         using Hierarchy_Visualization               = Grid_Hierarchy_Visualization<Struct_type,T>;
         
@@ -110,7 +111,7 @@ int main(int argc,char** argv)
         T Struct_type::* b_channel                = &Struct_type::ch1;
         T Struct_type::* r_channel                = &Struct_type::ch2;
 
-        const T diff_coeff=(T)1; 
+        const T diff_coeff=(T)1e-1; 
         const T dt=(T)1; const T Fc=(T)0.; const T tau=(T)1.; 
         
         Hierarchy *hierarchy=new Hierarchy(cell_counts,Range<T,d>(TV(-1),TV(1)),levels);            
@@ -138,9 +139,16 @@ int main(int argc,char** argv)
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channel);}
 
         Initialize_Guess(*hierarchy,x_channel,false);
-        const T_INDEX pin_cell=T_INDEX(int(cell_counts(0)/6));
-        for(int level=0;level<levels;++level) hierarchy->Channel(level,x_channel)(pin_cell._data)=(T)1.;
-        Compute_Right_Hand_Side(*hierarchy,x_channel,b_channel,FICKS,dt,diff_coeff,Fc,tau);
+        // const T_INDEX pin_cell=T_INDEX(int(cell_counts(0)/6));
+        // for(int level=0;level<levels;++level) hierarchy->Channel(level,x_channel)(pin_cell._data)=grid.one_over_dX.Product();
+        // Compute_Right_Hand_Side(*hierarchy,x_channel,b_channel,FICKS,dt,diff_coeff,Fc,tau);
+
+        TV X=hierarchy->Lattice(0).domain.Center()*(T).25;
+        X(1)=(T)-.4;
+        const T value=hierarchy->Lattice(0).one_over_dX.Product();
+        uint64_t offset;int level;
+        Hierarchy_Lookup::Cell_Lookup(*hierarchy,X,offset,level);
+        hierarchy->Allocator(level).template Get_Array<Struct_type,T>(b_channel)(offset)=value;
 
         Initialize_Guess(*hierarchy,x_channel,random_guess);
         Multigrid_Solver<Struct_type,Multigrid_struct_type,T,d> multigrid_solver(*hierarchy,mg_levels,FICKS,dt,diff_coeff,Fc,tau);
@@ -158,8 +166,8 @@ int main(int argc,char** argv)
         multigrid_solver.Compute_Residual(0);
         Log::cout<<"residual norm: "<<multigrid_solver.Convergence_Norm(0,multigrid_solver.temp_channel)<<std::endl;
 
+    for(int ind=0;ind<cg_iterations;++ind){
         frame++;
-        // for(int level=0;level<levels;++level) Multigrid_Smoother<Multigrid_struct_type,T,d>::Jacobi_Iteration(*(multigrid_solver.multigrid_hierarchy(level)),multigrid_solver.multigrid_hierarchy(level)->Blocks(level),level,multigrid_solver.x_channel,multigrid_solver.b_channel,multigrid_solver.temp_channel,bottom_iterations,Cell_Type_Interior,FICKS,dt,diff_coeff,Fc,tau);  
         multigrid_solver.V_Cycle(boundary_iterations,interior_iterations,bottom_iterations);
         multigrid_solver.Copy_Channel_Values(x_channel,multigrid_solver.x_channel,false);
         File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(frame));
@@ -167,6 +175,8 @@ int main(int argc,char** argv)
         Hierarchy_Visualization::Visualize_Heightfield(*hierarchy,x_channel,surface_directory,frame);
         multigrid_solver.Compute_Residual(0);
         Log::cout<<multigrid_solver.Convergence_Norm(0,multigrid_solver.temp_channel)<<std::endl;
+    }
+
 
         // Log::cout<<"sm iterations: "<<sm_iterations<<std::endl;
         // for(int i=1;i<=cg_iterations;++i){ ++frame;
