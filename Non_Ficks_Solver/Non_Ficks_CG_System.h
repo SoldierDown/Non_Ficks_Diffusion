@@ -25,11 +25,11 @@ class Non_Ficks_CG_System: public Krylov_System_Base<T>
   public:
     Hierarchy& hierarchy;
     const int mg_levels;
+    const T coeff1;
     const int boundary_smoothing_iterations,interior_smoothing_iterations,bottom_smoothing_iterations;
-
-    Non_Ficks_CG_System(Hierarchy& hierarchy_input,const int mg_levels_input,const int boundary_smoothing_iterations_input,
-                    const int interior_smoothing_iterations_input,const int bottom_smoothing_iterations_input)
-        :Base(false,false),hierarchy(hierarchy_input),mg_levels(mg_levels_input),
+    Non_Ficks_CG_System(Hierarchy& hierarchy_input,const int mg_levels_input,const T coeff1_input,
+        const int boundary_smoothing_iterations_input,const int interior_smoothing_iterations_input,const int bottom_smoothing_iterations_input)
+        :Base(false,false),hierarchy(hierarchy_input),mg_levels(mg_levels_input),coeff1(coeff1_input),
         //multigrid_solver(hierarchy,mg_levels),
         boundary_smoothing_iterations(boundary_smoothing_iterations_input),
         interior_smoothing_iterations(interior_smoothing_iterations_input),bottom_smoothing_iterations(bottom_smoothing_iterations_input)
@@ -47,7 +47,7 @@ class Non_Ficks_CG_System: public Krylov_System_Base<T>
         T Base_struct_type::* v_channel         = CG_Vector<Base_struct_type,T,d>::Cg_Vector(v).channel;
         T Base_struct_type::* result_channel    = CG_Vector<Base_struct_type,T,d>::Cg_Vector(result).channel;
 
-        Non_Ficks_Smoother<Base_struct_type,T,d>::Multiply_With_System_Matrix(hierarchy,v_channel,result_channel);
+        Non_Ficks_Smoother<Base_struct_type,T,d>::Multiply_With_System_Matrix(hierarchy,v_channel,result_channel,coeff1);
     }
 
     void Project(Vector_Base& v) const

@@ -27,11 +27,11 @@ class Laplace_Helper
 
   public:
     Laplace_Helper(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,
-                   T Struct_type::* u_channel,T Struct_type::* Lu_channel,const int level)
-    {Run(hierarchy,blocks,u_channel,Lu_channel,level);}
+                   T Struct_type::* u_channel,T Struct_type::* Lu_channel,const T coeff1,const int level)
+    {Run(hierarchy,blocks,u_channel,Lu_channel,coeff1,level);}
 
     void Run(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,
-             T Struct_type::* u_channel,T Struct_type::* Lu_channel,const int level) const
+             T Struct_type::* u_channel,T Struct_type::* Lu_channel,const T coeff1,const int level) const
     {
         auto block_size=hierarchy.Allocator(level).Block_Size();
         auto Lu_data=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(Lu_channel);
@@ -41,12 +41,12 @@ class Laplace_Helper
         uint64_t face_neighbor_offsets[number_of_faces_per_cell];
         Topology_Helper::Face_Neighbor_Offsets(face_neighbor_offsets);
 
-        T scaling_factor=Nova_Utilities::Sqr<T>(hierarchy.Lattice(level).one_over_dX[0]);
+        T scaling_factor=coeff1*Nova_Utilities::Sqr<T>(hierarchy.Lattice(level).one_over_dX[0]);
 
         auto laplace_helper=[&](uint64_t offset)
         {
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Cell_Type_Interior){T laplacian=(T)0.;
+                if(flags(offset)&Cell_Type_Interior){T laplacian=data(offset);
                     for(int face=0;face<number_of_faces_per_cell;++face){
                         uint64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
                         if(hierarchy.template Set<unsigned>(level,&Struct_type::flags).Is_Set(neighbor_offset,Cell_Type_Interior|Cell_Type_Dirichlet)){

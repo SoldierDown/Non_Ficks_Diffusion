@@ -23,20 +23,20 @@ class Non_Ficks_Smoother
     Non_Ficks_Smoother() {}
     ~Non_Ficks_Smoother() {}
 
-    static void Multiply_With_System_Matrix(Hierarchy& hierarchy,T Struct_type::* u_channel,T Struct_type::* Lu_channel)
+    static void Multiply_With_System_Matrix(Hierarchy& hierarchy,T Struct_type::* u_channel,T Struct_type::* Lu_channel,const T coeff1)
     {
         const int levels=hierarchy.Levels();
 
         // compute laplace
         for(int level=0;level<levels;++level)
-            Laplace_Helper<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),u_channel,Lu_channel,level);
+            Laplace_Helper<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),u_channel,Lu_channel,coeff1,level);
 
         for(int level=0;level<levels;++level)
             Clear_Non_Active<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),Lu_channel);
     }
 
     static void Compute_Residual(Hierarchy& hierarchy,T Struct_type::* u_channel,T Struct_type::* b_channel,
-                                 T Struct_type::* temp_channel,const unsigned mask)
+                                 T Struct_type::* temp_channel,const T coeff1,const unsigned mask)
     {
         const int levels=hierarchy.Levels();
 
@@ -45,7 +45,7 @@ class Non_Ficks_Smoother
             SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),temp_channel);
 
         // compute laplace
-        Multiply_With_System_Matrix(hierarchy,u_channel,temp_channel);
+        Multiply_With_System_Matrix(hierarchy,u_channel,temp_channel,coeff1);
 
         // subtract from right hand side
         for(int level=0;level<levels;++level)
@@ -54,7 +54,7 @@ class Non_Ficks_Smoother
     }
 
     static void Compute_Residual(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,const int current_level,
-                                 T Struct_type::* u_channel,T Struct_type::* b_channel,T Struct_type::* temp_channel,const unsigned mask)
+                                 T Struct_type::* u_channel,T Struct_type::* b_channel,T Struct_type::* temp_channel,const T coeff1,const unsigned mask)
     {
         const int levels=hierarchy.Levels();
 
@@ -63,7 +63,7 @@ class Non_Ficks_Smoother
             SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),temp_channel);
 
         // compute laplace
-        Multiply_With_System_Matrix(hierarchy,u_channel,temp_channel);
+        Multiply_With_System_Matrix(hierarchy,u_channel,temp_channel,coeff1);
 
         // subtract from right hand side
         SPGrid::Masked_Subtract<Struct_type,T,d>(hierarchy.Allocator(current_level),blocks,
@@ -72,7 +72,7 @@ class Non_Ficks_Smoother
 
     static void Jacobi_Iteration(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,
                                  const int level,T Struct_type::* u_channel,T Struct_type::* b_channel,T Struct_type::* temp_channel,
-                                 const int iterations,const unsigned mask,const T omega=(T)two_thirds)
+                                 const T coeff1,const int iterations,const unsigned mask,const T omega=(T)two_thirds)
     {
         for(int i=0;i<iterations;++i){
             Compute_Residual(hierarchy,blocks,level,u_channel,b_channel,temp_channel,mask);
@@ -84,15 +84,15 @@ class Non_Ficks_Smoother
     }
 
     static void Exact_Solve(Hierarchy& hierarchy,T Struct_type::* u_channel,T Struct_type::* b_channel,
-                            T Struct_type::* temp_channel,const int iterations,const unsigned mask,const T omega=(T)two_thirds)
+                            T Struct_type::* temp_channel,const T coeff1,const int iterations,const unsigned mask,const T omega=(T)two_thirds)
     {
         const int levels=hierarchy.Levels();
 
         for(int i=0;i<iterations;++i){
-            Compute_Residual(hierarchy,u_channel,b_channel,temp_channel,mask);
+            Compute_Residual(hierarchy,u_channel,b_channel,temp_channel,coeff1,mask);
             // residual <-- residual/diagonal
             for(int level=0;level<levels;++level)
-                Multiply_Inverse_Diagonal<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),temp_channel,temp_channel,mask,level);
+                Multiply_Inverse_Diagonal<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),temp_channel,temp_channel,coeff1,mask,level);
             // u <-- u + omega*(residual/diagonal)
             for(int level=0;level<levels;++level)
                 SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),

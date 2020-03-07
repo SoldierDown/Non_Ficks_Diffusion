@@ -32,7 +32,7 @@ class Multiply_Inverse_Diagonal
         auto flags=hierarchy.Allocator(level).template Get_Array<Struct_type,unsigned>(&Struct_type::flags);
 
         const T laplace_scale_uniform   = Nova_Utilities::Sqr<T>(hierarchy.Lattice(level).one_over_dX[0]);
-        const T diagonal                = (d==2)?(T)4.*Ddt*laplace_scale_uniform:(T)6.*Ddt*laplace_scale_uniform;
+        const T diagonal                = (d==2)?(T)(1.+4.*Ddt*laplace_scale_uniform):(T)(1.+6.*Ddt*laplace_scale_uniform);
         const T one_over_diagonal       = (T)1./diagonal;
 
         auto multiply_inverse_diagonal=[&](uint64_t offset)

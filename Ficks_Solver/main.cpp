@@ -111,7 +111,7 @@ int main(int argc,char** argv)
     Hierarchy_Lookup::Cell_Lookup(*hierarchy,X,offset,level);
     hierarchy->Allocator(level).template Get_Array<Struct_type,T>(b_channel)(offset)=value;
 
-    Ficks_CG_System<Struct_type,Multigrid_struct_type,T,d> cg_system(*hierarchy,mg_levels,3,1,200,Ddt);
+    Ficks_CG_System<Struct_type,Multigrid_struct_type,T,d> cg_system(*hierarchy,mg_levels,Ddt,3,1,200);
 
     Hierarchy_Visualization::Visualize_Heightfield(*hierarchy,x_channel,surface_directory,frame);
 
