@@ -100,6 +100,9 @@ int main(int argc,char** argv)
     T Struct_type::* x_channel          = &Struct_type::ch0;
     T Struct_type::* b_channel          = &Struct_type::ch1;
 
+    const T diff_coeff=(T)1.; const T dt=(T)1.e-3;
+    const T Ddt=diff_coeff*dt;
+
     // initialize right hand side
     TV X=hierarchy->Lattice(0).domain.Center()*(T).25;
     X(1)=(T)-.4;
@@ -108,7 +111,7 @@ int main(int argc,char** argv)
     Hierarchy_Lookup::Cell_Lookup(*hierarchy,X,offset,level);
     hierarchy->Allocator(level).template Get_Array<Struct_type,T>(b_channel)(offset)=value;
 
-    Ficks_CG_System<Struct_type,Multigrid_struct_type,T,d> cg_system(*hierarchy,mg_levels,3,1,200);
+    Ficks_CG_System<Struct_type,Multigrid_struct_type,T,d> cg_system(*hierarchy,mg_levels,3,1,200,Ddt);
 
     Hierarchy_Visualization::Visualize_Heightfield(*hierarchy,x_channel,surface_directory,frame);
 
@@ -150,8 +153,8 @@ int main(int argc,char** argv)
         Hierarchy_Visualization::Visualize_Heightfield(*hierarchy,x_channel,surface_directory,frame);}
     else if(solver=="smoother") for(int i=1;i<=cg_iterations;++i){++frame;
         T Struct_type::* temp_channel   = &Struct_type::ch5;
-        Ficks_Smoother<Struct_type,T,d>::Exact_Solve(*hierarchy,x_channel,b_channel,temp_channel,1,(unsigned)Cell_Type_Interior);
-        Ficks_Smoother<Struct_type,T,d>::Compute_Residual(*hierarchy,x_channel,b_channel,temp_channel,(unsigned)Cell_Type_Interior);
+        Ficks_Smoother<Struct_type,T,d>::Exact_Solve(*hierarchy,x_channel,b_channel,temp_channel,Ddt,1,(unsigned)Cell_Type_Interior);
+        Ficks_Smoother<Struct_type,T,d>::Compute_Residual(*hierarchy,x_channel,b_channel,temp_channel,Ddt,(unsigned)Cell_Type_Interior);
         CG_Vector<Struct_type,T,d> r_V(*hierarchy,temp_channel);
         Log::cout<<cg_system.Convergence_Norm(r_V)<<std::endl;
         File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(frame));
