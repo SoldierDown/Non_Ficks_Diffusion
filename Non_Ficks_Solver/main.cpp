@@ -18,7 +18,7 @@
 #include <nova/Tools/Utilities/Pthread_Queue.h>
 #include "Non_Ficks_CG_System.h"
 #include "../Initialize_Dirichlet_Cells.h"
-#include "../MPM_Data.h"
+#include "../Poisson_Data.h"
 #include "../Multigrid_Solver/Multigrid_Data.h"
 #include "../Rasterizers/Adaptive_Sphere_Rasterizer.h"
 #include <omp.h>
@@ -38,7 +38,7 @@ int main(int argc,char** argv)
     typedef float T;typedef Vector<T,d> TV;
     typedef Vector<int,d> T_INDEX;
 
-    using Struct_type                           = MPM_Data<T>;
+    using Struct_type                           = Poisson_Data<T>;
     using Multigrid_struct_type                 = Multigrid_Data<T>;
     using Allocator_type                        = SPGrid_Allocator<Struct_type,d>;
     using Flag_array_mask                       = typename Allocator_type::template Array_mask<unsigned>;

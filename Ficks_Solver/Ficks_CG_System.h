@@ -10,7 +10,7 @@
 #include "../CG_Vector.h"
 #include "../Clear_Non_Active.h"
 #include "../Convergence_Norm_Helper.h"
-#include "Ficks_Smoother.h"
+#include "Ficks_Solver.h"
 #include "../Inner_Product_Helper.h"
 
 namespace Nova{
@@ -26,14 +26,15 @@ class Ficks_CG_System: public Krylov_System_Base<T>
     Hierarchy& hierarchy;
     const int mg_levels;
     const T Ddt;
+    Ficks_Solver<Base_struct_type,Multigrid_struct_type,T,d> multigrid_solver;
     const int boundary_smoothing_iterations,interior_smoothing_iterations,bottom_smoothing_iterations;
+
     Ficks_CG_System(Hierarchy& hierarchy_input,const int mg_levels_input,const T Ddt_input,
                     const int boundary_smoothing_iterations_input,const int interior_smoothing_iterations_input,const int bottom_smoothing_iterations_input)
-        :Base(false,false),hierarchy(hierarchy_input),mg_levels(mg_levels_input),Ddt(Ddt_input),
-        //multigrid_solver(hierarchy,mg_levels),
+        :Base(true,false),hierarchy(hierarchy_input),mg_levels(mg_levels_input),Ddt(Ddt_input),multigrid_solver(hierarchy,mg_levels,Ddt),
         boundary_smoothing_iterations(boundary_smoothing_iterations_input),interior_smoothing_iterations(interior_smoothing_iterations_input),bottom_smoothing_iterations(bottom_smoothing_iterations_input)
     {
-        //multigrid_solver.Initialize();
+        multigrid_solver.Initialize();
     }
 
     ~Ficks_CG_System() {}
@@ -87,11 +88,22 @@ class Ficks_CG_System: public Krylov_System_Base<T>
         return max_value;
     }
 
-    //void Apply_Preconditioner(const Vector_Base& r,Vector_Base& z) const
-    //{
-    //    T Base_struct_type::* r_channel         = CG_Vector<Base_struct_type,T,d>::Cg_Vector(r).channel;
-    //    T Base_struct_type::* z_channel         = CG_Vector<Base_struct_type,T,d>::Cg_Vector(z).channel;
-    //}
+    void Apply_Preconditioner(const Vector_Base& r,Vector_Base& z) const
+    {
+        T Base_struct_type::* r_channel         = CG_Vector<Base_struct_type,T,d>::Cg_Vector(r).channel;
+        T Base_struct_type::* z_channel         = CG_Vector<Base_struct_type,T,d>::Cg_Vector(z).channel;
+
+        multigrid_solver.Initialize_Right_Hand_Side(r_channel);
+        multigrid_solver.Initialize_Guess();
+        multigrid_solver.V_Cycle(boundary_smoothing_iterations,interior_smoothing_iterations,bottom_smoothing_iterations);
+
+        // clear z
+        for(int level=0;level<hierarchy.Levels();++level)
+            SPGrid::Clear<Base_struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),z_channel);
+
+        // copy u from multigrid hierarchy
+        multigrid_solver.Copy_Channel_Values(z_channel,multigrid_solver.u_channel,false);
+    }
 };
 }
 #endif

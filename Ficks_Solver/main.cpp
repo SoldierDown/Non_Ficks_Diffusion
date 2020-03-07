@@ -13,12 +13,11 @@
 #include <nova/Tools/Log/Log.h>
 #include <nova/Tools/Parsing/Parse_Args.h>
 #include <nova/Tools/Random_Numbers/Random_Numbers.h>
-#include <nova/Tools/Utilities/Constants.h>
 #include <nova/Tools/Utilities/File_Utilities.h>
 #include <nova/Tools/Utilities/Pthread_Queue.h>
 #include "Ficks_CG_System.h"
 #include "../Initialize_Dirichlet_Cells.h"
-#include "../MPM_Data.h"
+#include "../Poisson_Data.h"
 #include "../Multigrid_Solver/Multigrid_Data.h"
 #include "../Rasterizers/Adaptive_Sphere_Rasterizer.h"
 #include <omp.h>
@@ -32,13 +31,36 @@ namespace Nova{
 int number_of_threads=0;
 }
 
+template<class Struct_type,class T,int d>
+void Initialize_Guess(Grid_Hierarchy<Struct_type,T,d>& hierarchy,T Struct_type::* u_channel)
+{
+    using TV                                    = Vector<T,d>;
+    using T_INDEX                               = Vector<int,d>;
+    using Flags_type                            = typename Struct_type::Flags_type;
+    using Allocator_type                        = SPGrid_Allocator<Struct_type,d>;
+    using Flag_array_mask                       = typename Allocator_type::template Array_mask<unsigned>;
+
+    for(int level=0;level<hierarchy.Levels();++level)
+        SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),u_channel);
+
+    Random_Numbers<T> random;
+
+    for(int level=0;level<hierarchy.Levels();++level){auto blocks=hierarchy.Blocks(level);
+        auto data=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(u_channel);
+        auto flags=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
+
+        for(int b=0;b<blocks.second;b++){uint64_t offset=blocks.first[b];
+            for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
+                if(flags(offset)&Cell_Type_Interior) data(offset)=random.Get_Uniform_Number((T)0.,(T)1.);}}
+}
+
 int main(int argc,char** argv)
 {
     enum {d=2};
     typedef float T;typedef Vector<T,d> TV;
     typedef Vector<int,d> T_INDEX;
 
-    using Struct_type                           = MPM_Data<T>;
+    using Struct_type                           = Poisson_Data<T>;
     using Multigrid_struct_type                 = Multigrid_Data<T>;
     using Allocator_type                        = SPGrid_Allocator<Struct_type,d>;
     using Flag_array_mask                       = typename Allocator_type::template Array_mask<unsigned>;
@@ -89,6 +111,7 @@ int main(int argc,char** argv)
     Hierarchy *hierarchy = new Hierarchy(cell_counts,Range<T,d>(TV(-.5),TV(.5)),levels);
     Adaptive_Sphere_Rasterizer<Struct_type,T,d> rasterizer(*hierarchy,TV(),(T).1);
     for(Grid_Hierarchy_Iterator<d,Hierarchy_Rasterizer> iterator(hierarchy->Lattice(levels-1).Cell_Indices(),levels-1,rasterizer);iterator.Valid();iterator.Next());
+    Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_Ghost_Cells(*hierarchy);
     hierarchy->Update_Block_Offsets();
 
     Vector<Vector<bool,2>,d> domain_walls;
@@ -106,7 +129,7 @@ int main(int argc,char** argv)
     // initialize right hand side
     TV X=hierarchy->Lattice(0).domain.Center()*(T).25;
     X(1)=(T)-.4;
-    const T value=hierarchy->Lattice(0).one_over_dX.Product();
+    const T value=hierarchy->Lattice(0).one_over_dX[0];
     uint64_t offset;int level;
     Hierarchy_Lookup::Cell_Lookup(*hierarchy,X,offset,level);
     hierarchy->Allocator(level).template Get_Array<Struct_type,T>(b_channel)(offset)=value;
@@ -160,6 +183,26 @@ int main(int argc,char** argv)
         File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(frame));
         File_Utilities::Write_To_Text_File(surface_directory+"/info.nova-animation",std::to_string(frame));
         Hierarchy_Visualization::Visualize_Heightfield(*hierarchy,x_channel,surface_directory,frame);}
+    else if(solver=="mg"){
+        Ficks_Solver<Struct_type,Multigrid_struct_type,T,d> multigrid_solver(*hierarchy,mg_levels,Ddt);
+        multigrid_solver.Initialize();
+        multigrid_solver.Initialize_Right_Hand_Side(b_channel);
+        multigrid_solver.Initialize_Guess();
+        if(random_guess){Initialize_Guess(*hierarchy,x_channel);
+            multigrid_solver.Copy_Channel_Values(x_channel,multigrid_solver.u_channel);}
+
+        Hierarchy_Visualization::Visualize_Heightfield(*hierarchy,x_channel,surface_directory,frame);
+        multigrid_solver.Compute_Residual(0);
+        Log::cout<<multigrid_solver.Convergence_Norm(0,multigrid_solver.temp_channel)<<std::endl;
+
+        for(int i=1;i<=cg_iterations;++i){multigrid_solver.V_Cycle(50,30,200);
+            multigrid_solver.Copy_Channel_Values(x_channel,multigrid_solver.u_channel,false);
+            File_Utilities::Create_Directory(surface_directory+"/"+std::to_string(++frame));
+            File_Utilities::Write_To_Text_File(surface_directory+"/info.nova-animation",std::to_string(frame));
+            Hierarchy_Visualization::Visualize_Heightfield(*hierarchy,x_channel,surface_directory,frame);
+
+            multigrid_solver.Compute_Residual(0);
+            Log::cout<<multigrid_solver.Convergence_Norm(0,multigrid_solver.temp_channel)<<std::endl;}}
 
     delete hierarchy;
 
