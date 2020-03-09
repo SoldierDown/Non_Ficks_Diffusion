@@ -156,8 +156,6 @@ class MPM_Example<T,2>: public Example<T,2>
     int update_x_v_cnt=0;
     T flip;
     T cfl;
-    T solver_tolerance;
-    int solver_iterations;
     int levels,threads;
     T_INDEX counts;
     Range<T,2> domain;
@@ -292,8 +290,6 @@ class MPM_Example<T,3>: public Example<T,3>
     int update_x_v_cnt=0;
     T flip;
     T cfl;
-    T solver_tolerance;
-    int solver_iterations;
     int levels,threads;
     T_INDEX counts;
     Range<T,3> domain;

@@ -43,7 +43,7 @@ class Standard_Tests: public MPM_Example<T,d>
         output_directory=std::to_string(d)+"d_"+(FICKS?"F_":"NF_")+"E_"+std::to_string(E)+"_nu_"+std::to_string(nu)+"_diff_"+std::to_string(diff_coeff)
                             +"_eta_"+std::to_string(eta)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau);
 
-        domain.min_corner=TV();domain.max_corner=TV(1);
+        domain.min_corner=TV();domain.max_corner=TV(5);
     }
 //######################################################################
     void Initialize_Particles(int test_case) override
@@ -55,7 +55,7 @@ class Standard_Tests: public MPM_Example<T,d>
         case 15:{
             const T mass_density=(T)2.;
             const int number_of_particles=2000;
-            const Range<T,d> block(TV({.4,.4}),TV({.6,.6}));
+            const Range<T,d> block(TV({2.4,2.4}),TV({2.6,2.6}));
             const T block_area=block.Area();
             const T area_per_particle=block_area/number_of_particles;
             // std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
@@ -85,7 +85,7 @@ class Standard_Tests: public MPM_Example<T,d>
             {
                 const T mass_density=(T)2.;
                 const int number_of_particles=2000;
-                const Sphere<T,d> ball(TV({.5,.5}),.1);
+                const Sphere<T,d> ball(TV({2.5,2.5}),.5);
                 const T block_area=ball.Size();
                 const T area_per_particle=block_area/number_of_particles;
                 std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
@@ -106,7 +106,7 @@ class Standard_Tests: public MPM_Example<T,d>
             {
                 const T mass_density=(T)1.;
                 const int number_of_particles=1000;
-                const Range<T,d> block(TV({0.,.1}),TV({1.,.125}));
+                const Range<T,d> block(TV({0.,.1}),TV({5.,.125}));
                 const T block_area=block.Area();
                 const T area_per_particle=block_area/number_of_particles;
                 const T E=(T)5., nu=(T).4;
@@ -131,7 +131,7 @@ class Standard_Tests: public MPM_Example<T,d>
             {
                 const T mass_density=(T)2.;
                 const int number_of_particles=2000;
-                const Sphere<T,d> ball(TV({.5,.5}),.1);
+                const Sphere<T,d> ball(TV({2.5,2.5}),.5);
                 const T block_area=ball.Size();
                 const T area_per_particle=block_area/number_of_particles;
                 std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
@@ -158,17 +158,17 @@ class Standard_Tests: public MPM_Example<T,d>
             random.Set_Seed(0);
             T_Barrier ground(0.,TV({0.,1.}),TV({0.,.1}));
             barriers.Append(ground);
-            T_Barrier ceiling(0.,TV({0.,-1.}),TV({0.,.9}));
+            T_Barrier ceiling(0.,TV({0.,-1.}),TV({0.,4.9}));
             Base::barriers.Append(ceiling);
             T_Barrier left_wall(0.,TV({1.,0.}),TV({.1,0.}));
             barriers.Append(left_wall);
-            T_Barrier right_wall(0.,TV({-1.,0.}),TV({.9,0.}));
+            T_Barrier right_wall(0.,TV({-1.,0.}),TV({4.9,0.}));
             barriers.Append(right_wall);
 
             {
                 const T mass_density=(T)2.;
                 const int number_of_particles=2000;
-                const Sphere<T,d> ball(TV({.8,.5}),.1);
+                const Sphere<T,d> ball(TV({4.,2.5}),.5);
                 const T block_area=ball.Size();
                 const T area_per_particle=block_area/number_of_particles;
                 std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
@@ -191,7 +191,7 @@ class Standard_Tests: public MPM_Example<T,d>
             {
                 const T mass_density=(T)2.;
                 const int number_of_particles=2000;
-                const Sphere<T,d> ball(TV({.2,.5}),.1);
+                const Sphere<T,d> ball(TV({1.,2.5}),.5);
                 const T block_area=ball.Size();
                 const T area_per_particle=block_area/number_of_particles;
                 std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
@@ -225,7 +225,7 @@ class Standard_Tests: public MPM_Example<T,d>
                 const T solid_density=(T)10.;
                 const T fluid_density=(T)1.;
                 const int number_of_particles=2000;
-                const Range<T,d> block(TV({.4,.4}),TV({.6,.6}));
+                const Range<T,d> block(TV({2.,2.}),TV({3.,3.}));
                 const T block_area=block.Area();
                 const T area_per_particle=block_area/number_of_particles;
                 std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
@@ -254,7 +254,7 @@ class Standard_Tests: public MPM_Example<T,d>
                 const T solid_density=(T)10.;
                 const T fluid_density=(T)1.;
                 const int number_of_particles=4000;
-                const Range<T,d> block(TV({.4,.4}),TV({.6,.6}));
+                const Range<T,d> block(TV({2.,2.}),TV({3.,3.}));
                 const T block_area=block.Area();
                 const T area_per_particle=block_area/number_of_particles;
                 std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;

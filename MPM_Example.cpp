@@ -1036,7 +1036,7 @@ Apply_Force(const T dt)
     // set rhs here
     for(int level=0;level<levels;++level) MPM_RHS_Helper<MPM_struct_type,T,2>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),velocity_star_channels,mpm_rhs_channels);     
     MPM_CG_Vector<MPM_struct_type,T,2> solver_vp(*mpm_hierarchy,velocity_star_channels),solver_rhs(*mpm_hierarchy,mpm_rhs_channels),solver_q(*mpm_hierarchy,mpm_q_channels),solver_s(*mpm_hierarchy,mpm_s_channels),solver_r(*mpm_hierarchy,mpm_r_channels),solver_k(*mpm_hierarchy,mpm_z_channels),solver_z(*mpm_hierarchy,mpm_z_channels);
-    solver->Solve(mpm_system,solver_vp,solver_rhs,solver_q,solver_s,solver_r,solver_k,solver_z,solver_tolerance,0,solver_iterations);}
+    solver->Solve(mpm_system,solver_vp,solver_rhs,solver_q,solver_s,solver_r,solver_k,solver_z,1e-7,0,cg_max_iterations);}
     high_resolution_clock::time_point te=high_resolution_clock::now();
 	duration<double> dur=duration_cast<duration<double>>(te-tb);
     apply_force_cnt++;
@@ -1062,7 +1062,7 @@ Apply_Force(const T dt)
     // set rhs here
     for(int level=0;level<levels;++level) MPM_RHS_Helper<MPM_struct_type,T,3>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),velocity_star_channels,mpm_rhs_channels);     
     MPM_CG_Vector<MPM_struct_type,T,3> solver_vp(*mpm_hierarchy,velocity_star_channels),solver_rhs(*mpm_hierarchy,mpm_rhs_channels),solver_q(*mpm_hierarchy,mpm_q_channels),solver_s(*mpm_hierarchy,mpm_s_channels),solver_r(*mpm_hierarchy,mpm_r_channels),solver_k(*mpm_hierarchy,mpm_z_channels),solver_z(*mpm_hierarchy,mpm_z_channels);
-    solver->Solve(mpm_system,solver_vp,solver_rhs,solver_q,solver_s,solver_r,solver_k,solver_z,solver_tolerance,0,solver_iterations);}
+    solver->Solve(mpm_system,solver_vp,solver_rhs,solver_q,solver_s,solver_r,solver_k,solver_z,1e-7,0,cg_max_iterations);}
     high_resolution_clock::time_point te=high_resolution_clock::now();
 	duration<double> dur=duration_cast<duration<double>>(te-tb);
     apply_force_cnt++;
@@ -1201,6 +1201,8 @@ template<class T> void MPM_Example<T,2>::
 Register_Options()
 {
     Base::Register_Options();
+	parse_args->Add_Integer_Argument("-mg_levels",2,"Number of multigrid levels.");
+	parse_args->Add_Integer_Argument("-cg_max_iterations",10000,"Maximum cg iterations");
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
     parse_args->Add_Double_Argument("-cfl",(T)0.1,"CFL number.");
@@ -1220,6 +1222,8 @@ template<class T> void MPM_Example<T,3>::
 Register_Options()
 {
     Base::Register_Options();
+	parse_args->Add_Integer_Argument("-mg_levels",2,"Number of multigrid levels.");
+	parse_args->Add_Integer_Argument("-cg_max_iterations",10000,"Maximum cg iterations");
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
     parse_args->Add_Double_Argument("-cfl",(T)0.1,"CFL number.");
@@ -1238,10 +1242,6 @@ Register_Options()
 template<class T> void MPM_Example<T,2>::
 Test()
 {
-
-
-
-
 }
 //######################################################################
 // Test
@@ -1249,7 +1249,6 @@ Test()
 template<class T> void MPM_Example<T,3>::
 Test()
 {
-
 }
 //######################################################################
 // Parse_Options
@@ -1258,7 +1257,8 @@ template<class T> void MPM_Example<T,2>::
 Parse_Options()
 {
     Base::Parse_Options();
-
+	mg_levels=parse_args->Get_Integer_Value("-mg_levels");
+	cg_max_iterations=parse_args->Get_Integer_Value("-cg_max_iterations");
     threads=parse_args->Get_Integer_Value("-threads");
     omp_set_num_threads(threads);
     Base::test_number=parse_args->Get_Integer_Value("-test_number");
@@ -1281,7 +1281,8 @@ template<class T> void MPM_Example<T,3>::
 Parse_Options()
 {
     Base::Parse_Options();
-
+	mg_levels=parse_args->Get_Integer_Value("-mg_levels");
+	cg_max_iterations=parse_args->Get_Integer_Value("-cg_max_iterations");
     threads=parse_args->Get_Integer_Value("-threads");
     omp_set_num_threads(threads);
     Base::test_number=parse_args->Get_Integer_Value("-test_number");
