@@ -1,17 +1,17 @@
 //!#####################################################################
-//! \file Convergence_Norm_Helper.h
+//! \file MPM_Convergence_Norm_Helper.h
 //!#####################################################################
-// Class Convergence_Norm_Helper
+// Class  MPM_Convergence_Norm_Helper
 //######################################################################
-#ifndef __Convergence_Norm_Helper__
-#define __Convergence_Norm_Helper__
+#ifndef __MPM_Convergence_Norm_Helper__
+#define __MPM_Convergence_Norm_Helper__
 
 #include <nova/SPGrid/Core/SPGrid_Allocator.h>
 #include <algorithm>
 
 namespace Nova{
 template<class Struct_type,class T,int d>
-class Convergence_Norm_Helper
+class MPM_Convergence_Norm_Helper
 {
     using Flags_type                = typename Struct_type::Flags_type;
     using Allocator_type            = SPGrid::SPGrid_Allocator<Struct_type,d>;
@@ -21,7 +21,7 @@ class Convergence_Norm_Helper
     using Channel_Vector            = Vector<T Struct_type::*,d>;
 
   public:
-    Convergence_Norm_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
+    MPM_Convergence_Norm_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
                             Channel_Vector channels,T& result,const unsigned mask)
     {Run(allocator,blocks,channels,result,mask);}
 

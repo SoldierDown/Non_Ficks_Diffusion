@@ -118,7 +118,6 @@ Vector_To_Flag(Vector<int,3> current_cell)
 }
 
 template <class T,int d> class MPM_Example;
-
 template<class T>
 class MPM_Example<T,2>: public Example<T,2>
 {
@@ -183,7 +182,7 @@ class MPM_Example<T,2>: public Example<T,2>
     MPM_Channel_Vector f_channels;
 
 
-
+    int mg_levels=1;
     // Hydrogel variables
     T E;
     T nu;
@@ -316,7 +315,7 @@ class MPM_Example<T,3>: public Example<T,3>
     MPM_Channel_Vector velocity_star_channels;
     MPM_Channel_Vector f_channels;
 
-
+    int mg_levels=1;
     // Hydrogel variables
     T E;
     T nu;

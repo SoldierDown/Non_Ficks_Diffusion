@@ -1,16 +1,16 @@
 //!#####################################################################
-//! \file Inner_Product_Helper.h
+//! \file MPM_Inner_Product_Helper.h
 //!#####################################################################
-// Class Inner_Product_Helper
+// Class MPM_Inner_Product_Helper
 //######################################################################
-#ifndef __Inner_Product_Helper__
-#define __Inner_Product_Helper__
+#ifndef __MPM_Inner_Product_Helper__
+#define __MPM_Inner_Product_Helper__
 
 #include <nova/SPGrid/Core/SPGrid_Allocator.h>
 
 namespace Nova{
 template<class Struct_type,class T,int d>
-class Inner_Product_Helper
+class MPM_Inner_Product_Helper
 {
     using TV                        = Vector<T,d>;
     using Flags_type                = typename Struct_type::Flags_type;
@@ -20,7 +20,7 @@ class Inner_Product_Helper
     using Block_Iterator            = SPGrid::SPGrid_Block_Iterator<Flag_array_mask>;
     using Channel_Vector            = Vector<T Struct_type::*,d>;
   public:
-    Inner_Product_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,const Channel_Vector& channels1,const Channel_Vector& channels2,
+    MPM_Inner_Product_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,const Channel_Vector& channels1,const Channel_Vector& channels2,
                           T& result,const unsigned mask)
     {Run(allocator,blocks,channels1,channels2,result,mask);}
 

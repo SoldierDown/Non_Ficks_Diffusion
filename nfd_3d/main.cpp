@@ -7,6 +7,9 @@
 using namespace Nova;
 using namespace std::chrono;
 
+namespace Nova{
+    int number_of_threads=0;
+}
 int main(int argc,char** argv)
 {
     high_resolution_clock::time_point tb = high_resolution_clock::now();

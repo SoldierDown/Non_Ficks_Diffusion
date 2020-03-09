@@ -20,8 +20,8 @@
 
 #include "MPM_CG_Vector.h"
 #include "Project_Helper.h"
-#include "Convergence_Norm_Helper.h"
-#include "Inner_Product_Helper.h"
+#include "MPM_Convergence_Norm_Helper.h"
+#include "MPM_Inner_Product_Helper.h"
 #include "Multiply_Helper.h"
 #include "../MPM_Plane_Barrier.h"
 #include "../MPM_Example.h"
@@ -226,7 +226,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
         T result=(T)0.;
 
         for(int level=0;level<hierarchy.Levels();++level)
-            Inner_Product_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v1_channels,v2_channels,result,(unsigned)Cell_Type_Interior);
+            MPM_Inner_Product_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),v1_channels,v2_channels,result,(unsigned)Cell_Type_Interior);
         return result;
     }
 
@@ -236,7 +236,7 @@ class MPM_CG_System: public Krylov_System_Base<T>
         T result=(T)0.;
         
         for(int level=0;level<hierarchy.Levels();++level)
-            Convergence_Norm_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
+            MPM_Convergence_Norm_Helper<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
                                                      v_channels,result,(unsigned)Cell_Type_Interior);
         return result;
     }
