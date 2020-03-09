@@ -1,10 +1,10 @@
 //!#####################################################################
-//! \file Laplace_Helper.h
+//! \file Ficks_Ax_Helper.h
 //!#####################################################################
-// Class Laplace_Helper
+// Class Ficks_Ax_Helper
 //######################################################################
-#ifndef __Laplace_Helper__
-#define __Laplace_Helper__
+#ifndef __Ficks_Ax_Helper__
+#define __Ficks_Ax_Helper__
 
 #include <nova/Dynamics/Hierarchy/Grid_Hierarchy.h>
 #include <nova/Dynamics/Hierarchy/Grid_Topology_Helper.h>
@@ -14,7 +14,7 @@
 
 namespace Nova{
 template<class Struct_type,class T,int d>
-class Laplace_Helper
+class Ficks_Ax_Helper
 {
     using TV                        = Vector<T,d>;
     using T_INDEX                   = Vector<int,d>;
@@ -26,12 +26,12 @@ class Laplace_Helper
     enum {number_of_faces_per_cell  = Topology_Helper::number_of_faces_per_cell};
 
   public:
-    Laplace_Helper(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,
-                   T Struct_type::* u_channel,T Struct_type::* Lu_channel,const T coeff1,const int level)
-    {Run(hierarchy,blocks,u_channel,Lu_channel,coeff1,level);}
+    Ficks_Ax_Helper(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,
+                   T Struct_type::* u_channel,T Struct_type::* Lu_channel,const T Ddt,const int level)
+    {Run(hierarchy,blocks,u_channel,Lu_channel,Ddt,level);}
 
     void Run(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,
-             T Struct_type::* u_channel,T Struct_type::* Lu_channel,const T coeff1,const int level) const
+             T Struct_type::* u_channel,T Struct_type::* Lu_channel,const T Ddt,const int level) const
     {
         auto block_size=hierarchy.Allocator(level).Block_Size();
         auto Lu_data=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(Lu_channel);
@@ -41,20 +41,22 @@ class Laplace_Helper
         uint64_t face_neighbor_offsets[number_of_faces_per_cell];
         Topology_Helper::Face_Neighbor_Offsets(face_neighbor_offsets);
 
-        T scaling_factor=coeff1*Nova_Utilities::Sqr<T>(hierarchy.Lattice(level).one_over_dX[0]);
+        T scaling_factor=Ddt*Nova_Utilities::Sqr<T>(hierarchy.Lattice(level).one_over_dX[0]);
 
-        auto laplace_helper=[&](uint64_t offset)
+        auto ficks_ax_helper=[&](uint64_t offset)
         {
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Cell_Type_Interior){T laplacian=data(offset);
+                if(flags(offset)&Cell_Type_Interior){T Ax_entry=data(offset);
                     for(int face=0;face<number_of_faces_per_cell;++face){
                         uint64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
-                        if(hierarchy.template Set<unsigned>(level,&Struct_type::flags).Is_Set(neighbor_offset,Cell_Type_Interior|Cell_Type_Dirichlet)){
-                            laplacian+=scaling_factor*(data(offset)-data(neighbor_offset));}}
-                    Lu_data(offset)=laplacian;}}
+                        if(hierarchy.template Set<unsigned>(level,&Struct_type::flags).Is_Set(neighbor_offset,Cell_Type_Interior)) 
+                            Ax_entry+=scaling_factor*(data(offset)-data(neighbor_offset));
+                        else if(hierarchy.template Set<unsigned>(level,&Struct_type::flags).Is_Set(neighbor_offset,Cell_Type_Dirichlet)) 
+                            Ax_entry+=scaling_factor*data(offset);}
+                    Lu_data(offset)=Ax_entry;}}
         };
 
-        SPGrid_Computations::Run_Parallel_Blocks(blocks,laplace_helper);
+        SPGrid_Computations::Run_Parallel_Blocks(blocks,ficks_ax_helper);
     }
 };
 }

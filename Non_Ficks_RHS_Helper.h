@@ -22,7 +22,6 @@ class Non_Ficks_RHS_Helper
     using Allocator_type        = SPGrid::SPGrid_Allocator<Struct_type,d>;
     using Flag_array_mask       = typename Allocator_type::template Array_mask<unsigned>;
     using Topology_Helper       = Grid_Topology_Helper<Flag_array_mask>;
-    // using Block_Iterator        = SPGrid::SPGrid_Block_Iterator<Flag_array_mask>;
 
   public:
     Non_Ficks_RHS_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,

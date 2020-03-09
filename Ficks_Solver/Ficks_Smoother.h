@@ -10,8 +10,8 @@
 #include <nova/SPGrid/Tools/SPGrid_Arithmetic.h>
 #include <nova/SPGrid/Tools/SPGrid_Clear.h>
 #include <nova/Tools/Utilities/Constants.h>
-#include "Laplace_Helper.h"
-#include "Multiply_Inverse_Diagonal.h"
+#include "Ficks_Ax_Helper.h"
+#include "Ficks_Multiply_Inverse_Diagonal.h"
 
 namespace Nova{
 template<class Struct_type,class T,int d>
@@ -29,10 +29,10 @@ class Ficks_Smoother
 
         // compute laplace
         for(int level=0;level<levels;++level)
-            Laplace_Helper<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),u_channel,Lu_channel,Ddt,level);
+            Ficks_Ax_Helper<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),u_channel,Lu_channel,Ddt,level);
 
-        for(int level=0;level<levels;++level)
-            Clear_Non_Active<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),Lu_channel);
+        // for(int level=0;level<levels;++level)
+        //     Clear_Non_Active<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),Lu_channel);
     }
 
     static void Compute_Residual(Hierarchy& hierarchy,T Struct_type::* u_channel,T Struct_type::* b_channel,
@@ -77,7 +77,7 @@ class Ficks_Smoother
         for(int i=0;i<iterations;++i){
             Compute_Residual(hierarchy,blocks,level,u_channel,b_channel,temp_channel,Ddt,mask);
             // residual <-- residual/diagonal
-            Multiply_Inverse_Diagonal<Struct_type,T,d>(hierarchy,blocks,temp_channel,temp_channel,Ddt,mask,level);
+            Ficks_Multiply_Inverse_Diagonal<Struct_type,T,d>(hierarchy,blocks,temp_channel,temp_channel,Ddt,mask,level);
             // u <-- u + omega*(residual/diagonal)
             SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy.Allocator(level),blocks,omega,
                                                   temp_channel,u_channel,u_channel,mask);}
@@ -92,7 +92,7 @@ class Ficks_Smoother
             Compute_Residual(hierarchy,u_channel,b_channel,temp_channel,Ddt,mask);
             // residual <-- residual/diagonal
             for(int level=0;level<levels;++level)
-                Multiply_Inverse_Diagonal<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),temp_channel,temp_channel,Ddt,mask,level);
+                Ficks_Multiply_Inverse_Diagonal<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),temp_channel,temp_channel,Ddt,mask,level);
             // u <-- u + omega*(residual/diagonal)
             for(int level=0;level<levels;++level)
                 SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),

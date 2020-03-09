@@ -182,7 +182,9 @@ class MPM_Example<T,2>: public Example<T,2>
     MPM_Channel_Vector f_channels;
 
 
-    int mg_levels=1;
+    int mg_levels;
+    int cg_max_iterations;
+    int cg_restart_iterations;
     // Hydrogel variables
     T E;
     T nu;
@@ -315,7 +317,9 @@ class MPM_Example<T,3>: public Example<T,3>
     MPM_Channel_Vector velocity_star_channels;
     MPM_Channel_Vector f_channels;
 
-    int mg_levels=1;
+    int mg_levels;
+    int cg_max_iterations;
+    int cg_restart_iterations;
     // Hydrogel variables
     T E;
     T nu;

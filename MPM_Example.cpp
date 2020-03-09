@@ -50,8 +50,9 @@ template<class T> MPM_Example<T,2>::
 MPM_Example()
     :Base(),mpm_hierarchy(nullptr),diff_hierarchy(nullptr)
 {
-    solver_tolerance=(T)1e-7;
-    solver_iterations=10000;
+	mg_levels=2;
+	cg_max_iterations=10000;
+	cg_restart_iterations=50;
     gravity=TV::Axis_Vector(1)*(T)0.;
     flip=(T).9;
     explicit_diffusion=false;
@@ -100,8 +101,9 @@ template<class T> MPM_Example<T,3>::
 MPM_Example()
     :Base(),mpm_hierarchy(nullptr),diff_hierarchy(nullptr)
 {
-    solver_tolerance=(T)1e-7;
-    solver_iterations=10000;
+	mg_levels=2;
+	cg_max_iterations=10000;
+	cg_restart_iterations=50;
     gravity=TV::Axis_Vector(1)*(T)0.;
     flip=(T).9;
     explicit_diffusion=false;
@@ -626,25 +628,28 @@ Rasterize()
 template<class T> void MPM_Example<T,2>::
 Ficks_Diffusion(T dt)
 {
-    using Multigrid_struct_type                 = Multigrid_Data<T>;
+    using Multigrid_struct_type 	= Multigrid_Data<T>;
     Log::cout<<"Fick's Diffusion"<<std::endl;
 	const Grid<T,2>& diff_grid=mpm_hierarchy->Lattice(0);
     const T one_over_dx2=(T)1./(Nova_Utilities::Sqr(diff_grid.dX(0)));
     const T a=diff_coeff*dt*one_over_dx2; const T four_a_plus_one=(T)4.*a+(T)1.;
-    
 	if(!explicit_diffusion){
 	
 	Ficks_CG_System<Diff_struct_type,Multigrid_struct_type,T,2> cg_system(*diff_hierarchy,mg_levels,diff_coeff*dt,3,1,200);
     Reset_Solver_Channels();
 	for(int level=0;level<levels;++level) Ficks_RHS_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,diff_rhs_channel,a);
-	CG_Vector<Diff_struct_type,T,2> saturation_V(*diff_hierarchy,saturation_channel),b_V(*diff_hierarchy,diff_rhs_channel),q_V(*diff_hierarchy,diff_q_channel),
+	CG_Vector<Diff_struct_type,T,2> x_V(*diff_hierarchy,saturation_channel),b_V(*diff_hierarchy,diff_rhs_channel),q_V(*diff_hierarchy,diff_q_channel),
                                                 s_V(*diff_hierarchy,diff_s_channel),r_V(*diff_hierarchy,diff_r_channel),k_V(*diff_hierarchy,diff_z_channel),z_V(*diff_hierarchy,diff_z_channel);   
 	Conjugate_Gradient<T> cg;
-	cg.print_residuals=true;
+    cg_system.Multiply(x_V,r_V);
+    r_V-=b_V;
+    const T b_norm=cg_system.Convergence_Norm(r_V);
+    Log::cout<<"Norm: "<<b_norm<<std::endl;
+    cg.print_residuals=true;
     cg.print_diagnostics=true;
-    cg.restart_iterations=50;
-    const T tolerance=1e-6;//std::max((T)1e-6*b_norm,(T)1e-6);
-    cg.Solve(cg_system,saturation_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,100);
+    cg.restart_iterations=cg_restart_iterations;
+    const T tolerance=std::max((T)1e-6*b_norm,(T)1e-6);
+    cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_max_iterations);
 
     // Diffusion_CG_System<Diff_struct_type,T,2> ficks_diffusion_system(*diff_hierarchy,FICKS);
     // ficks_diffusion_system.a=a;
@@ -684,7 +689,7 @@ Ficks_Diffusion(T dt)
 template<class T> void MPM_Example<T,3>::
 Ficks_Diffusion(T dt)
 {
-    using Multigrid_struct_type                 = Multigrid_Data<T>;
+    using Multigrid_struct_type 	= Multigrid_Data<T>;
     Log::cout<<"Fick's Diffusion"<<std::endl;
     const Grid<T,3>& diff_grid=diff_hierarchy->Lattice(0);
     const T one_over_dx2=(T)1./Nova_Utilities::Sqr(diff_grid.dX(0));
@@ -693,14 +698,18 @@ Ficks_Diffusion(T dt)
 	Ficks_CG_System<Diff_struct_type,Multigrid_struct_type,T,3> cg_system(*diff_hierarchy,mg_levels,diff_coeff*dt,3,1,200);
     Reset_Solver_Channels();
 	for(int level=0;level<levels;++level) Ficks_RHS_Helper<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,diff_rhs_channel,a);
-	CG_Vector<Diff_struct_type,T,3> saturation_V(*diff_hierarchy,saturation_channel),b_V(*diff_hierarchy,diff_rhs_channel),q_V(*diff_hierarchy,diff_q_channel),
-                                                s_V(*diff_hierarchy,diff_s_channel),r_V(*diff_hierarchy,diff_r_channel),k_V(*diff_hierarchy,diff_z_channel),z_V(*diff_hierarchy,diff_z_channel);   
+	CG_Vector<Diff_struct_type,T,3> x_V(*diff_hierarchy,saturation_channel),b_V(*diff_hierarchy,diff_rhs_channel),q_V(*diff_hierarchy,diff_q_channel),
+                                    s_V(*diff_hierarchy,diff_s_channel),r_V(*diff_hierarchy,diff_r_channel),k_V(*diff_hierarchy,diff_z_channel),z_V(*diff_hierarchy,diff_z_channel);   
 	Conjugate_Gradient<T> cg;
-	cg.print_residuals=true;
+    cg_system.Multiply(x_V,r_V);
+    r_V-=b_V;
+    const T b_norm=cg_system.Convergence_Norm(r_V);
+    Log::cout<<"Norm: "<<b_norm<<std::endl;
+    cg.print_residuals=true;
     cg.print_diagnostics=true;
-    cg.restart_iterations=50;
-    const T tolerance=1e-6;//std::max((T)1e-6*b_norm,(T)1e-6);
-    cg.Solve(cg_system,saturation_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,100);
+    cg.restart_iterations=cg_restart_iterations;
+    const T tolerance=std::max((T)1e-6*b_norm,(T)1e-6);
+    cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_max_iterations);
     // Diffusion_CG_System<Diff_struct_type,T,3> ficks_diffusion_system(*diff_hierarchy,FICKS);
     // ficks_diffusion_system.a=a;
     // ficks_diffusion_system.twod_a_plus_one=six_a_plus_one;
@@ -739,12 +748,12 @@ Ficks_Diffusion(T dt)
 template<class T> void MPM_Example<T,2>::
 Non_Ficks_Diffusion(T dt)
 {
+    using Multigrid_struct_type 	= Multigrid_Data<T>;
     Log::cout<<"Non-Fick's Diffusion"<<std::endl;
     const Grid<T,2>& diff_grid=diff_hierarchy->Lattice(0);
-    const T one_over_dx2=(T)1./Nova_Utilities::Sqr(diff_grid.dX(0));
+	const T dx2=Nova_Utilities::Sqr(diff_grid.dX(0)); const T one_over_dx2=(T)1./dx2;
     const T coeff1=dt*diff_coeff*(Fc*tau+dt)*one_over_dx2/(dt+tau); const T coeff2=dt*tau/(dt+tau);
     const T coeff3=dt*diff_coeff*(1-Fc)/(dt+tau);  const T coeff4=tau/(dt+tau);
-    // Log::cout<<"coeff1: "<<coeff1<<", coeff2: "<<coeff2<<", coeff3: "<<coeff3<<", coeff4: "<<coeff4<<std::endl;
     if(explicit_diffusion){
         for(int level=0;level<levels;++level) Explicit_Lap_Saturation_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,one_over_dx2);        
     auto lap_saturation=diff_hierarchy->Channel(0,lap_saturation_channel);
@@ -762,20 +771,36 @@ Non_Ficks_Diffusion(T dt)
                 p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);}}
 
     else{
-    Diffusion_CG_System<Diff_struct_type,T,2> non_ficks_diffusion_system(*diff_hierarchy,FICKS);
-    non_ficks_diffusion_system.coeff1=coeff1;
-    non_ficks_diffusion_system.use_preconditioner=false;
-    Conjugate_Gradient<T> cg;
-    Krylov_Solver<T>* solver_nfd=(Krylov_Solver<T>*)&cg;
-    // reset solver channels
-    Reset_Solver_Channels();    
-    // set up rhs
-    for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,div_Qc_channel,diff_rhs_channel,coeff1,coeff2);
+	Non_Ficks_CG_System<Diff_struct_type,Multigrid_struct_type,T,2> cg_system(*diff_hierarchy,mg_levels,coeff1*dx2,3,1,200);
+	Reset_Solver_Channels();
+	for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,div_Qc_channel,diff_rhs_channel,coeff1,coeff2);
+	CG_Vector<Diff_struct_type,T,2> x_V(*diff_hierarchy,saturation_channel),b_V(*diff_hierarchy,diff_rhs_channel),q_V(*diff_hierarchy,diff_q_channel),
+                                                s_V(*diff_hierarchy,diff_s_channel),r_V(*diff_hierarchy,diff_r_channel),k_V(*diff_hierarchy,diff_z_channel),z_V(*diff_hierarchy,diff_z_channel);   
+	Conjugate_Gradient<T> cg;
+    cg_system.Multiply(x_V,r_V);
+    r_V-=b_V;
+    const T b_norm=cg_system.Convergence_Norm(r_V);
+    Log::cout<<"Norm: "<<b_norm<<std::endl;
+    cg.print_residuals=true;
+    cg.print_diagnostics=true;
+    cg.restart_iterations=cg_restart_iterations;
+    const T tolerance=std::max((T)1e-6*b_norm,(T)1e-6);
+    cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_max_iterations);
 
-    Diffusion_CG_Vector<Diff_struct_type,T,2> saturation_nfd(*diff_hierarchy,saturation_channel),rhs_nfd(*diff_hierarchy,diff_rhs_channel),solver_q_nfd(*diff_hierarchy,diff_q_channel),
-                                                solver_s_nfd(*diff_hierarchy,diff_s_channel),solver_r_nfd(*diff_hierarchy,diff_r_channel),solver_k_nfd(*diff_hierarchy,diff_z_channel),solver_z_nfd(*diff_hierarchy,diff_z_channel);         
+    // Diffusion_CG_System<Diff_struct_type,T,2> non_ficks_diffusion_system(*diff_hierarchy,FICKS);
+    // non_ficks_diffusion_system.coeff1=coeff1;
+    // non_ficks_diffusion_system.use_preconditioner=false;
+    // Conjugate_Gradient<T> cg;
+    // Krylov_Solver<T>* solver_nfd=(Krylov_Solver<T>*)&cg;
+    // // reset solver channels
+    // Reset_Solver_Channels();    
+    // // set up rhs
+    // for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,div_Qc_channel,diff_rhs_channel,coeff1,coeff2);
+
+    // Diffusion_CG_Vector<Diff_struct_type,T,2> saturation_nfd(*diff_hierarchy,saturation_channel),rhs_nfd(*diff_hierarchy,diff_rhs_channel),solver_q_nfd(*diff_hierarchy,diff_q_channel),
+    //                                             solver_s_nfd(*diff_hierarchy,diff_s_channel),solver_r_nfd(*diff_hierarchy,diff_r_channel),solver_k_nfd(*diff_hierarchy,diff_z_channel),solver_z_nfd(*diff_hierarchy,diff_z_channel);         
         
-    solver_nfd->Solve(non_ficks_diffusion_system,saturation_nfd,rhs_nfd,solver_q_nfd,solver_s_nfd,solver_r_nfd,solver_k_nfd,solver_z_nfd,solver_tolerance,0,solver_iterations);
+    // solver_nfd->Solve(non_ficks_diffusion_system,saturation_nfd,rhs_nfd,solver_q_nfd,solver_s_nfd,solver_r_nfd,solver_k_nfd,solver_z_nfd,solver_tolerance,0,solver_iterations);
     // Clamp saturation
     for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel);        
     
@@ -800,9 +825,10 @@ Non_Ficks_Diffusion(T dt)
 template<class T> void MPM_Example<T,3>::
 Non_Ficks_Diffusion(T dt)
 {
+    using Multigrid_struct_type 	= Multigrid_Data<T>;
     Log::cout<<"Non-Fick's Diffusion"<<std::endl;
     const Grid<T,3>& diff_grid=diff_hierarchy->Lattice(0);
-    const T one_over_dx2=(T)1./Nova_Utilities::Sqr(diff_grid.dX(0));
+	const T dx2=Nova_Utilities::Sqr(diff_grid.dX(0)); const T one_over_dx2=(T)1./dx2;
     const T coeff1=dt*diff_coeff*(Fc*tau+dt)*one_over_dx2/(dt+tau); const T coeff2=dt*tau/(dt+tau);
     const T coeff3=dt*diff_coeff*(1-Fc)/(dt+tau); const T coeff4=tau/(dt+tau);
     // Log::cout<<"coeff1: "<<coeff1<<", coeff2: "<<coeff2<<", coeff3: "<<coeff3<<", coeff4: "<<coeff4<<std::endl;
@@ -823,20 +849,35 @@ Non_Ficks_Diffusion(T dt)
                 p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);}}
 
     else{
-    Diffusion_CG_System<Diff_struct_type,T,3> non_ficks_diffusion_system(*diff_hierarchy,FICKS);
-    non_ficks_diffusion_system.coeff1=coeff1;
-    non_ficks_diffusion_system.use_preconditioner=false;
-    Conjugate_Gradient<T> cg;
-    Krylov_Solver<T>* solver_nfd=(Krylov_Solver<T>*)&cg;
-    // reset solver channels
-    Reset_Solver_Channels();
-    // set up rhs
-    for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,div_Qc_channel,diff_rhs_channel,coeff1,coeff2);
+	Non_Ficks_CG_System<Diff_struct_type,Multigrid_struct_type,T,3> cg_system(*diff_hierarchy,mg_levels,coeff1*dx2,3,1,200);
+	Reset_Solver_Channels();
+	for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,div_Qc_channel,diff_rhs_channel,coeff1,coeff2);
+	CG_Vector<Diff_struct_type,T,3> x_V(*diff_hierarchy,saturation_channel),b_V(*diff_hierarchy,diff_rhs_channel),q_V(*diff_hierarchy,diff_q_channel),
+                                                s_V(*diff_hierarchy,diff_s_channel),r_V(*diff_hierarchy,diff_r_channel),k_V(*diff_hierarchy,diff_z_channel),z_V(*diff_hierarchy,diff_z_channel);   
+	Conjugate_Gradient<T> cg;
+    cg_system.Multiply(x_V,r_V);
+    r_V-=b_V;
+    const T b_norm=cg_system.Convergence_Norm(r_V);
+    Log::cout<<"Norm: "<<b_norm<<std::endl;
+    cg.print_residuals=true;
+    cg.print_diagnostics=true;
+    cg.restart_iterations=cg_restart_iterations;
+    const T tolerance=std::max((T)1e-6*b_norm,(T)1e-6);
+    cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_max_iterations);
+    // Diffusion_CG_System<Diff_struct_type,T,3> non_ficks_diffusion_system(*diff_hierarchy,FICKS);
+    // non_ficks_diffusion_system.coeff1=coeff1;
+    // non_ficks_diffusion_system.use_preconditioner=false;
+    // Conjugate_Gradient<T> cg;
+    // Krylov_Solver<T>* solver_nfd=(Krylov_Solver<T>*)&cg;
+    // // reset solver channels
+    // Reset_Solver_Channels();
+    // // set up rhs
+    // for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,div_Qc_channel,diff_rhs_channel,coeff1,coeff2);
 
-    Diffusion_CG_Vector<Diff_struct_type,T,3> saturation_nfd(*diff_hierarchy,saturation_channel),rhs_nfd(*diff_hierarchy,diff_rhs_channel),solver_q_nfd(*diff_hierarchy,diff_q_channel),
-                                                solver_s_nfd(*diff_hierarchy,diff_s_channel),solver_r_nfd(*diff_hierarchy,diff_r_channel),solver_k_nfd(*diff_hierarchy,diff_z_channel),solver_z_nfd(*diff_hierarchy,diff_z_channel);         
+    // Diffusion_CG_Vector<Diff_struct_type,T,3> saturation_nfd(*diff_hierarchy,saturation_channel),rhs_nfd(*diff_hierarchy,diff_rhs_channel),solver_q_nfd(*diff_hierarchy,diff_q_channel),
+    //                                             solver_s_nfd(*diff_hierarchy,diff_s_channel),solver_r_nfd(*diff_hierarchy,diff_r_channel),solver_k_nfd(*diff_hierarchy,diff_z_channel),solver_z_nfd(*diff_hierarchy,diff_z_channel);         
         
-    solver_nfd->Solve(non_ficks_diffusion_system,saturation_nfd,rhs_nfd,solver_q_nfd,solver_s_nfd,solver_r_nfd,solver_k_nfd,solver_z_nfd,solver_tolerance,0,solver_iterations);
+    // solver_nfd->Solve(non_ficks_diffusion_system,saturation_nfd,rhs_nfd,solver_q_nfd,solver_s_nfd,solver_r_nfd,solver_k_nfd,solver_z_nfd,solver_tolerance,0,solver_iterations);
 
     // Clamp saturation
     for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel);        
