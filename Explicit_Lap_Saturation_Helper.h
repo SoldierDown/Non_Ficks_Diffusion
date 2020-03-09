@@ -41,7 +41,7 @@ class Explicit_Lap_Saturation_Helper
                 if(flags(offset)&Cell_Type_Interior){
                     for(int face=0;face<Topology_Helper::number_of_faces_per_cell;++face){
                         int64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
-                        if(flags(neighbor_offset)&Cell_Type_Interior || flags(offset)&Cell_Type_Dirichlet) lap_saturation(offset)+=one_over_dx2*(saturation(neighbor_offset)-saturation(offset));}}}
+                        if(flags(offset)&(Cell_Type_Interior|Cell_Type_Dirichlet)) lap_saturation(offset)+=one_over_dx2*(saturation(neighbor_offset)-saturation(offset));}}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,explicit_lap_saturation_helper);
     }
