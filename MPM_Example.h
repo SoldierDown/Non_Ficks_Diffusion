@@ -13,6 +13,7 @@
 #include <nova/Tools/Utilities/Utilities.h>
 #include <nova/Tools/Arrays/Array.h>
 #include "MPM_Data.h"
+#include "Poisson_Data.h"
 #include "MPM_Particle.h"
 #include "MPM_Plane_Barrier.h"
 #include "./Tools/Matrix_MXN.h"
@@ -127,12 +128,18 @@ class MPM_Example<T,2>: public Example<T,2>
     using T_INDEX                       = Vector<int,2>;
     using T_Particle                    = MPM_Particle<T,2>;
     using T_Barrier                     = MPM_Plane_Barrier<T,2>;
-    using Struct_type                   = MPM_Data<T>;
-    using Flags_type                    = typename Struct_type::Flags_type;
-    using Allocator_type                = SPGrid::SPGrid_Allocator<Struct_type,2>;
-    using Flag_array_mask               = typename Allocator_type::template Array_mask<unsigned>;
-    using Hierarchy                     = Grid_Hierarchy<Struct_type,T,2>;
-    using Channel_Vector                = Vector<T Struct_type::*,2>;
+    using MPM_struct_type               = MPM_Data<T>;
+    using Diff_struct_type              = Poisson_Data<T>;
+    using MPM_flags_type                = typename MPM_struct_type::Flags_type;
+    using Diff_flags_type               = typename Diff_struct_type::Flags_type;
+    using MPM_allocator_type            = SPGrid::SPGrid_Allocator<MPM_struct_type,2>;
+    using Diff_allocator_type           = SPGrid::SPGrid_Allocator<Diff_struct_type,2>;
+    using MPM_flag_array_mask           = typename MPM_allocator_type::template Array_mask<unsigned>;
+    using Diff_flag_array_mask          = typename Diff_allocator_type::template Array_mask<unsigned>;
+    using MPM_Hierarchy                 = Grid_Hierarchy<MPM_struct_type,T,2>;
+    using Diff_Hierarchy                = Grid_Hierarchy<Diff_struct_type,T,2>;
+    using MPM_Channel_Vector            = Vector<T MPM_struct_type::*,2>;
+    using Diff_Channel_Vector           = Vector<T Diff_struct_type::*,2>;
     using T_Influence_Iterator          = Influence_Iterator<T,2,T_INDEX>;
     using T_Cropped_Influence_Iterator  = Cropped_Influence_Iterator<T,2,T_INDEX>;
   public:
@@ -165,13 +172,15 @@ class MPM_Example<T,2>: public Example<T,2>
     Array<Interval<int> > x_intervals;
     Matrix_MxN<Array<int> > particle_bins;
     TV gravity;
-    Hierarchy *hierarchy;
 
-    unsigned Struct_type::* flags_channel;
-    T Struct_type::* mass_channel;
-    Channel_Vector velocity_channels;
-    Channel_Vector velocity_star_channels;
-    Channel_Vector f_channels;
+    MPM_Hierarchy *mpm_hierarchy;
+    Diff_Hierarchy *diff_hierarchy;
+
+    unsigned MPM_struct_type::* mpm_flags_channel;
+    T MPM_struct_type::* mass_channel;
+    MPM_Channel_Vector velocity_channels;
+    MPM_Channel_Vector velocity_star_channels;
+    MPM_Channel_Vector f_channels;
 
 
 
@@ -186,18 +195,25 @@ class MPM_Example<T,2>: public Example<T,2>
     bool explicit_diffusion;
 
     // Hydrogel channels
-    T Struct_type::* saturation_channel;
-    T Struct_type::* lap_saturation_channel;
-    T Struct_type::* void_mass_fluid_channel;
-    T Struct_type::* volume_channel;
-    T Struct_type::* div_Qc_channel;
+    unsigned Diff_struct_type::* diff_flags_channel;
+    T Diff_struct_type::* saturation_channel;
+    T Diff_struct_type::* lap_saturation_channel;
+    T Diff_struct_type::* void_mass_fluid_channel;
+    T Diff_struct_type::* volume_channel;
+    T Diff_struct_type::* div_Qc_channel;
+
+    T Diff_struct_type::* diff_rhs_channel;
+    T Diff_struct_type::* diff_q_channel;
+    T Diff_struct_type::* diff_s_channel;
+    T Diff_struct_type::* diff_r_channel;
+    T Diff_struct_type::* diff_z_channel;
 
     // Krylov solver channels
-    Channel_Vector rhs_channels;
-    Channel_Vector q_channels;
-    Channel_Vector s_channels;
-    Channel_Vector r_channels;
-    Channel_Vector z_channels;
+    MPM_Channel_Vector mpm_rhs_channels;
+    MPM_Channel_Vector mpm_q_channels;
+    MPM_Channel_Vector mpm_s_channels;
+    MPM_Channel_Vector mpm_r_channels;
+    MPM_Channel_Vector mpm_z_channels;
 
     MPM_Example();
 
@@ -246,12 +262,18 @@ class MPM_Example<T,3>: public Example<T,3>
     using T_INDEX                       = Vector<int,3>;
     using T_Particle                    = MPM_Particle<T,3>;
     using T_Barrier                     = MPM_Plane_Barrier<T,3>;
-    using Struct_type                   = MPM_Data<T>;
-    using Flags_type                    = typename Struct_type::Flags_type;
-    using Allocator_type                = SPGrid::SPGrid_Allocator<Struct_type,3>;
-    using Flag_array_mask               = typename Allocator_type::template Array_mask<unsigned>;
-    using Hierarchy                     = Grid_Hierarchy<Struct_type,T,3>;
-    using Channel_Vector                = Vector<T Struct_type::*,3>;
+    using MPM_struct_type               = MPM_Data<T>;
+    using Diff_struct_type              = Poisson_Data<T>;
+    using MPM_flags_type                = typename MPM_struct_type::Flags_type;
+    using Diff_flags_type               = typename Diff_struct_type::Flags_type;
+    using MPM_allocator_type            = SPGrid::SPGrid_Allocator<MPM_struct_type,3>;
+    using Diff_allocator_type           = SPGrid::SPGrid_Allocator<Diff_struct_type,3>;
+    using MPM_flag_array_mask           = typename MPM_allocator_type::template Array_mask<unsigned>;
+    using Diff_flag_array_mask          = typename Diff_allocator_type::template Array_mask<unsigned>;
+    using MPM_Hierarchy                 = Grid_Hierarchy<MPM_struct_type,T,3>;
+    using Diff_Hierarchy                = Grid_Hierarchy<Diff_struct_type,T,3>;
+    using MPM_Channel_Vector            = Vector<T MPM_struct_type::*,3>;
+    using Diff_Channel_Vector           = Vector<T Diff_struct_type::*,3>;
     using T_Influence_Iterator          = Influence_Iterator<T,3,T_INDEX>;
     using T_Cropped_Influence_Iterator  = Cropped_Influence_Iterator<T,3,T_INDEX>;
   public:
@@ -284,14 +306,15 @@ class MPM_Example<T,3>: public Example<T,3>
     Array<Interval<int> > x_intervals;
     Matrix_MxN<Array<int> > particle_bins;
     TV gravity;
-    Hierarchy *hierarchy;
 
-    unsigned Struct_type::* flags_channel;
-    T Struct_type::* mass_channel;
-    Channel_Vector velocity_channels;
-    Channel_Vector velocity_star_channels;
-    Channel_Vector f_channels;
+    MPM_Hierarchy *mpm_hierarchy;
+    Diff_Hierarchy *diff_hierarchy;
 
+    unsigned MPM_struct_type::* mpm_flags_channel;
+    T MPM_struct_type::* mass_channel;
+    MPM_Channel_Vector velocity_channels;
+    MPM_Channel_Vector velocity_star_channels;
+    MPM_Channel_Vector f_channels;
 
 
     // Hydrogel variables
@@ -305,18 +328,25 @@ class MPM_Example<T,3>: public Example<T,3>
     bool explicit_diffusion;
 
     // Hydrogel channels
-    T Struct_type::* saturation_channel;
-    T Struct_type::* lap_saturation_channel;
-    T Struct_type::* void_mass_fluid_channel;
-    T Struct_type::* volume_channel;
-    T Struct_type::* div_Qc_channel;
+    unsigned Diff_struct_type::* diff_flags_channel;
+    T Diff_struct_type::* saturation_channel;
+    T Diff_struct_type::* lap_saturation_channel;
+    T Diff_struct_type::* void_mass_fluid_channel;
+    T Diff_struct_type::* volume_channel;
+    T Diff_struct_type::* div_Qc_channel;
+
+    T Diff_struct_type::* diff_rhs_channel;
+    T Diff_struct_type::* diff_q_channel;
+    T Diff_struct_type::* diff_s_channel;
+    T Diff_struct_type::* diff_r_channel;
+    T Diff_struct_type::* diff_z_channel;
 
     // Krylov solver channels
-    Channel_Vector rhs_channels;
-    Channel_Vector q_channels;
-    Channel_Vector s_channels;
-    Channel_Vector r_channels;
-    Channel_Vector z_channels;
+    MPM_Channel_Vector mpm_rhs_channels;
+    MPM_Channel_Vector mpm_q_channels;
+    MPM_Channel_Vector mpm_s_channels;
+    MPM_Channel_Vector mpm_r_channels;
+    MPM_Channel_Vector mpm_z_channels;
 
     MPM_Example();
 

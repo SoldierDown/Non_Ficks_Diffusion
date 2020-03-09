@@ -57,7 +57,7 @@ Advance_To_Target_Time(const T target_time)
     T min_dt=(T)1e-6;
     T max_dt=(T).001;
     T cfl=example.cfl;
-    T dx_min=example.hierarchy->Lattice(0).dX(0);
+    T dx_min=example.mpm_hierarchy->Lattice(0).dX(0);
     bool done=false;
     example.Populate_Simulated_Particles(); // add only valid particles to array
     for(int substep=1;!done;substep++){

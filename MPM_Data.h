@@ -26,29 +26,21 @@ struct MPM_Data
     T ch8;          // Y-force
     T ch9;          // Z-force
 
-
-    // Hydrogel channels
-    T ch10;         // saturation
-    T ch11;         // lap_saturation
-    T ch12;         // void_mass_fluid
-    T ch13;         // volume
-    T ch14;         // div_Qc
-
-    T ch15;         // rhs-x
-    T ch16;         // rhs-y
-    T ch17;         // rhs-z
-    T ch18;         // q-x
-    T ch19;         // q-y
-    T ch20;         // q-z
-    T ch21;         // s-x
-    T ch22;         // s-y
-    T ch23;         // s-z
-    T ch24;         // r-x
-    T ch25;         // r-y
-    T ch26;         // r-z
-    T ch27;         // k-x
-    T ch28;         // k-y
-    T ch29;         // k-z
+    T ch10;         // rhs-x
+    T ch11;         // rhs-y
+    T ch12;         // rhs-z
+    T ch13;         // q-x
+    T ch14;         // q-y
+    T ch15;         // q-z
+    T ch16;         // s-x
+    T ch17;         // s-y
+    T ch18;         // s-z
+    T ch19;         // r-x
+    T ch20;         // r-y
+    T ch21;         // r-z
+    T ch22;         // z-x
+    T ch23;         // z-y
+    T ch24;         // z-z
 };
 }
 #endif

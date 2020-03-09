@@ -45,7 +45,7 @@ using namespace SPGrid;
 //######################################################################
 template<class T> MPM_Example<T,2>::
 MPM_Example()
-    :Base(),hierarchy(nullptr)
+    :Base(),mpm_hierarchy(nullptr),diff_hierarchy(nullptr)
 {
     solver_tolerance=(T)1e-7;
     solver_iterations=10000;
@@ -53,42 +53,49 @@ MPM_Example()
     flip=(T).9;
     explicit_diffusion=false;
      
-    flags_channel                           = &Struct_type::flags;
-    mass_channel                            = &Struct_type::ch0;
-    velocity_channels(0)                    = &Struct_type::ch1;
-    velocity_channels(1)                    = &Struct_type::ch2;
-    velocity_star_channels(0)               = &Struct_type::ch4;
-    velocity_star_channels(1)               = &Struct_type::ch5;
-    f_channels(0)                           = &Struct_type::ch7;
-    f_channels(1)                           = &Struct_type::ch8;
+    mpm_flags_channel                       = &MPM_struct_type::flags;
+    mass_channel                            = &MPM_struct_type::ch0;
+    velocity_channels(0)                    = &MPM_struct_type::ch1;
+    velocity_channels(1)                    = &MPM_struct_type::ch2;
+    velocity_star_channels(0)               = &MPM_struct_type::ch4;
+    velocity_star_channels(1)               = &MPM_struct_type::ch5;
+    f_channels(0)                           = &MPM_struct_type::ch7;
+    f_channels(1)                           = &MPM_struct_type::ch8;
     // Hydrogel channels
-    saturation_channel                      = &Struct_type::ch10;
-    lap_saturation_channel                  = &Struct_type::ch11;
-    void_mass_fluid_channel                 = &Struct_type::ch12;
-    volume_channel                          = &Struct_type::ch13;
-    div_Qc_channel                          = &Struct_type::ch14;
+    diff_flags_channel                      = &Diff_struct_type::flags;
+    saturation_channel                      = &Diff_struct_type::ch0;
+    lap_saturation_channel                  = &Diff_struct_type::ch1;
+    void_mass_fluid_channel                 = &Diff_struct_type::ch2;
+    volume_channel                          = &Diff_struct_type::ch3;
+    div_Qc_channel                          = &Diff_struct_type::ch4;
 
-    rhs_channels(0)                         = &Struct_type::ch15;
-    rhs_channels(1)                         = &Struct_type::ch16;
+	diff_rhs_channel						= &Diff_struct_type::ch5;
+	diff_q_channel							= &Diff_struct_type::ch6;
+	diff_s_channel							= &Diff_struct_type::ch7;
+	diff_r_channel							= &Diff_struct_type::ch8;
+	diff_z_channel							= &Diff_struct_type::ch9;
 
-    q_channels(0)                           = &Struct_type::ch18;
-    q_channels(1)                           = &Struct_type::ch19;
+    mpm_rhs_channels(0)                     = &MPM_struct_type::ch10;
+    mpm_rhs_channels(1)                     = &MPM_struct_type::ch11;
 
-    s_channels(0)                           = &Struct_type::ch21;
-    s_channels(1)                           = &Struct_type::ch22;
+    mpm_q_channels(0)                       = &MPM_struct_type::ch13;
+    mpm_q_channels(1)                       = &MPM_struct_type::ch14;
 
-    r_channels(0)                           = &Struct_type::ch24;
-    r_channels(1)                           = &Struct_type::ch25;
+    mpm_s_channels(0)                      	= &MPM_struct_type::ch16;
+    mpm_s_channels(1)                   	= &MPM_struct_type::ch17;
 
-    z_channels(0)                           = &Struct_type::ch27;
-    z_channels(1)                           = &Struct_type::ch28;
+    mpm_r_channels(0)                       = &MPM_struct_type::ch19;
+    mpm_r_channels(1)                       = &MPM_struct_type::ch20;
+
+    mpm_z_channels(0)                       = &MPM_struct_type::ch22;
+    mpm_z_channels(1)                       = &MPM_struct_type::ch23;
 }
 //######################################################################
 // Constructor
 //######################################################################
 template<class T> MPM_Example<T,3>::
 MPM_Example()
-    :Base(),hierarchy(nullptr)
+    :Base(),mpm_hierarchy(nullptr),diff_hierarchy(nullptr)
 {
     solver_tolerance=(T)1e-7;
     solver_iterations=10000;
@@ -96,43 +103,50 @@ MPM_Example()
     flip=(T).9;
     explicit_diffusion=false;
      
-    flags_channel                           = &Struct_type::flags;
-    mass_channel                            = &Struct_type::ch0;
-    velocity_channels(0)                    = &Struct_type::ch1;
-    velocity_channels(1)                    = &Struct_type::ch2;
-    velocity_channels(2)                    = &Struct_type::ch3;
-    velocity_star_channels(0)               = &Struct_type::ch4;
-    velocity_star_channels(1)               = &Struct_type::ch5;
-    velocity_star_channels(2)               = &Struct_type::ch6;
-    f_channels(0)                           = &Struct_type::ch7;
-    f_channels(1)                           = &Struct_type::ch8;
-    f_channels(2)                           = &Struct_type::ch9;
+    mpm_flags_channel                       = &MPM_struct_type::flags;
+    mass_channel                            = &MPM_struct_type::ch0;
+    velocity_channels(0)                    = &MPM_struct_type::ch1;
+    velocity_channels(1)                    = &MPM_struct_type::ch2;
+    velocity_channels(2)                    = &MPM_struct_type::ch3;
+    velocity_star_channels(0)               = &MPM_struct_type::ch4;
+    velocity_star_channels(1)               = &MPM_struct_type::ch5;
+    velocity_star_channels(2)               = &MPM_struct_type::ch6;
+    f_channels(0)                           = &MPM_struct_type::ch7;
+    f_channels(1)                           = &MPM_struct_type::ch8;
+    f_channels(2)                           = &MPM_struct_type::ch9;
     // Hydrogel channels
-    saturation_channel                      = &Struct_type::ch10;
-    lap_saturation_channel                  = &Struct_type::ch11;
-    void_mass_fluid_channel                 = &Struct_type::ch12;
-    volume_channel                          = &Struct_type::ch13;
-    div_Qc_channel                          = &Struct_type::ch14;
+    diff_flags_channel                      = &Diff_struct_type::flags;
+    saturation_channel                      = &Diff_struct_type::ch0;
+    lap_saturation_channel                  = &Diff_struct_type::ch1;
+    void_mass_fluid_channel                 = &Diff_struct_type::ch2;
+    volume_channel                          = &Diff_struct_type::ch3;
+    div_Qc_channel                          = &Diff_struct_type::ch4;
 
-    rhs_channels(0)                         = &Struct_type::ch15;
-    rhs_channels(1)                         = &Struct_type::ch16;
-    rhs_channels(2)                         = &Struct_type::ch17;
+	diff_rhs_channel						= &Diff_struct_type::ch5;
+	diff_q_channel							= &Diff_struct_type::ch6;
+	diff_s_channel							= &Diff_struct_type::ch7;
+	diff_r_channel							= &Diff_struct_type::ch8;
+	diff_z_channel							= &Diff_struct_type::ch9;
 
-    q_channels(0)                           = &Struct_type::ch18;
-    q_channels(1)                           = &Struct_type::ch19;
-    q_channels(2)                           = &Struct_type::ch20;
+    mpm_rhs_channels(0)                   	= &MPM_struct_type::ch10;
+    mpm_rhs_channels(1)                   	= &MPM_struct_type::ch11;
+    mpm_rhs_channels(2)                   	= &MPM_struct_type::ch12;
 
-    s_channels(0)                           = &Struct_type::ch21;
-    s_channels(1)                           = &Struct_type::ch22;
-    s_channels(2)                           = &Struct_type::ch23;
+    mpm_q_channels(0)                      	= &MPM_struct_type::ch13;
+    mpm_q_channels(1)                      	= &MPM_struct_type::ch14;
+    mpm_q_channels(2)                      	= &MPM_struct_type::ch15;
 
-    r_channels(0)                           = &Struct_type::ch24;
-    r_channels(1)                           = &Struct_type::ch25;
-    r_channels(2)                           = &Struct_type::ch26;
+    mpm_s_channels(0)                      	= &MPM_struct_type::ch16;
+    mpm_s_channels(1)                      	= &MPM_struct_type::ch17;
+    mpm_s_channels(2)                      	= &MPM_struct_type::ch18;
 
-    z_channels(0)                           = &Struct_type::ch27;
-    z_channels(1)                           = &Struct_type::ch28;
-    z_channels(2)                           = &Struct_type::ch29;
+    mpm_r_channels(0)                      	= &MPM_struct_type::ch19;
+    mpm_r_channels(1)                      	= &MPM_struct_type::ch20;
+    mpm_r_channels(2)                      	= &MPM_struct_type::ch21;
+
+    mpm_z_channels(0)                      	= &MPM_struct_type::ch22;
+    mpm_z_channels(1)                      	= &MPM_struct_type::ch23;
+    mpm_z_channels(2)                      	= &MPM_struct_type::ch24;
 
 }
 //######################################################################
@@ -141,7 +155,8 @@ MPM_Example()
 template<class T> MPM_Example<T,2>::
 ~MPM_Example()
 {
-    if(hierarchy!=nullptr) delete hierarchy;
+    if(mpm_hierarchy!=nullptr) delete mpm_hierarchy;
+    if(diff_hierarchy!=nullptr) delete diff_hierarchy;
 }
 //######################################################################
 // Destructor
@@ -149,7 +164,8 @@ template<class T> MPM_Example<T,2>::
 template<class T> MPM_Example<T,3>::
 ~MPM_Example()
 {
-    if(hierarchy!=nullptr) delete hierarchy;
+    if(mpm_hierarchy!=nullptr) delete mpm_hierarchy;
+    if(diff_hierarchy!=nullptr) delete diff_hierarchy;
 }
 //######################################################################
 // Initialize
@@ -188,24 +204,6 @@ Reset_Grid_Based_Variables()
 template<class T> void MPM_Example<T,3>::
 Reset_Grid_Based_Variables()
 {
-    for(int level=0;level<levels;++level) {
-        Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),mass_channel);
-        Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),lap_saturation_channel);
-        Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);
-        Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),void_mass_fluid_channel);
-        Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),volume_channel);
-        Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_Qc_channel);
-        for(int v=0;v<3;++v){
-            Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels(v));
-            Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels(v));
-            Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),f_channels(v));
-            Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),rhs_channels(v));
-            Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),q_channels(v));
-            Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channels(v));
-            Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),s_channels(v));
-            Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),z_channels(v));}
-    }
-
 }
 //######################################################################
 // Reset_Solver_Channels
@@ -213,12 +211,16 @@ Reset_Grid_Based_Variables()
 template<class T> void MPM_Example<T,2>::
 Reset_Solver_Channels()
 {
-    for(int level=0;level<levels;++level) for(int v=0;v<2;++v){
-        Clear<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),rhs_channels(v));
-        Clear<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),q_channels(v));
-        Clear<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channels(v));
-        Clear<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),s_channels(v));
-        Clear<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),z_channels(v));}
+    for(int level=0;level<levels;++level){Clear<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),diff_rhs_channel);
+        Clear<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),diff_q_channel);
+        Clear<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),diff_r_channel);
+        Clear<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),diff_s_channel);
+        Clear<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),diff_z_channel);
+        for(int v=0;v<2;++v){Clear<MPM_struct_type,T,2>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),mpm_rhs_channels(v));
+        Clear<MPM_struct_type,T,2>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),mpm_q_channels(v));
+        Clear<MPM_struct_type,T,2>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),mpm_r_channels(v));
+        Clear<MPM_struct_type,T,2>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),mpm_s_channels(v));
+        Clear<MPM_struct_type,T,2>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),mpm_z_channels(v));}}
 }
 //######################################################################
 // Reset_Solver_Channels
@@ -226,12 +228,16 @@ Reset_Solver_Channels()
 template<class T> void MPM_Example<T,3>::
 Reset_Solver_Channels()
 {
-    for(int level=0;level<levels;++level) for(int v=0;v<3;++v){
-        Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),rhs_channels(v));
-        Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),q_channels(v));
-        Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channels(v));
-        Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),s_channels(v));
-        Clear<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),z_channels(v));}
+    for(int level=0;level<levels;++level){Clear<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),diff_rhs_channel);
+        Clear<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),diff_q_channel);
+        Clear<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),diff_r_channel);
+        Clear<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),diff_s_channel);
+        Clear<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),diff_z_channel);
+        for(int v=0;v<3;++v){Clear<MPM_struct_type,T,3>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),mpm_rhs_channels(v));
+        Clear<MPM_struct_type,T,3>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),mpm_q_channels(v));
+        Clear<MPM_struct_type,T,3>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),mpm_r_channels(v));
+        Clear<MPM_struct_type,T,3>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),mpm_s_channels(v));
+        Clear<MPM_struct_type,T,3>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),mpm_z_channels(v));}}
 }
 //######################################################################
 // Compute_Bounding_Box
@@ -307,15 +313,22 @@ template<class T> void MPM_Example<T,2>::
 Rasterize_Voxels()
 {
     high_resolution_clock::time_point tb=high_resolution_clock::now();
-    using Cell_Iterator             = Grid_Iterator_Cell<T,2>;
-    using Hierarchy_Initializer     = Grid_Hierarchy_Initializer<Struct_type,T,2>;
-    const Grid<T,2>& grid=hierarchy->Lattice(0);
-    Range<int,2> bounding_grid_cells(grid.Clamp_To_Cell(bbox.min_corner),grid.Clamp_To_Cell(bbox.max_corner));
-    for(Cell_Iterator iterator(grid,bounding_grid_cells);iterator.Valid();iterator.Next())
-        hierarchy->Activate_Cell(0,iterator.Cell_Index(),Cell_Type_Dirichlet);
-    
-    hierarchy->Update_Block_Offsets();
-    hierarchy->Initialize_Red_Black_Partition(2*threads);
+    using Cell_Iterator                     = Grid_Iterator_Cell<T,2>;
+    using MPM_Hierarchy_Initializer         = Grid_Hierarchy_Initializer<MPM_struct_type,T,2>;
+    using Diff_Hierarchy_Initializer        = Grid_Hierarchy_Initializer<Diff_struct_type,T,2>;
+    const Grid<T,2>& mpm_grid=mpm_hierarchy->Lattice(0);
+    Range<int,2> mpm_bounding_grid_cells(mpm_grid.Clamp_To_Cell(bbox.min_corner),mpm_grid.Clamp_To_Cell(bbox.max_corner));
+    for(Cell_Iterator iterator(mpm_grid,mpm_bounding_grid_cells);iterator.Valid();iterator.Next())
+        mpm_hierarchy->Activate_Cell(0,iterator.Cell_Index(),Cell_Type_Dirichlet);
+    mpm_hierarchy->Update_Block_Offsets();
+    mpm_hierarchy->Initialize_Red_Black_Partition(2*threads);
+
+    const Grid<T,2>& diff_grid=diff_hierarchy->Lattice(0);
+    Range<int,2> diff_bounding_grid_cells(diff_grid.Clamp_To_Cell(bbox.min_corner),diff_grid.Clamp_To_Cell(bbox.max_corner));
+    for(Cell_Iterator iterator(diff_grid,diff_bounding_grid_cells);iterator.Valid();iterator.Next())
+        diff_hierarchy->Activate_Cell(0,iterator.Cell_Index(),Cell_Type_Dirichlet);
+    diff_hierarchy->Update_Block_Offsets();
+    diff_hierarchy->Initialize_Red_Black_Partition(2*threads);
 
     high_resolution_clock::time_point te=high_resolution_clock::now();
 	duration<double> dur=duration_cast<duration<double>>(te-tb);
@@ -329,15 +342,22 @@ template<class T> void MPM_Example<T,3>::
 Rasterize_Voxels()
 {
     high_resolution_clock::time_point tb=high_resolution_clock::now();
-    using Cell_Iterator             = Grid_Iterator_Cell<T,3>;
-    using Hierarchy_Initializer     = Grid_Hierarchy_Initializer<Struct_type,T,3>;
-    const Grid<T,3>& grid=hierarchy->Lattice(0);
-    Range<int,3> bounding_grid_cells(grid.Clamp_To_Cell(bbox.min_corner),grid.Clamp_To_Cell(bbox.max_corner));
-    for(Cell_Iterator iterator(grid,bounding_grid_cells);iterator.Valid();iterator.Next())
-        hierarchy->Activate_Cell(0,iterator.Cell_Index(),Cell_Type_Dirichlet);
-    
-    hierarchy->Update_Block_Offsets();
-    hierarchy->Initialize_Red_Black_Partition(2*threads);
+    using Cell_Iterator                     = Grid_Iterator_Cell<T,3>;
+    using MPM_Hierarchy_Initializer         = Grid_Hierarchy_Initializer<MPM_struct_type,T,3>;
+    using Diff_Hierarchy_Initializer        = Grid_Hierarchy_Initializer<Diff_struct_type,T,3>;
+    const Grid<T,3>& mpm_grid=mpm_hierarchy->Lattice(0);
+    Range<int,3> mpm_bounding_grid_cells(mpm_grid.Clamp_To_Cell(bbox.min_corner),mpm_grid.Clamp_To_Cell(bbox.max_corner));
+    for(Cell_Iterator iterator(mpm_grid,mpm_bounding_grid_cells);iterator.Valid();iterator.Next())
+        mpm_hierarchy->Activate_Cell(0,iterator.Cell_Index(),Cell_Type_Dirichlet);
+    mpm_hierarchy->Update_Block_Offsets();
+    mpm_hierarchy->Initialize_Red_Black_Partition(2*threads);
+
+    const Grid<T,3>& diff_grid=diff_hierarchy->Lattice(0);
+    Range<int,3> diff_bounding_grid_cells(diff_grid.Clamp_To_Cell(bbox.min_corner),diff_grid.Clamp_To_Cell(bbox.max_corner));
+    for(Cell_Iterator iterator(diff_grid,diff_bounding_grid_cells);iterator.Valid();iterator.Next())
+        diff_hierarchy->Activate_Cell(0,iterator.Cell_Index(),Cell_Type_Dirichlet);
+    diff_hierarchy->Update_Block_Offsets();
+    diff_hierarchy->Initialize_Red_Black_Partition(2*threads);
 
     high_resolution_clock::time_point te=high_resolution_clock::now();
 	duration<double> dur=duration_cast<duration<double>>(te-tb);
@@ -351,8 +371,10 @@ template<class T> void MPM_Example<T,2>::
 Initialize_SPGrid()
 {
     Compute_Bounding_Box(bbox);
-    if(hierarchy!=nullptr) delete hierarchy;
-    hierarchy=new Hierarchy(counts,domain,levels);
+    if(mpm_hierarchy!=nullptr) delete mpm_hierarchy;
+    mpm_hierarchy=new MPM_Hierarchy(counts,domain,levels);
+    if(diff_hierarchy!=nullptr) delete diff_hierarchy;
+    diff_hierarchy=new Diff_Hierarchy(counts,domain,levels);
 }
 //######################################################################
 // Initialize_SPGrid
@@ -361,8 +383,10 @@ template<class T> void MPM_Example<T,3>::
 Initialize_SPGrid()
 {
     Compute_Bounding_Box(bbox);
-    if(hierarchy!=nullptr) delete hierarchy;
-    hierarchy=new Hierarchy(counts,domain,levels);
+    if(mpm_hierarchy!=nullptr) delete mpm_hierarchy;
+    mpm_hierarchy=new MPM_Hierarchy(counts,domain,levels);
+    if(diff_hierarchy!=nullptr) delete diff_hierarchy;
+    diff_hierarchy=new Diff_Hierarchy(counts,domain,levels);
 }
 //######################################################################
 // Populate_Simulated_Particles
@@ -374,7 +398,6 @@ Populate_Simulated_Particles()
     for(int i=0;i<particles.size();++i)
         if(particles(i).valid)
             simulated_particles.Append(i);
-    // Log::cout<<"\nSimulated particles: "<<simulated_particles.size()<<std::endl;
 }
 //######################################################################
 // Populate_Simulated_Particles
@@ -433,19 +456,18 @@ template<class T> void MPM_Example<T,3>::
 Limit_Dt(T& dt,const T time)
 {
 }
-
 //######################################################################
 // Update_Particle_Weights
 //######################################################################
 template<class T> void MPM_Example<T,2>::
 Update_Particle_Weights()
 {
-    const Grid<T,2>& grid=hierarchy->Lattice(0);
+    const Grid<T,2>& mpm_grid=mpm_hierarchy->Lattice(0);
 #pragma omp parallel for
         for(int i=0;i<simulated_particles.size();i++){
             const int id=simulated_particles(i);
             T_Particle& p=particles(id);
-            p.Update_Weights(grid);}
+            p.Update_Weights(mpm_grid);}
 }
 //######################################################################
 // Update_Particle_Weights
@@ -453,12 +475,12 @@ Update_Particle_Weights()
 template<class T> void MPM_Example<T,3>::
 Update_Particle_Weights()
 {
-    const Grid<T,3>& grid=hierarchy->Lattice(0);
+    const Grid<T,3>& mpm_grid=mpm_hierarchy->Lattice(0);
 #pragma omp parallel for
         for(int i=0;i<simulated_particles.size();i++){
             const int id=simulated_particles(i);
             T_Particle& p=particles(id);
-            p.Update_Weights(grid);}
+            p.Update_Weights(mpm_grid);}
 }
 //######################################################################
 // Group_Particles
@@ -466,8 +488,8 @@ Update_Particle_Weights()
 template<class T> void MPM_Example<T,2>::
 Group_Particles()
 {
-    const Grid<T,2>& grid=hierarchy->Lattice(0);
-    T_INDEX min_corner=grid.Cell_Indices().min_corner, max_corner=grid.Cell_Indices().max_corner;
+    const Grid<T,2>& mpm_grid=mpm_hierarchy->Lattice(0);
+    T_INDEX min_corner=mpm_grid.Cell_Indices().min_corner, max_corner=mpm_grid.Cell_Indices().max_corner;
     x_intervals.resize(threads); x_intervals(0).min_corner=min_corner(0); x_intervals(threads-1).max_corner=max_corner(0);
     const T ratio=(max_corner(0)-min_corner(0)+1)/threads;
     for(int i=0;i<threads-1;++i){
@@ -491,8 +513,8 @@ Group_Particles()
 template<class T> void MPM_Example<T,3>::
 Group_Particles()
 {
-    const Grid<T,3>& grid=hierarchy->Lattice(0);
-    T_INDEX min_corner=grid.Cell_Indices().min_corner, max_corner=grid.Cell_Indices().max_corner;
+    const Grid<T,3>& mpm_grid=mpm_hierarchy->Lattice(0);
+    T_INDEX min_corner=mpm_grid.Cell_Indices().min_corner, max_corner=mpm_grid.Cell_Indices().max_corner;
     x_intervals.resize(threads); x_intervals(0).min_corner=min_corner(0); x_intervals(threads-1).max_corner=max_corner(0);
     const T ratio=(max_corner(0)-min_corner(0)+1)/threads;
     for(int i=0;i<threads-1;++i){
@@ -517,14 +539,13 @@ template<class T> void MPM_Example<T,2>::
 Rasterize()
 {
     high_resolution_clock::time_point tb=high_resolution_clock::now();
-    const Grid<T,2>& grid=hierarchy->Lattice(0);
-    const T cell_volume=grid.dX.Product();
-    for(int level=0;level<levels;++level) Grid_Saturation_Initialization_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel,cell_volume);     
+    const T cell_volume=mpm_hierarchy->Lattice(0).dX.Product();
+    for(int level=0;level<levels;++level) Grid_Saturation_Initialization_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel,cell_volume);     
     const T fluid_density=(T)1.;
-    auto flags=hierarchy->Channel(0,flags_channel); auto mass=hierarchy->Channel(0,mass_channel);       
-    auto v0=hierarchy->Channel(0,velocity_channels(0)); auto v1=hierarchy->Channel(0,velocity_channels(1));
-    auto div_Qc=hierarchy->Channel(0,div_Qc_channel); auto volume=hierarchy->Channel(0,volume_channel);
-    auto saturation=hierarchy->Channel(0,saturation_channel); auto void_mass_fluid=hierarchy->Channel(0,void_mass_fluid_channel);
+    auto mass=mpm_hierarchy->Channel(0,mass_channel);       
+    auto v0=mpm_hierarchy->Channel(0,velocity_channels(0)); auto v1=mpm_hierarchy->Channel(0,velocity_channels(1));
+    auto div_Qc=diff_hierarchy->Channel(0,div_Qc_channel); auto volume=diff_hierarchy->Channel(0,volume_channel);
+    auto saturation=diff_hierarchy->Channel(0,saturation_channel); auto void_mass_fluid=diff_hierarchy->Channel(0,void_mass_fluid_channel);
 #pragma omp parallel for
     for(int tid_process=0;tid_process<threads;++tid_process){
         const Interval<int> thread_x_interval=x_intervals(tid_process);
@@ -540,14 +561,15 @@ Rasterize()
                     if(!FICKS&&!explicit_diffusion){div_Qc(data)+=weight*p.div_Qc*p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant(); volume(data)+=weight*p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();}}}}}
 
     // set flags
-    for(int level=0;level<levels;++level) Flag_Setup_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level));     
+    for(int level=0;level<levels;++level) Flag_Setup_Helper<MPM_struct_type,T,2>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level));     
+    for(int level=0;level<levels;++level) Flag_Setup_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level));     
     // normalize weights for velocity (to conserve momentum)
-    for(int level=0;level<levels;++level) Velocity_Normalization_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels);     
+    for(int level=0;level<levels;++level) Velocity_Normalization_Helper<MPM_struct_type,T,2>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),velocity_channels);     
     // "normalize" saturation and set up surroundings
-    for(int level=0;level<levels;++level) Saturation_Normalization_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel);     
+    for(int level=0;level<levels;++level) Saturation_Normalization_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel);     
     // clamp saturation
-    for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);     
-    if(!FICKS&&!explicit_diffusion) for(int level=0;level<levels;++level) Div_Qc_Normalization_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_Qc_channel,volume_channel);  
+    for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel);     
+    if(!FICKS&&!explicit_diffusion) for(int level=0;level<levels;++level) Div_Qc_Normalization_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),div_Qc_channel,volume_channel);  
     high_resolution_clock::time_point te=high_resolution_clock::now();
 	duration<double> dur=duration_cast<duration<double>>(te-tb);
     ras_cnt++;
@@ -560,14 +582,13 @@ template<class T> void MPM_Example<T,3>::
 Rasterize()
 {
     high_resolution_clock::time_point tb=high_resolution_clock::now();
-    const Grid<T,3>& grid=hierarchy->Lattice(0);
-    const T cell_volume=grid.dX.Product();
-    for(int level=0;level<levels;++level) Grid_Saturation_Initialization_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel,cell_volume);     
+    const T cell_volume=mpm_hierarchy->Lattice(0).dX.Product();
+    for(int level=0;level<levels;++level) Grid_Saturation_Initialization_Helper<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel,cell_volume);     
     const T fluid_density=(T)1.;
-    auto flags=hierarchy->Channel(0,flags_channel); auto mass=hierarchy->Channel(0,mass_channel);       
-    auto v0=hierarchy->Channel(0,velocity_channels(0)); auto v1=hierarchy->Channel(0,velocity_channels(1)); auto v2=hierarchy->Channel(0,velocity_channels(2)); 
-    auto div_Qc=hierarchy->Channel(0,div_Qc_channel); auto volume=hierarchy->Channel(0,volume_channel);
-    auto saturation=hierarchy->Channel(0,saturation_channel); auto void_mass_fluid=hierarchy->Channel(0,void_mass_fluid_channel);
+    auto mass=mpm_hierarchy->Channel(0,mass_channel);       
+    auto v0=mpm_hierarchy->Channel(0,velocity_channels(0)); auto v1=mpm_hierarchy->Channel(0,velocity_channels(1)); auto v2=mpm_hierarchy->Channel(0,velocity_channels(2)); 
+    auto div_Qc=diff_hierarchy->Channel(0,div_Qc_channel); auto volume=diff_hierarchy->Channel(0,volume_channel);
+    auto saturation=diff_hierarchy->Channel(0,saturation_channel); auto void_mass_fluid=diff_hierarchy->Channel(0,void_mass_fluid_channel);
 #pragma omp parallel for
     for(int tid_process=0;tid_process<threads;++tid_process){
         const Interval<int> thread_x_interval=x_intervals(tid_process);
@@ -582,14 +603,15 @@ Rasterize()
                     saturation(data)+=weight*p.mass_fluid; void_mass_fluid(data)+=weight*fluid_density*Vft;
                     if(!FICKS&&!explicit_diffusion){div_Qc(data)+=weight*p.div_Qc*p.volume; volume(data)+=weight*p.volume;}}}}}
     // set flags
-    for(int level=0;level<levels;++level) Flag_Setup_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level));     
+    for(int level=0;level<levels;++level) Flag_Setup_Helper<MPM_struct_type,T,3>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level));     
+    for(int level=0;level<levels;++level) Flag_Setup_Helper<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level));     
     // normalize weights for velocity (to conserve momentum)
-    for(int level=0;level<levels;++level) Velocity_Normalization_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_channels);     
+    for(int level=0;level<levels;++level) Velocity_Normalization_Helper<MPM_struct_type,T,3>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),velocity_channels);     
     // "normalize" saturation and set up surroundings
-    for(int level=0;level<levels;++level) Saturation_Normalization_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel);     
+    for(int level=0;level<levels;++level) Saturation_Normalization_Helper<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel);     
     // clamp saturation
-    for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);     
-    if(!FICKS&&!explicit_diffusion) for(int level=0;level<levels;++level) Div_Qc_Normalization_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_Qc_channel,volume_channel);  
+    for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel);     
+    if(!FICKS&&!explicit_diffusion) for(int level=0;level<levels;++level) Div_Qc_Normalization_Helper<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),div_Qc_channel,volume_channel);  
     high_resolution_clock::time_point te=high_resolution_clock::now();
 	duration<double> dur=duration_cast<duration<double>>(te-tb);
     ras_cnt++;
@@ -602,12 +624,11 @@ template<class T> void MPM_Example<T,2>::
 Ficks_Diffusion(T dt)
 {
     Log::cout<<"Fick's Diffusion"<<std::endl;
-    const Grid<T,2>& grid=hierarchy->Lattice(0);
-    const T one_over_dx2=(T)1./(grid.dX(0)*grid.dX(1));
-    const T a=diff_coeff*dt*one_over_dx2;
-    const T four_a_plus_one=(T)4.*a+(T)1.;
+    const Grid<T,2>& diff_grid=mpm_hierarchy->Lattice(0);
+    const T one_over_dx2=(T)1./(Nova_Utilities::Sqr(diff_grid.dX(0)));
+    const T a=diff_coeff*dt*one_over_dx2; const T four_a_plus_one=(T)4.*a+(T)1.;
     if(!explicit_diffusion){
-    Diffusion_CG_System<Struct_type,T,2> ficks_diffusion_system(*hierarchy,FICKS);
+    Diffusion_CG_System<Diff_struct_type,T,2> ficks_diffusion_system(*diff_hierarchy,FICKS);
     ficks_diffusion_system.a=a;
     ficks_diffusion_system.twod_a_plus_one=four_a_plus_one;
     ficks_diffusion_system.use_preconditioner=false;
@@ -616,23 +637,23 @@ Ficks_Diffusion(T dt)
     // reset solver channels
     Reset_Solver_Channels();
     // set up rhs
-    for(int level=0;level<levels;++level) Ficks_RHS_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,rhs_channels(0),a);
-    Diffusion_CG_Vector<Struct_type,T,2> saturation_fd(*hierarchy,saturation_channel),rhs_fd(*hierarchy,rhs_channels(0)),solver_q_fd(*hierarchy,q_channels(0)),
-                                                solver_s_fd(*hierarchy,s_channels(0)),solver_r_fd(*hierarchy,r_channels(0)),solver_k_fd(*hierarchy,z_channels(0)),solver_z_fd(*hierarchy,z_channels(0));         
+    for(int level=0;level<levels;++level) Ficks_RHS_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,diff_rhs_channel,a);
+    Diffusion_CG_Vector<Diff_struct_type,T,2> saturation_fd(*diff_hierarchy,saturation_channel),rhs_fd(*diff_hierarchy,diff_rhs_channel),solver_q_fd(*diff_hierarchy,diff_q_channel),
+                                                solver_s_fd(*diff_hierarchy,diff_s_channel),solver_r_fd(*diff_hierarchy,diff_r_channel),solver_k_fd(*diff_hierarchy,diff_z_channel),solver_z_fd(*diff_hierarchy,diff_z_channel);         
     
     solver_fd->Solve(ficks_diffusion_system,saturation_fd,rhs_fd,solver_q_fd,solver_s_fd,solver_r_fd,solver_k_fd,solver_z_fd,solver_tolerance,0,solver_iterations);
     // Clamp saturation
-    for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);}
+    for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel);}
 
-    for(int level=0;level<levels;++level) Explicit_Lap_Saturation_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,one_over_dx2);        
-    auto lap_saturation=hierarchy->Channel(0,lap_saturation_channel);
+    for(int level=0;level<levels;++level) Explicit_Lap_Saturation_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,one_over_dx2);        
+    auto lap_saturation=diff_hierarchy->Channel(0,lap_saturation_channel);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i); T_Particle &p=particles(id); T_INDEX closest_cell=p.closest_cell;
         T p_lap_saturation=(T)0.;
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             T_INDEX current_cell=iterator.Current_Cell();
-            if(grid.Cell_Indices().Inside(current_cell)){
+            if(diff_grid.Cell_Indices().Inside(current_cell)){
                 T weight=iterator.Weight();
                 if(weight>(T)0.) p_lap_saturation+=weight*lap_saturation(current_cell._data);}}
             p.saturation+=dt*diff_coeff*p_lap_saturation;
@@ -646,12 +667,11 @@ template<class T> void MPM_Example<T,3>::
 Ficks_Diffusion(T dt)
 {
     Log::cout<<"Fick's Diffusion"<<std::endl;
-    const Grid<T,3>& grid=hierarchy->Lattice(0);
-    const T one_over_dx2=(T)1./(grid.dX(0)*grid.dX(1));
-    const T a=diff_coeff*dt*one_over_dx2;
-    const T six_a_plus_one=(T)6.*a+(T)1.;
+    const Grid<T,3>& diff_grid=diff_hierarchy->Lattice(0);
+    const T one_over_dx2=(T)1./Nova_Utilities::Sqr(diff_grid.dX(0));
+    const T a=diff_coeff*dt*one_over_dx2; const T six_a_plus_one=(T)6.*a+(T)1.;
     if(!explicit_diffusion){
-    Diffusion_CG_System<Struct_type,T,3> ficks_diffusion_system(*hierarchy,FICKS);
+    Diffusion_CG_System<Diff_struct_type,T,3> ficks_diffusion_system(*diff_hierarchy,FICKS);
     ficks_diffusion_system.a=a;
     ficks_diffusion_system.twod_a_plus_one=six_a_plus_one;
     ficks_diffusion_system.use_preconditioner=false;
@@ -660,23 +680,23 @@ Ficks_Diffusion(T dt)
     // reset solver channels
     Reset_Solver_Channels();
     // set up rhs
-    for(int level=0;level<levels;++level) Ficks_RHS_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,rhs_channels(0),a);
-    Diffusion_CG_Vector<Struct_type,T,3> saturation_fd(*hierarchy,saturation_channel),rhs_fd(*hierarchy,rhs_channels(0)),solver_q_fd(*hierarchy,q_channels(0)),
-                                                solver_s_fd(*hierarchy,s_channels(0)),solver_r_fd(*hierarchy,r_channels(0)),solver_k_fd(*hierarchy,z_channels(0)),solver_z_fd(*hierarchy,z_channels(0));         
+    for(int level=0;level<levels;++level) Ficks_RHS_Helper<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,diff_rhs_channel,a);
+    Diffusion_CG_Vector<Diff_struct_type,T,3> saturation_fd(*diff_hierarchy,saturation_channel),rhs_fd(*diff_hierarchy,diff_rhs_channel),solver_q_fd(*diff_hierarchy,diff_q_channel),
+                                                solver_s_fd(*diff_hierarchy,diff_s_channel),solver_r_fd(*diff_hierarchy,diff_r_channel),solver_k_fd(*diff_hierarchy,diff_z_channel),solver_z_fd(*diff_hierarchy,diff_z_channel);         
     
     solver_fd->Solve(ficks_diffusion_system,saturation_fd,rhs_fd,solver_q_fd,solver_s_fd,solver_r_fd,solver_k_fd,solver_z_fd,solver_tolerance,0,solver_iterations);
     // Clamp saturation
-    for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);}
+    for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel);}
 
-    for(int level=0;level<levels;++level) Explicit_Lap_Saturation_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,one_over_dx2);        
-    auto lap_saturation=hierarchy->Channel(0,lap_saturation_channel);
+    for(int level=0;level<levels;++level) Explicit_Lap_Saturation_Helper<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,one_over_dx2);        
+    auto lap_saturation=diff_hierarchy->Channel(0,lap_saturation_channel);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i); T_Particle &p=particles(id); T_INDEX closest_cell=p.closest_cell;
         T p_lap_saturation=(T)0.;
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             T_INDEX current_cell=iterator.Current_Cell();
-            if(grid.Cell_Indices().Inside(current_cell)){
+            if(diff_grid.Cell_Indices().Inside(current_cell)){
                 T weight=iterator.Weight();
                 if(weight>(T)0.) p_lap_saturation+=weight*lap_saturation(current_cell._data);}}
             p.saturation+=dt*diff_coeff*p_lap_saturation;
@@ -690,16 +710,14 @@ template<class T> void MPM_Example<T,2>::
 Non_Ficks_Diffusion(T dt)
 {
     Log::cout<<"Non-Fick's Diffusion"<<std::endl;
-    const Grid<T,2>& grid=hierarchy->Lattice(0);
-    const T one_over_dx2=(T)1./(grid.dX(0)*grid.dX(1));
-    const T coeff1=dt*diff_coeff*(Fc*tau+dt)*one_over_dx2/(dt+tau);
-    const T coeff2=dt*tau/(dt+tau);
-    const T coeff3=dt*diff_coeff*(1-Fc)/(dt+tau);
-    const T coeff4=tau/(dt+tau);
+    const Grid<T,2>& diff_grid=diff_hierarchy->Lattice(0);
+    const T one_over_dx2=(T)1./Nova_Utilities::Sqr(diff_grid.dX(0));
+    const T coeff1=dt*diff_coeff*(Fc*tau+dt)*one_over_dx2/(dt+tau); const T coeff2=dt*tau/(dt+tau);
+    const T coeff3=dt*diff_coeff*(1-Fc)/(dt+tau);  const T coeff4=tau/(dt+tau);
     // Log::cout<<"coeff1: "<<coeff1<<", coeff2: "<<coeff2<<", coeff3: "<<coeff3<<", coeff4: "<<coeff4<<std::endl;
     if(explicit_diffusion){
-        for(int level=0;level<levels;++level) Explicit_Lap_Saturation_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,one_over_dx2);        
-    auto lap_saturation=hierarchy->Channel(0,lap_saturation_channel);
+        for(int level=0;level<levels;++level) Explicit_Lap_Saturation_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,one_over_dx2);        
+    auto lap_saturation=diff_hierarchy->Channel(0,lap_saturation_channel);
 #pragma omp parallel for
         for(unsigned i=0;i<simulated_particles.size();++i){
             const int id=simulated_particles(i); 
@@ -708,13 +726,13 @@ Non_Ficks_Diffusion(T dt)
             T p_lap_saturation=(T)0.;
             for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
                 T_INDEX current_cell=iterator.Current_Cell();
-                if(grid.Cell_Indices().Inside(current_cell))p_lap_saturation+=iterator.Weight()*lap_saturation(current_cell._data);}
+                if(diff_grid.Cell_Indices().Inside(current_cell))p_lap_saturation+=iterator.Weight()*lap_saturation(current_cell._data);}
                 p.div_Qc=(tau-dt)/tau*p.div_Qc-dt/tau*diff_coeff*((T)1.-Fc)*p_lap_saturation;
                 p.saturation+=dt*(diff_coeff*Fc*p_lap_saturation-p.div_Qc);
                 p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);}}
 
     else{
-    Diffusion_CG_System<Struct_type,T,2> non_ficks_diffusion_system(*hierarchy,FICKS);
+    Diffusion_CG_System<Diff_struct_type,T,2> non_ficks_diffusion_system(*diff_hierarchy,FICKS);
     non_ficks_diffusion_system.coeff1=coeff1;
     non_ficks_diffusion_system.use_preconditioner=false;
     Conjugate_Gradient<T> cg;
@@ -722,17 +740,17 @@ Non_Ficks_Diffusion(T dt)
     // reset solver channels
     Reset_Solver_Channels();    
     // set up rhs
-    for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,div_Qc_channel,rhs_channels(0),coeff1,coeff2);
+    for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,div_Qc_channel,diff_rhs_channel,coeff1,coeff2);
 
-    Diffusion_CG_Vector<Struct_type,T,2> saturation_nfd(*hierarchy,saturation_channel),rhs_nfd(*hierarchy,rhs_channels(0)),solver_q_nfd(*hierarchy,q_channels(0)),
-                                                solver_s_nfd(*hierarchy,s_channels(0)),solver_r_nfd(*hierarchy,r_channels(0)),solver_k_nfd(*hierarchy,z_channels(0)),solver_z_nfd(*hierarchy,z_channels(0));         
+    Diffusion_CG_Vector<Diff_struct_type,T,2> saturation_nfd(*diff_hierarchy,saturation_channel),rhs_nfd(*diff_hierarchy,diff_rhs_channel),solver_q_nfd(*diff_hierarchy,diff_q_channel),
+                                                solver_s_nfd(*diff_hierarchy,diff_s_channel),solver_r_nfd(*diff_hierarchy,diff_r_channel),solver_k_nfd(*diff_hierarchy,diff_z_channel),solver_z_nfd(*diff_hierarchy,diff_z_channel);         
         
     solver_nfd->Solve(non_ficks_diffusion_system,saturation_nfd,rhs_nfd,solver_q_nfd,solver_s_nfd,solver_r_nfd,solver_k_nfd,solver_z_nfd,solver_tolerance,0,solver_iterations);
     // Clamp saturation
-    for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);        
+    for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel);        
     
-    for(int level=0;level<levels;++level) Explicit_Lap_Saturation_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,one_over_dx2);        
-    auto lap_saturation=hierarchy->Channel(0,lap_saturation_channel);
+    for(int level=0;level<levels;++level) Explicit_Lap_Saturation_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,one_over_dx2);        
+    auto lap_saturation=diff_hierarchy->Channel(0,lap_saturation_channel);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i); 
@@ -741,7 +759,7 @@ Non_Ficks_Diffusion(T dt)
         T p_lap_saturation=(T)0.;
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             T_INDEX current_cell=iterator.Current_Cell();
-            if(grid.Cell_Indices().Inside(current_cell)) p_lap_saturation+=iterator.Weight()*lap_saturation(current_cell._data);}
+            if(diff_grid.Cell_Indices().Inside(current_cell)) p_lap_saturation+=iterator.Weight()*lap_saturation(current_cell._data);}
             p.saturation+=coeff1/one_over_dx2*p_lap_saturation-coeff2*p.div_Qc;
             p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);
             p.div_Qc=-coeff3*p_lap_saturation+coeff4*p.div_Qc;}}
@@ -753,16 +771,14 @@ template<class T> void MPM_Example<T,3>::
 Non_Ficks_Diffusion(T dt)
 {
     Log::cout<<"Non-Fick's Diffusion"<<std::endl;
-    const Grid<T,3>& grid=hierarchy->Lattice(0);
-    const T one_over_dx2=(T)1./(grid.dX(0)*grid.dX(1));
-    const T coeff1=dt*diff_coeff*(Fc*tau+dt)*one_over_dx2/(dt+tau);
-    const T coeff2=dt*tau/(dt+tau);
-    const T coeff3=dt*diff_coeff*(1-Fc)/(dt+tau);
-    const T coeff4=tau/(dt+tau);
+    const Grid<T,3>& diff_grid=diff_hierarchy->Lattice(0);
+    const T one_over_dx2=(T)1./Nova_Utilities::Sqr(diff_grid.dX(0));
+    const T coeff1=dt*diff_coeff*(Fc*tau+dt)*one_over_dx2/(dt+tau); const T coeff2=dt*tau/(dt+tau);
+    const T coeff3=dt*diff_coeff*(1-Fc)/(dt+tau); const T coeff4=tau/(dt+tau);
     // Log::cout<<"coeff1: "<<coeff1<<", coeff2: "<<coeff2<<", coeff3: "<<coeff3<<", coeff4: "<<coeff4<<std::endl;
     if(explicit_diffusion){
-        for(int level=0;level<levels;++level) Explicit_Lap_Saturation_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,one_over_dx2);        
-    auto lap_saturation=hierarchy->Channel(0,lap_saturation_channel);
+        for(int level=0;level<levels;++level) Explicit_Lap_Saturation_Helper<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,one_over_dx2);        
+    auto lap_saturation=diff_hierarchy->Channel(0,lap_saturation_channel);
 #pragma omp parallel for
         for(unsigned i=0;i<simulated_particles.size();++i){
             const int id=simulated_particles(i); 
@@ -771,13 +787,13 @@ Non_Ficks_Diffusion(T dt)
             T p_lap_saturation=(T)0.;
             for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
                 T_INDEX current_cell=iterator.Current_Cell();
-                if(grid.Cell_Indices().Inside(current_cell))p_lap_saturation+=iterator.Weight()*lap_saturation(current_cell._data);}
+                if(diff_grid.Cell_Indices().Inside(current_cell))p_lap_saturation+=iterator.Weight()*lap_saturation(current_cell._data);}
                 p.div_Qc=(tau-dt)/tau*p.div_Qc-dt/tau*diff_coeff*((T)1.-Fc)*p_lap_saturation;
                 p.saturation+=dt*(diff_coeff*Fc*p_lap_saturation-p.div_Qc);
                 p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);}}
 
     else{
-    Diffusion_CG_System<Struct_type,T,3> non_ficks_diffusion_system(*hierarchy,FICKS);
+    Diffusion_CG_System<Diff_struct_type,T,3> non_ficks_diffusion_system(*diff_hierarchy,FICKS);
     non_ficks_diffusion_system.coeff1=coeff1;
     non_ficks_diffusion_system.use_preconditioner=false;
     Conjugate_Gradient<T> cg;
@@ -785,18 +801,18 @@ Non_Ficks_Diffusion(T dt)
     // reset solver channels
     Reset_Solver_Channels();
     // set up rhs
-    for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,div_Qc_channel,rhs_channels(0),coeff1,coeff2);
+    for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,div_Qc_channel,diff_rhs_channel,coeff1,coeff2);
 
-    Diffusion_CG_Vector<Struct_type,T,3> saturation_nfd(*hierarchy,saturation_channel),rhs_nfd(*hierarchy,rhs_channels(0)),solver_q_nfd(*hierarchy,q_channels(0)),
-                                                solver_s_nfd(*hierarchy,s_channels(0)),solver_r_nfd(*hierarchy,r_channels(0)),solver_k_nfd(*hierarchy,z_channels(0)),solver_z_nfd(*hierarchy,z_channels(0));         
+    Diffusion_CG_Vector<Diff_struct_type,T,3> saturation_nfd(*diff_hierarchy,saturation_channel),rhs_nfd(*diff_hierarchy,diff_rhs_channel),solver_q_nfd(*diff_hierarchy,diff_q_channel),
+                                                solver_s_nfd(*diff_hierarchy,diff_s_channel),solver_r_nfd(*diff_hierarchy,diff_r_channel),solver_k_nfd(*diff_hierarchy,diff_z_channel),solver_z_nfd(*diff_hierarchy,diff_z_channel);         
         
     solver_nfd->Solve(non_ficks_diffusion_system,saturation_nfd,rhs_nfd,solver_q_nfd,solver_s_nfd,solver_r_nfd,solver_k_nfd,solver_z_nfd,solver_tolerance,0,solver_iterations);
 
     // Clamp saturation
-    for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);        
+    for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel);        
     
-    for(int level=0;level<levels;++level) Explicit_Lap_Saturation_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,one_over_dx2);        
-    auto lap_saturation=hierarchy->Channel(0,lap_saturation_channel);
+    for(int level=0;level<levels;++level) Explicit_Lap_Saturation_Helper<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,one_over_dx2);        
+    auto lap_saturation=diff_hierarchy->Channel(0,lap_saturation_channel);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i); 
@@ -805,7 +821,7 @@ Non_Ficks_Diffusion(T dt)
         T p_lap_saturation=(T)0.;
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             T_INDEX current_cell=iterator.Current_Cell();
-            if(grid.Cell_Indices().Inside(current_cell)) p_lap_saturation+=iterator.Weight()*lap_saturation(current_cell._data);}
+            if(diff_grid.Cell_Indices().Inside(current_cell)) p_lap_saturation+=iterator.Weight()*lap_saturation(current_cell._data);}
             p.saturation+=coeff1/one_over_dx2*p_lap_saturation-coeff2*p.div_Qc;
             p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);
             p.div_Qc=-coeff3*p_lap_saturation+coeff4*p.div_Qc;}}
@@ -842,10 +858,10 @@ Update_Particle_Velocities_And_Positions(const T dt)
 {
     high_resolution_clock::time_point tb=high_resolution_clock::now();
     Array<Array<int> > remove_indices(threads);
-    auto vs0=hierarchy->Channel(0,velocity_star_channels(0));   auto vs1=hierarchy->Channel(0,velocity_star_channels(1));
-    auto v0=hierarchy->Channel(0,velocity_channels(0));         auto v1=hierarchy->Channel(0,velocity_channels(1));
+    auto vs0=mpm_hierarchy->Channel(0,velocity_star_channels(0));   auto vs1=mpm_hierarchy->Channel(0,velocity_star_channels(1));
+    auto v0=mpm_hierarchy->Channel(0,velocity_channels(0));         auto v1=mpm_hierarchy->Channel(0,velocity_channels(1));
     Apply_Force(dt);
-    const Grid<T,2>& grid=hierarchy->Lattice(0);
+    const Grid<T,2>& mpm_grid=mpm_hierarchy->Lattice(0);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i); 
@@ -865,7 +881,7 @@ Update_Particle_Velocities_And_Positions(const T dt)
             const T J=p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
             p.mass_fluid=p.volume*J*p.volume_fraction_0*p.saturation;
             p.mass=p.mass_solid+p.mass_fluid;
-        if(!grid.domain.Inside(p.X)){
+        if(!mpm_grid.domain.Inside(p.X)){
             remove_indices(omp_get_thread_num()).Append(i);
             p.valid=false;}}
 
@@ -890,10 +906,10 @@ Update_Particle_Velocities_And_Positions(const T dt)
 {
     high_resolution_clock::time_point tb=high_resolution_clock::now();
     Array<Array<int> > remove_indices(threads);
-    auto vs0=hierarchy->Channel(0,velocity_star_channels(0));   auto vs1=hierarchy->Channel(0,velocity_star_channels(1)); auto vs2=hierarchy->Channel(0,velocity_star_channels(2)); 
-    auto v0=hierarchy->Channel(0,velocity_channels(0));         auto v1=hierarchy->Channel(0,velocity_channels(1)); auto v2=hierarchy->Channel(0,velocity_channels(2));
+    auto vs0=mpm_hierarchy->Channel(0,velocity_star_channels(0));   auto vs1=mpm_hierarchy->Channel(0,velocity_star_channels(1)); auto vs2=mpm_hierarchy->Channel(0,velocity_star_channels(2)); 
+    auto v0=mpm_hierarchy->Channel(0,velocity_channels(0));         auto v1=mpm_hierarchy->Channel(0,velocity_channels(1)); auto v2=mpm_hierarchy->Channel(0,velocity_channels(2));
     Apply_Force(dt);
-    const Grid<T,3>& grid=hierarchy->Lattice(0);
+    const Grid<T,3>& mpm_grid=mpm_hierarchy->Lattice(0);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i); 
@@ -913,7 +929,7 @@ Update_Particle_Velocities_And_Positions(const T dt)
             // Log::cout<<"Je: "<<p.constitutive_model.Fe.Determinant()<<std::endl;
             p.mass_fluid=p.volume*J*p.volume_fraction_0*p.saturation;
             p.mass=p.mass_solid+p.mass_fluid;
-        if(!grid.domain.Inside(p.X)){
+        if(!mpm_grid.domain.Inside(p.X)){
             remove_indices(omp_get_thread_num()).Append(i);
             p.valid=false;}}
 
@@ -942,13 +958,13 @@ Apply_Force(const T dt)
     if(true){
     Conjugate_Gradient<T> cg;
     Krylov_Solver<T>* solver=(Krylov_Solver<T>*)&cg;
-    MPM_CG_System<Struct_type,T,2> mpm_system(*hierarchy,simulated_particles,particles,particle_bins,x_intervals,barriers,(T)0.,dt,threads);
+    MPM_CG_System<MPM_struct_type,T,2> mpm_system(*mpm_hierarchy,simulated_particles,particles,particle_bins,x_intervals,barriers,(T)0.,dt,threads);
     mpm_system.use_preconditioner=false;
     // clear channels
     Reset_Solver_Channels();
     // set rhs here
-    for(int level=0;level<levels;++level) MPM_RHS_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels,rhs_channels);     
-    MPM_CG_Vector<Struct_type,T,2> solver_vp(*hierarchy,velocity_star_channels),solver_rhs(*hierarchy,rhs_channels),solver_q(*hierarchy,q_channels),solver_s(*hierarchy,s_channels),solver_r(*hierarchy,r_channels),solver_k(*hierarchy,z_channels),solver_z(*hierarchy,z_channels);
+    for(int level=0;level<levels;++level) MPM_RHS_Helper<MPM_struct_type,T,2>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),velocity_star_channels,mpm_rhs_channels);     
+    MPM_CG_Vector<MPM_struct_type,T,2> solver_vp(*mpm_hierarchy,velocity_star_channels),solver_rhs(*mpm_hierarchy,mpm_rhs_channels),solver_q(*mpm_hierarchy,mpm_q_channels),solver_s(*mpm_hierarchy,mpm_s_channels),solver_r(*mpm_hierarchy,mpm_r_channels),solver_k(*mpm_hierarchy,mpm_z_channels),solver_z(*mpm_hierarchy,mpm_z_channels);
     solver->Solve(mpm_system,solver_vp,solver_rhs,solver_q,solver_s,solver_r,solver_k,solver_z,solver_tolerance,0,solver_iterations);}
     high_resolution_clock::time_point te=high_resolution_clock::now();
 	duration<double> dur=duration_cast<duration<double>>(te-tb);
@@ -968,13 +984,13 @@ Apply_Force(const T dt)
     if(true){
     Conjugate_Gradient<T> cg;
     Krylov_Solver<T>* solver=(Krylov_Solver<T>*)&cg;
-    MPM_CG_System<Struct_type,T,3> mpm_system(*hierarchy,simulated_particles,particles,particle_bins,x_intervals,barriers,(T)0.,dt,threads);
+    MPM_CG_System<MPM_struct_type,T,3> mpm_system(*mpm_hierarchy,simulated_particles,particles,particle_bins,x_intervals,barriers,(T)0.,dt,threads);
     mpm_system.use_preconditioner=false;
     // clear channels
     Reset_Solver_Channels();
     // set rhs here
-    for(int level=0;level<levels;++level) MPM_RHS_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels,rhs_channels);     
-    MPM_CG_Vector<Struct_type,T,3> solver_vp(*hierarchy,velocity_star_channels),solver_rhs(*hierarchy,rhs_channels),solver_q(*hierarchy,q_channels),solver_s(*hierarchy,s_channels),solver_r(*hierarchy,r_channels),solver_k(*hierarchy,z_channels),solver_z(*hierarchy,z_channels);
+    for(int level=0;level<levels;++level) MPM_RHS_Helper<MPM_struct_type,T,3>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),velocity_star_channels,mpm_rhs_channels);     
+    MPM_CG_Vector<MPM_struct_type,T,3> solver_vp(*mpm_hierarchy,velocity_star_channels),solver_rhs(*mpm_hierarchy,mpm_rhs_channels),solver_q(*mpm_hierarchy,mpm_q_channels),solver_s(*mpm_hierarchy,mpm_s_channels),solver_r(*mpm_hierarchy,mpm_r_channels),solver_k(*mpm_hierarchy,mpm_z_channels),solver_z(*mpm_hierarchy,mpm_z_channels);
     solver->Solve(mpm_system,solver_vp,solver_rhs,solver_q,solver_s,solver_r,solver_k,solver_z,solver_tolerance,0,solver_iterations);}
     high_resolution_clock::time_point te=high_resolution_clock::now();
 	duration<double> dur=duration_cast<duration<double>>(te-tb);
@@ -989,8 +1005,8 @@ template<class T> void MPM_Example<T,2>::
 Apply_Explicit_Force(const T dt)
 {
     high_resolution_clock::time_point tb=high_resolution_clock::now();
-    const Grid<T,2>& grid=hierarchy->Lattice(0);
-    auto f0=hierarchy->Channel(0,f_channels(0)); auto f1=hierarchy->Channel(0,f_channels(1));
+    const Grid<T,2>& mpm_grid=mpm_hierarchy->Lattice(0);
+    auto f0=mpm_hierarchy->Channel(0,f_channels(0)); auto f1=mpm_hierarchy->Channel(0,f_channels(1));
     Array<T> thread_rt(threads);
     Array<int> thread_cnt(threads);
 #pragma omp parallel for
@@ -1016,7 +1032,7 @@ Apply_Explicit_Force(const T dt)
                     f0(data)-=inner_force(0); f1(data)-=inner_force(1);
                     f0(data)+=body_force(0); f1(data)+=body_force(1);}}}}
 
-    for(int level=0;level<levels;++level) Explicit_Force_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),f_channels,velocity_channels,velocity_star_channels,dt);
+    for(int level=0;level<levels;++level) Explicit_Force_Helper<MPM_struct_type,T,2>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),f_channels,velocity_channels,velocity_star_channels,dt);
     high_resolution_clock::time_point te=high_resolution_clock::now();
 	duration<double> dur=duration_cast<duration<double>>(te-tb);
     explicit_force_cnt++;
@@ -1029,8 +1045,8 @@ template<class T> void MPM_Example<T,3>::
 Apply_Explicit_Force(const T dt)
 {
     high_resolution_clock::time_point tb=high_resolution_clock::now();
-    const Grid<T,3>& grid=hierarchy->Lattice(0);
-    auto f0=hierarchy->Channel(0,f_channels(0)); auto f1=hierarchy->Channel(0,f_channels(1)); auto f2=hierarchy->Channel(0,f_channels(2));
+    const Grid<T,3>& mpm_grid=mpm_hierarchy->Lattice(0);
+    auto f0=mpm_hierarchy->Channel(0,f_channels(0)); auto f1=mpm_hierarchy->Channel(0,f_channels(1)); auto f2=mpm_hierarchy->Channel(0,f_channels(2));
     Array<T> thread_rt(threads); Array<int> thread_cnt(threads);
 #pragma omp parallel for
     for(int tid_process=0;tid_process<threads;++tid_process){
@@ -1055,7 +1071,7 @@ Apply_Explicit_Force(const T dt)
                     f0(data)+=body_force(0); f1(data)+=body_force(1); f2(data)+=body_force(2); 
                 }}}}
 
-    for(int level=0;level<levels;++level) Explicit_Force_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),f_channels,velocity_channels,velocity_star_channels,dt);
+    for(int level=0;level<levels;++level) Explicit_Force_Helper<MPM_struct_type,T,3>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),f_channels,velocity_channels,velocity_star_channels,dt);
     high_resolution_clock::time_point te=high_resolution_clock::now();
 	duration<double> dur=duration_cast<duration<double>>(te-tb);
     explicit_force_cnt++;
@@ -1067,7 +1083,7 @@ Apply_Explicit_Force(const T dt)
 template<class T> void MPM_Example<T,2>::
 Grid_Based_Collision(const bool detect_collision)
 {   
-    if(detect_collision) for(int level=0;level<levels;++level) Grid_Based_Collision_Helper<Struct_type,T,2>(hierarchy->Lattice(level),hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels,barriers);
+    if(detect_collision) for(int level=0;level<levels;++level) Grid_Based_Collision_Helper<MPM_struct_type,T,2>(mpm_hierarchy->Lattice(level),mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),velocity_star_channels,barriers);
 }
 //######################################################################
 // Grid_Based_Collision
@@ -1075,7 +1091,7 @@ Grid_Based_Collision(const bool detect_collision)
 template<class T> void MPM_Example<T,3>::
 Grid_Based_Collision(const bool detect_collision)
 {   
-    if(detect_collision) for(int level=0;level<levels;++level) Grid_Based_Collision_Helper<Struct_type,T,3>(hierarchy->Lattice(level),hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels,barriers);
+    if(detect_collision) for(int level=0;level<levels;++level) Grid_Based_Collision_Helper<MPM_struct_type,T,3>(mpm_hierarchy->Lattice(level),mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),velocity_star_channels,barriers);
 }
 //######################################################################
 // Estimate_Particle_Volumes
@@ -1083,7 +1099,7 @@ Grid_Based_Collision(const bool detect_collision)
 template<class T> void MPM_Example<T,2>::
 Estimate_Particle_Volumes()
 {   
-    auto mass=hierarchy->Channel(0,mass_channel); const Grid<T,2>& grid=hierarchy->Lattice(0); const T one_over_volume_per_cell=grid.one_over_dX.Product();
+    auto mass=mpm_hierarchy->Channel(0,mass_channel); const Grid<T,2>& mpm_grid=mpm_hierarchy->Lattice(0); const T one_over_volume_per_cell=mpm_grid.one_over_dX.Product();
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){const int id=simulated_particles(i); T_Particle& p=particles(id);     
         T particle_density=(T)0.;
@@ -1098,7 +1114,7 @@ Estimate_Particle_Volumes()
 template<class T> void MPM_Example<T,3>::
 Estimate_Particle_Volumes()
 {   
-    auto mass=hierarchy->Channel(0,mass_channel); const Grid<T,3>& grid=hierarchy->Lattice(0); const T one_over_volume_per_cell=grid.one_over_dX.Product();
+    auto mass=mpm_hierarchy->Channel(0,mass_channel); const Grid<T,3>& mpm_grid=mpm_hierarchy->Lattice(0); const T one_over_volume_per_cell=mpm_grid.one_over_dX.Product();
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){const int id=simulated_particles(i); T_Particle& p=particles(id);     
         T particle_density=(T)0.;
@@ -1226,7 +1242,7 @@ Write_Output_Files(const int frame) const
 
     // write hierarchy
     File_Utilities::Write_To_Text_File(output_directory+"/"+std::to_string(frame)+"/levels",levels);
-    hierarchy->Write_Hierarchy(output_directory,frame);
+    mpm_hierarchy->Write_Hierarchy(output_directory,frame);
 }
 //######################################################################
 // Write_Output_Files
@@ -1244,7 +1260,7 @@ Write_Output_Files(const int frame) const
 
     // write hierarchy
     File_Utilities::Write_To_Text_File(output_directory+"/"+std::to_string(frame)+"/levels",levels);
-    hierarchy->Write_Hierarchy(output_directory,frame);
+    mpm_hierarchy->Write_Hierarchy(output_directory,frame);
 }
 //######################################################################
 // Read_Output_Files

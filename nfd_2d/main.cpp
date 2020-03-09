@@ -29,7 +29,7 @@ namespace Nova{
 int main(int argc,char** argv)
 {
     Log::cout.precision(13);
-    bool run_test=true;
+    bool run_test=false;
     if(run_test){
         typedef float T;
         enum {d=2};
