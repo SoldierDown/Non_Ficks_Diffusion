@@ -75,9 +75,9 @@ class Non_Ficks_Smoother
                                  const T coeff1,const int iterations,const unsigned mask,const T omega=(T)two_thirds)
     {
         for(int i=0;i<iterations;++i){
-            Compute_Residual(hierarchy,blocks,level,u_channel,b_channel,temp_channel,mask);
+            Compute_Residual(hierarchy,blocks,level,u_channel,b_channel,temp_channel,coeff1,mask);
             // residual <-- residual/diagonal
-            Multiply_Inverse_Diagonal<Struct_type,T,d>(hierarchy,blocks,temp_channel,temp_channel,mask,level);
+            Multiply_Inverse_Diagonal<Struct_type,T,d>(hierarchy,blocks,temp_channel,temp_channel,coeff1,mask,level);
             // u <-- u + omega*(residual/diagonal)
             SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy.Allocator(level),blocks,omega,
                                                   temp_channel,u_channel,u_channel,mask);}

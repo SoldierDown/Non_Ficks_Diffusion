@@ -10,7 +10,7 @@
 #include "../CG_Vector.h"
 #include "../Clear_Non_Active.h"
 #include "../Convergence_Norm_Helper.h"
-#include "Non_Ficks_Smoother.h"
+#include "Non_Ficks_Solver.h"
 #include "../Inner_Product_Helper.h"
 
 namespace Nova{
@@ -26,15 +26,15 @@ class Non_Ficks_CG_System: public Krylov_System_Base<T>
     Hierarchy& hierarchy;
     const int mg_levels;
     const T coeff1;
+    Non_Ficks_Solver<Base_struct_type,Multigrid_struct_type,T,d> multigrid_solver;
     const int boundary_smoothing_iterations,interior_smoothing_iterations,bottom_smoothing_iterations;
+
     Non_Ficks_CG_System(Hierarchy& hierarchy_input,const int mg_levels_input,const T coeff1_input,
         const int boundary_smoothing_iterations_input,const int interior_smoothing_iterations_input,const int bottom_smoothing_iterations_input)
-        :Base(false,false),hierarchy(hierarchy_input),mg_levels(mg_levels_input),coeff1(coeff1_input),
-        //multigrid_solver(hierarchy,mg_levels),
-        boundary_smoothing_iterations(boundary_smoothing_iterations_input),
-        interior_smoothing_iterations(interior_smoothing_iterations_input),bottom_smoothing_iterations(bottom_smoothing_iterations_input)
+        :Base(false,false),hierarchy(hierarchy_input),mg_levels(mg_levels_input),coeff1(coeff1_input),multigrid_solver(hierarchy,mg_levels,coeff1),
+        boundary_smoothing_iterations(boundary_smoothing_iterations_input),interior_smoothing_iterations(interior_smoothing_iterations_input),bottom_smoothing_iterations(bottom_smoothing_iterations_input)
     {
-        //multigrid_solver.Initialize();
+        multigrid_solver.Initialize();
     }
 
     ~Non_Ficks_CG_System() {}
