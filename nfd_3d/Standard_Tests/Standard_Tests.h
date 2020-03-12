@@ -39,9 +39,9 @@ class Standard_Tests: public MPM_Example<T,d>
     {
         Base::Parse_Options();
         output_directory=std::to_string(d)+"d_"+(FICKS?"F_":"NF_")+"E_"+std::to_string(E)+"_nu_"+std::to_string(nu)+"_diff_"+std::to_string(diff_coeff)
-                                +"_eta_"+std::to_string(eta)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau);
+                                +"_eta_"+std::to_string(eta)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau)+"_Resolution_"+std::to_string(counts(0));
 
-        domain.min_corner=TV();domain.max_corner=TV(5);
+        domain.min_corner=TV();domain.max_corner=TV(11);
     }
 //######################################################################
     void Initialize_Particles(int test_case) override
@@ -67,8 +67,8 @@ class Standard_Tests: public MPM_Example<T,d>
             {
                 const T solid_density=(T)10.;
                 const T fluid_density=(T)1.;
-                const int number_of_particles=40000;
-                const Range<T,d> block(TV({2.4,2.4,2.49}),TV({2.6,2.6,2.51}));
+                const int number_of_particles=400000;
+                const Range<T,d> block(TV({5.4,5.4,5.49}),TV({5.6,5.6,5.51}));
                 const T block_area=block.Area();
                 const T area_per_particle=block_area/number_of_particles;
                 std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;

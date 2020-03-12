@@ -260,7 +260,7 @@ Compute_Bounding_Box(Range<T,2>& bbox)
         TV& current_min_corner=min_corner_per_thread(tid);
         TV& current_max_corner=max_corner_per_thread(tid);
         for(int v=0;v<2;++v){
-            T dd=(T)3.*5./counts(v);
+            T dd=(T)4.*11./counts(v);
             current_min_corner(v)=std::min(current_min_corner(v),p.X(v)-dd);
             current_max_corner(v)=std::max(current_max_corner(v),p.X(v)+dd);}}
 
@@ -275,7 +275,7 @@ Compute_Bounding_Box(Range<T,2>& bbox)
     
     for(int v=0;v<2;++v){ 
         bbox.min_corner(v)=std::max((T)0.,bbox.min_corner(v));
-        bbox.max_corner(v)=std::min((T)5.,bbox.max_corner(v));}
+        bbox.max_corner(v)=std::min((T)11.,bbox.max_corner(v));}
 }
 //######################################################################
 // Compute_Bounding_Box
@@ -293,7 +293,7 @@ Compute_Bounding_Box(Range<T,3>& bbox)
         TV& current_min_corner=min_corner_per_thread(tid);
         TV& current_max_corner=max_corner_per_thread(tid);
         for(int v=0;v<3;++v){
-            T dd=(T)3.*5./counts(v);
+            T dd=(T)4.*11./counts(v);
             current_min_corner(v)=std::min(current_min_corner(v),p.X(v)-dd);
             current_max_corner(v)=std::max(current_max_corner(v),p.X(v)+dd);}}
 
@@ -308,7 +308,7 @@ Compute_Bounding_Box(Range<T,3>& bbox)
     
     for(int v=0;v<3;++v){ 
         bbox.min_corner(v)=std::max((T)0.,bbox.min_corner(v));
-        bbox.max_corner(v)=std::min((T)5.,bbox.max_corner(v));}
+        bbox.max_corner(v)=std::min((T)11.,bbox.max_corner(v));}
     Log::cout<<"min corner: "<<bbox.min_corner<<", max corner: "<<bbox.max_corner<<std::endl;
 }
 //######################################################################
