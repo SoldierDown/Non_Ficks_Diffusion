@@ -50,9 +50,6 @@ template<class T> MPM_Example<T,2>::
 MPM_Example()
     :Base(),mpm_hierarchy(nullptr),diff_hierarchy(nullptr)
 {
-	mg_levels=2;
-	cg_max_iterations=10000;
-	cg_restart_iterations=50;
     gravity=TV::Axis_Vector(1)*(T)0.;
     flip=(T).9;
     explicit_diffusion=false;
