@@ -1,10 +1,10 @@
 //!#####################################################################
-//! \file Explicit_Lap_Saturation_Helper.h
+//! \file Lap_Calculator.h
 //!#####################################################################
-// Class Explicit_Lap_Saturation_Helper
+// Class Lap_Calculator
 //######################################################################
-#ifndef __Explicit_Lap_Saturation_Helper__
-#define __Explicit_Lap_Saturation_Helper__
+#ifndef __Lap_Calculator__
+#define __Lap_Calculator__
 
 
 #include <nova/SPGrid/Core/SPGrid_Allocator.h>
@@ -15,7 +15,7 @@
 
 namespace Nova{
 template<class Struct_type,class T,int d>
-class Explicit_Lap_Saturation_Helper
+class Lap_Calculator
 {
     using Flags_type            = typename Struct_type::Flags_type;
     using Channel_Vector        = Vector<T Struct_type::*,d>;
@@ -24,26 +24,28 @@ class Explicit_Lap_Saturation_Helper
     using Topology_Helper       = Grid_Topology_Helper<Flag_array_mask>;
 
   public:
-    Explicit_Lap_Saturation_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-                T Struct_type::* saturation_channel,T Struct_type::* lap_saturation_channel,const T one_over_dx2)
-    {Run(allocator,blocks,saturation_channel,lap_saturation_channel,one_over_dx2);}
+    Lap_Calculator(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
+                T Struct_type::* channel,T Struct_type::* lap_channel,const T one_over_dx2)
+    {Run(allocator,blocks,channel,lap_channel,one_over_dx2);}
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-                T Struct_type::* saturation_channel,T Struct_type::* lap_saturation_channel,const T one_over_dx2) const
+                T Struct_type::* channel,T Struct_type::* lap_channel,const T one_over_dx2) const
     {
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        auto saturation=allocator.template Get_Const_Array<Struct_type,T>(saturation_channel); auto lap_saturation=allocator.template Get_Array<Struct_type,T>(lap_saturation_channel);
+        auto data=allocator.template Get_Const_Array<Struct_type,T>(channel); auto lap=allocator.template Get_Array<Struct_type,T>(lap_channel);
         uint64_t face_neighbor_offsets[Topology_Helper::number_of_faces_per_cell];
         Topology_Helper::Face_Neighbor_Offsets(face_neighbor_offsets);
-        auto explicit_lap_saturation_helper=[&](uint64_t offset)
+        auto lap_calculator=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                 if(flags(offset)&Cell_Type_Interior){
                     for(int face=0;face<Topology_Helper::number_of_faces_per_cell;++face){
                         int64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
-                        if(flags(offset)&(Cell_Type_Interior|Cell_Type_Dirichlet)) lap_saturation(offset)+=one_over_dx2*(saturation(neighbor_offset)-saturation(offset));}}}
+                        if(flags(offset)&(Cell_Type_Interior|Cell_Type_Dirichlet)) lap(offset)+=one_over_dx2*(data(neighbor_offset)-data(offset));}}}
         };
-        SPGrid_Computations::Run_Parallel_Blocks(blocks,explicit_lap_saturation_helper);
+        SPGrid_Computations::Run_Parallel_Blocks(blocks,lap_calculator);
+
+
     }
 };
 }

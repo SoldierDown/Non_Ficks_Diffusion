@@ -16,6 +16,11 @@
 #include "Initialize_Dirichlet_Cells.h"
 #include "Poisson_Solver/Multigrid_Data.h"
 #include "Smoke_Example.h"
+#include "Ficks_Solver/Ficks_CG_System.h"
+#include "Non_Ficks_Solver/Non_Ficks_CG_System.h"
+#include "Ficks_RHS_Helper.h"
+#include "Clamp_Helper.h"
+#include "Lap_Calculator.h"
 #include <omp.h>
 using namespace Nova;
 namespace Nova{
@@ -28,11 +33,17 @@ template<class T,int d> Smoke_Example<T,d>::
 Smoke_Example()
     :Base(),hierarchy(nullptr),rasterizer(nullptr)
 {
+    FICKS=true;
+    explicit_diffusion=false;
+    diff_coeff=(T)1e-3;
+    Fc=(T)0.;
+    tau=(T)1.;
     face_velocity_channels(0)           = &Struct_type::ch0;
     face_velocity_channels(1)           = &Struct_type::ch1;
     if(d==3) face_velocity_channels(2)  = &Struct_type::ch2;
     pressure_channel                    = &Struct_type::ch3;
     density_channel                     = &Struct_type::ch4;
+    lap_density_channel                 = &Struct_type::ch14;
 }
 //######################################################################
 // Initialize
@@ -85,7 +96,7 @@ Limit_Dt(T& dt,const T time)
 //######################################################################
 // Advect_Density
 //######################################################################
-template<class T,int d> void Smoke_Example<T,d>::
+template    <class T,int d> void Smoke_Example<T,d>::
 Advect_Density(const T dt)
 {
     Channel_Vector node_velocity_channels;
@@ -99,6 +110,71 @@ Advect_Density(const T dt)
     Grid_Hierarchy_Advection<Struct_type,T,d>::Advect_Density(*hierarchy,node_velocity_channels,density_channel,node_density_channel,temp_channel,dt);
 }
 //######################################################################
+// Diffuse_Density
+//######################################################################
+template<class T,int d> void Smoke_Example<T,d>::
+Diffuse_Density(const T dt)
+{
+    if(FICKS) Ficks_Diffusion(dt);
+    else Non_Ficks_Diffusion(dt);
+}
+//######################################################################
+// Ficks_Diffusion
+//######################################################################
+template<class T,int d> void Smoke_Example<T,d>::
+Ficks_Diffusion(const T dt)
+{
+    using Multigrid_struct_type 	= Multigrid_Data<T>;
+    Log::cout<<"Fick's Diffusion"<<std::endl;
+	const Grid<T,d>& grid=hierarchy->Lattice(0);
+    const T one_over_dx2=Nova_Utilities::Sqr(grid.one_over_dX(0));
+    const T a=diff_coeff*dt*one_over_dx2; const T two_d_a_plus_one=(T)2*d*a+(T)1.;
+	if(!explicit_diffusion){
+	    Ficks_CG_System<Struct_type,Multigrid_struct_type,T,d> cg_system(*hierarchy,mg_levels,diff_coeff*dt,3,1,200);
+        T Struct_type::* q_channel              = &Struct_type::ch9;
+        T Struct_type::* r_channel              = &Struct_type::ch10;
+        T Struct_type::* s_channel              = &Struct_type::ch11;
+        T Struct_type::* k_channel              = &Struct_type::ch11;
+        T Struct_type::* z_channel              = &Struct_type::ch12;
+        T Struct_type::* b_channel              = &Struct_type::ch13;
+    // clear all channels
+    for(int level=0;level<levels;++level){
+        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),q_channel);
+        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channel);
+        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),s_channel);
+        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),z_channel);
+        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),b_channel);}
+
+	    for(int level=0;level<levels;++level) Ficks_RHS_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,b_channel,a);
+	    CG_Vector<Struct_type,T,d> x_V(*hierarchy,density_channel),b_V(*hierarchy,b_channel),q_V(*hierarchy,q_channel),
+                                    s_V(*hierarchy,s_channel),r_V(*hierarchy,r_channel),k_V(*hierarchy,z_channel),z_V(*hierarchy,z_channel);   
+	    Conjugate_Gradient<T> cg;
+        cg_system.Multiply(x_V,r_V);
+        r_V-=b_V;
+        const T b_norm=cg_system.Convergence_Norm(r_V);
+        Log::cout<<"Norm: "<<b_norm<<std::endl;
+        // cg.print_residuals=true;
+        // cg.print_diagnostics=true;
+        cg.restart_iterations=cg_restart_iterations;
+        const T tolerance=std::max((T)1e-6*b_norm,(T)1e-6);
+        cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
+        for(int level=0;level<levels;++level) Clamp_Heler<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel);}
+    else{
+        for(int level=0;level<levels;++level) Lap_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,lap_density_channel,one_over_dx2);        
+        for(int level=0;level<levels;++level) SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),dt,lap_density_channel,density_channel,density_channel,Cell_Type_Interior);
+        for(int level=0;level<levels;++level) Clamp_Heler<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel);}
+
+        Log::cout<<"Fick's Diffusion finished"<<std::endl;
+}
+//######################################################################
+// Non_Ficks_Diffusion
+//######################################################################
+template<class T,int d> void Smoke_Example<T,d>::
+Non_Ficks_Diffusion(const T dt)
+{
+
+}
+//######################################################################
 // Modify_Density_With_Sources
 //######################################################################
 template<class T,int d> void Smoke_Example<T,d>::
@@ -106,6 +182,13 @@ Modify_Density_With_Sources()
 {
     for(int level=0;level<levels;++level)
         Density_Modifier<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),density_channel,sources,level);
+}
+//######################################################################
+// Reset_Solver_Channels
+//######################################################################
+template<class T,int d> void Smoke_Example<T,d>::
+Reset_Solver_Channels()
+{
 }
 //######################################################################
 // Advect_Face_Velocities
@@ -214,8 +297,8 @@ Project(const T dt)
     r_V-=b_V;
     const T b_norm=cg_system.Convergence_Norm(r_V);
     Log::cout<<"Norm: "<<b_norm<<std::endl;
-    cg.print_residuals=true;
-    cg.print_diagnostics=true;
+    // cg.print_residuals=true;
+    // cg.print_diagnostics=true;
     cg.restart_iterations=cg_restart_iterations;
     const T tolerance=std::max(cg_tolerance*b_norm,(T)1e-6);
     cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);

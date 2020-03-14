@@ -14,7 +14,7 @@
 #include "Copy_Channel.h"
 #include "Initialize_Mask.h"
 #include "Mark_Boundary.h"
-#include "Poisson_Multigrid_Refinement.h"
+#include "../Multigrid_Helper/Multigrid_Refinement.h"
 #include "Poisson_Multigrid_Smoother.h"
 
 namespace Nova{
@@ -169,7 +169,7 @@ class Poisson_Multigrid_Solver
             // compute residual
             Compute_Residual(i);
             // restrict
-            Poisson_Multigrid_Refinement<Multigrid_struct_type,T,d>::Restrict(*multigrid_hierarchy(i),*multigrid_hierarchy(i+1),temp_channel,b_channel,Vector<int,2>({i,i+1}));
+            Multigrid_Refinement<Multigrid_struct_type,T,d>::Restrict(*multigrid_hierarchy(i),*multigrid_hierarchy(i+1),temp_channel,b_channel,Vector<int,2>({i,i+1}));
             // clear u
             for(int level=0;level<multigrid_hierarchy(i+1)->Levels();++level)
                 SPGrid::Clear<Multigrid_struct_type,T,d>(multigrid_hierarchy(i+1)->Allocator(level),multigrid_hierarchy(i+1)->Blocks(level),u_channel);}
@@ -181,7 +181,7 @@ class Poisson_Multigrid_Solver
         // upstroke
         for(int i=mg_levels-2;i>=0;--i){
             // prolongate
-            Poisson_Multigrid_Refinement<Multigrid_struct_type,T,d>::Prolongate(*multigrid_hierarchy(i),*multigrid_hierarchy(i+1),temp_channel,u_channel,Vector<int,2>({i,i+1}));
+            Multigrid_Refinement<Multigrid_struct_type,T,d>::Prolongate(*multigrid_hierarchy(i),*multigrid_hierarchy(i+1),temp_channel,u_channel,Vector<int,2>({i,i+1}));
             // add correction
             for(int level=0;level<multigrid_hierarchy(i)->Levels();++level)
                 SPGrid::Masked_Add<Multigrid_struct_type,T,d>(multigrid_hierarchy(i)->Allocator(level),multigrid_hierarchy(i)->Blocks(level),

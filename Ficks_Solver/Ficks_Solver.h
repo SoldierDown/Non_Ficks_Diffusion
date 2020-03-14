@@ -15,7 +15,7 @@
 #include "../Grid_Hierarchy_Projection.h"
 #include "../Initialize_Mask.h"
 #include "../Mark_Boundary.h"
-#include "../Multigrid_Refinement.h"
+#include "../Multigrid_Helper/Multigrid_Refinement.h"
 #include "Ficks_Smoother.h"
 
 namespace Nova{

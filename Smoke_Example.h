@@ -31,6 +31,11 @@ class Smoke_Example: public Example<T,d>
   public:
     using Base::frame_title;using Base::output_directory;using Base::parse_args;using Base::first_frame;
 
+    bool FICKS;
+    bool explicit_diffusion;
+    T diff_coeff;
+    T Fc;
+    T tau;
     T_INDEX counts;
     int levels,mg_levels,cg_iterations,cg_restart_iterations;
     T cfl,cg_tolerance;
@@ -39,6 +44,7 @@ class Smoke_Example: public Example<T,d>
 
     T Struct_type::* density_channel;
     T Struct_type::* pressure_channel;
+    T Struct_type::* lap_density_channel;
     Vector<T Struct_type::*,d> face_velocity_channels;
     Vector<Vector<bool,2>,d> domain_walls;
 
@@ -58,6 +64,10 @@ class Smoke_Example: public Example<T,d>
     void Initialize_SPGrid();
     void Limit_Dt(T& dt,const T time) override;
     void Advect_Density(const T dt);
+    void Diffuse_Density(const T dt);
+    void Ficks_Diffusion(const T dt);
+    void Non_Ficks_Diffusion(const T dt);
+    void Reset_Solver_Channels();
     void Modify_Density_With_Sources();
     void Advect_Face_Velocities(const T dt);
     void Set_Neumann_Faces_Inside_Sources();
