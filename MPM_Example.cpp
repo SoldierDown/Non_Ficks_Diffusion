@@ -628,10 +628,9 @@ Ficks_Diffusion(T dt)
     using Multigrid_struct_type 	= Multigrid_Data<T>;
     Log::cout<<"Fick's Diffusion"<<std::endl;
 	const Grid<T,2>& diff_grid=mpm_hierarchy->Lattice(0);
-    const T one_over_dx2=(T)1./(Nova_Utilities::Sqr(diff_grid.dX(0)));
+    const T one_over_dx2=Nova_Utilities::Sqr(diff_grid.one_over_dX(0));
     const T a=diff_coeff*dt*one_over_dx2; const T four_a_plus_one=(T)4.*a+(T)1.;
 	if(!explicit_diffusion){
-	
 	Ficks_CG_System<Diff_struct_type,Multigrid_struct_type,T,2> cg_system(*diff_hierarchy,mg_levels,diff_coeff*dt,3,1,200);
     Reset_Solver_Channels();
 	for(int level=0;level<levels;++level) Ficks_RHS_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,diff_rhs_channel,a);
@@ -664,6 +663,7 @@ Ficks_Diffusion(T dt)
     // solver_fd->Solve(ficks_diffusion_system,saturation_fd,rhs_fd,solver_q_fd,solver_s_fd,solver_r_fd,solver_k_fd,solver_z_fd,solver_tolerance,0,solver_iterations);
     // Clamp saturation
     for(int level=0;level<levels;++level) Saturation_Clamp_Heler<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel);}
+
 
     for(int level=0;level<levels;++level) Explicit_Lap_Saturation_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,one_over_dx2);        
     auto lap_saturation=diff_hierarchy->Channel(0,lap_saturation_channel);

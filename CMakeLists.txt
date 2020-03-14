@@ -4,6 +4,10 @@ cmake_policy(SET CMP0054 NEW)
 
 if(ENABLE_NON_FICKS_DIFFUSION)
 
+add_subdirectory(smoke_2d)
+add_subdirectory(smoke_3d)
+add_subdirectory(plugin_Autonomous_Navigation)
+add_subdirectory(Poisson_Solver)
 add_subdirectory(nfd_2d)
 add_subdirectory(nfd_3d)
 add_subdirectory(Ficks_Solver)

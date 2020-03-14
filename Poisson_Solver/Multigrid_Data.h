@@ -1,16 +1,16 @@
 //!#####################################################################
-//! \file Poisson_Data.h
+//! \file Multigrid_Data.h
 //!#####################################################################
-// Class Poisson_Data
+// Class Multigrid_Data
 //######################################################################
-#ifndef __Poisson_Data__
-#define __Poisson_Data__
+#ifndef __Multigrid_Data__
+#define __Multigrid_Data__
 
 #include <stdint.h>
 
 namespace Nova{
 template<class T,class T_FLAGS=uint32_t>
-struct Poisson_Data
+struct Multigrid_Data
 {
     typedef T_FLAGS Flags_type;
 
@@ -21,15 +21,6 @@ struct Poisson_Data
     T ch3;
     T ch4;
     T ch5;
-    T ch6;
-    T ch7;
-    T ch8;
-    T ch9;
-    T ch10;
-    T ch11;
-    T ch12;
-    T ch13;
-    T ch14;
 };
 }
 #endif
