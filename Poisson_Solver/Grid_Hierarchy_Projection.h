@@ -74,7 +74,7 @@ class Grid_Hierarchy_Projection
             Divergence_Helper<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),face_velocity_channels,
                                                divergence_channel,other_face_offsets,level);
 
-        Accumulate_Ghost_Values(hierarchy,divergence_channel);
+        // Accumulate_Ghost_Values(hierarchy,divergence_channel);
     }
 
     static void Compute_Gradient(Hierarchy& hierarchy,Channel_Vector& gradient_channels,T Struct_type::* pressure_channel)

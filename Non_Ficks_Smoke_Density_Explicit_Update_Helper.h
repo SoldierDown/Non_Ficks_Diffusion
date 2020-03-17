@@ -40,7 +40,9 @@ class Non_Ficks_Smoke_Density_Explicit_Update_Helper
         auto non_ficks_smoke_density_update_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Cell_Type_Interior) density(offset)+=coeff1*lap_density(offset)+coeff2*div_qc(offset);
+                if(flags(offset)&Cell_Type_Interior) {density(offset)+=coeff1*lap_density(offset)+coeff2*div_qc(offset);
+                // if(div_qc(offset)!=(T)0.)Log::cout<<"coeff1: "<<coeff1<<", lap_density: "<<lap_density(offset)<<", coeff2: "<<coeff2<<", div_qc: "<<div_qc(offset)<<", density: "<<density(offset)<<std::endl;
+                }
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,non_ficks_smoke_density_update_helper);
     }

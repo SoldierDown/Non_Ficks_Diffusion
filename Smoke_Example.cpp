@@ -36,8 +36,8 @@ template<class T,int d> Smoke_Example<T,d>::
 Smoke_Example()
     :Base(),hierarchy(nullptr),rasterizer(nullptr)
 {
-    FICKS=true;
-    explicit_diffusion=false;
+    FICKS=false;
+    explicit_diffusion=true;
     diff_coeff=(T)1e-3;
     Fc=(T)0.;
     tau=(T)1.;
@@ -68,13 +68,13 @@ Initialize_SPGrid()
     Log::Scope scope("Initialize_SPGrid");
     Initialize_Rasterizer();
     for(Grid_Hierarchy_Iterator<d,Hierarchy_Rasterizer> iterator(hierarchy->Lattice(levels-1).Cell_Indices(),levels-1,*rasterizer);iterator.Valid();iterator.Next());
-    Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_Ghost_Cells(*hierarchy);
+    // Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_Ghost_Cells(*hierarchy);
     Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_Valid_Faces(*hierarchy);
     Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_Active_Faces(*hierarchy);
     Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_Active_Nodes(*hierarchy);
     Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_Shared_Nodes(*hierarchy);
-    Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_Ghost_Nodes(*hierarchy);
-    Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_T_Junction_Nodes(*hierarchy);
+    // Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_Ghost_Nodes(*hierarchy);
+    // Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_T_Junction_Nodes(*hierarchy);
     Initialize_Dirichlet_Cells<Struct_type,T,d>(*hierarchy,domain_walls);
     //Set_Neumann_Faces_Inside_Sources();
     hierarchy->Update_Block_Offsets();
@@ -121,7 +121,8 @@ template<class T,int d> void Smoke_Example<T,d>::
 Diffuse_Density(const T dt)
 {
     if(FICKS) Ficks_Diffusion(dt);
-    else {Non_Ficks_Diffusion(dt); Advect_Face_Qc(dt);}
+    else {Non_Ficks_Diffusion(dt); 
+        Advect_Face_Qc(dt);}
 }
 //######################################################################
 // Ficks_Diffusion
@@ -183,7 +184,7 @@ Non_Ficks_Diffusion(const T dt)
     using Hierarchy_Projection              = Grid_Hierarchy_Projection<Struct_type,T,d>;
     Log::cout<<"Non-Fick's Diffusion"<<std::endl;
     const Grid<T,d>& grid=hierarchy->Lattice(0);
-	const T dx2=Nova_Utilities::Sqr(grid.dX(0));        const T one_over_dx2=(T)1./dx2;
+	const T one_over_dx2=(T)1./Nova_Utilities::Sqr(grid.one_over_dX(0));
     const T coeff1=dt*diff_coeff*Fc;                    const T coeff2=-dt;
 
     if(explicit_diffusion){

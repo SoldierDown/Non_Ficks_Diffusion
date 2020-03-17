@@ -8,7 +8,7 @@
 
 #include <nova/SPGrid/Core/SPGrid_Allocator.h>
 #include <nova/SPGrid/Tools/SPGrid_Threading_Helper.h>
-
+ 
 namespace Nova{
 template<class Struct_type,class T,int d>
 class Clear_Mask

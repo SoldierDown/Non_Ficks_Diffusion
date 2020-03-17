@@ -33,20 +33,15 @@ class Divergence_Helper
         auto flags=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto divergence=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(divergence_channel);
 
-        T face_areas[d];
-        for(int axis=0;axis<d;++axis){face_areas[axis]=(T)1.;
-            for(int other_axis=0;other_axis<d;++other_axis) if(other_axis!=axis) face_areas[axis]*=hierarchy.Lattice(level).dX[other_axis];}
-
-        double scaling_factor=hierarchy.Lattice(0).one_over_dX.Product();
-
+        double one_over_dx=hierarchy.Lattice(0).one_over_dX(0);
         auto divergence_helper=[&](uint64_t offset)
         {
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)) if(flags(offset) & (Cell_Type_Interior|Cell_Type_Ghost)){T result=(T)0.;
                 for(int axis=0;axis<d;++axis){unsigned face_valid_mask=Topology_Helper::Face_Valid_Mask(axis);
                     auto face_velocity=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,T>(face_velocity_channels(axis));
-                    if(flags(offset)&face_valid_mask) result += scaling_factor*face_areas[axis]*face_velocity(offset);
+                    if(flags(offset)&face_valid_mask) result += one_over_dx*face_velocity(offset);
                     uint64_t other_offset=Flag_array_mask::Packed_Add(offset,other_face_offsets(axis));
-                    if(flags(other_offset)&face_valid_mask) result -= scaling_factor*face_areas[axis]*face_velocity(other_offset);}
+                    if(flags(other_offset)&face_valid_mask) result -= one_over_dx*face_velocity(other_offset);}
                 divergence(offset)=result;}
         };
 
