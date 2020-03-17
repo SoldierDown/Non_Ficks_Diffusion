@@ -18,18 +18,19 @@ struct Poisson_Data
     T ch0;      // X-face_velocity
     T ch1;      // Y-face_velocity
     T ch2;      // Z-face_velocity
-    T ch3;      // pressure
-    T ch4;      // density
-    T ch5;      // X-node_velocity
-    T ch6;      // Y-node_velocity
-    T ch7;      // Z-node_velocity
-    T ch8;      // node_density
+    T ch3;      // X-Qc
+    T ch4;      // Y-Qc
+    T ch5;      // Z-Qc
+    T ch6;      // density
+    T ch7;      // pressure
+    T ch8;      // temp
     T ch9;      // temp
-    T ch10;     
-    T ch11;
-    T ch12;
-    T ch13;     
-    T ch14;     // lap_density
+    T ch10;     // temp
+    T ch11;     // temp
+    T ch12;     // temp
+    T ch13;     // temp
+    T ch14;     // temp
+    T ch15;     // temp
 };
 }
 #endif

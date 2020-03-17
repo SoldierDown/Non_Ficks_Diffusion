@@ -1,10 +1,10 @@
 //!#####################################################################
-//! \file Apply_Pressure.h
+//! \file Face_Qc_Updater.h
 //!#####################################################################
-// Class Apply_Pressure
+// Class Face_Qc_Updater
 //######################################################################
-#ifndef __Apply_Pressure__
-#define __Apply_Pressure__
+#ifndef __Face_Qc_Updater__
+#define __Face_Qc_Updater__
 
 #include <nova/Dynamics/Hierarchy/Grid_Hierarchy.h>
 #include <nova/Dynamics/Hierarchy/Grid_Topology_Helper.h>
@@ -13,7 +13,7 @@
 
 namespace Nova{
 template<class Struct_type,class T,int d>
-class Apply_Pressure
+class Face_Qc_Updater
 {
     using Channel_Vector            = Vector<T Struct_type::*,d>;
     using Flags_type                = typename Struct_type::Flags_type;
@@ -23,14 +23,14 @@ class Apply_Pressure
     using Topology_Helper           = Grid_Topology_Helper<Flag_array_mask>;
 
   public:
-    Apply_Pressure(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& face_velocity_channels,
-                    T Struct_type::* pressure_channel,const int level)
-    {Run(hierarchy,blocks,face_velocity_channels,pressure_channel,level);}
+    Face_Qc_Updater(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& face_qc_channels,
+                   T Struct_type::* density_channel,const T coeff1,const T coeff2,const int level)
+    {Run(hierarchy,blocks,face_qc_channels,density_channel,coeff1,coeff2,level);}
 
-    void Run(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& face_velocity_channels,
-                T Struct_type::* pressure_channel,const int level) const
+    void Run(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& face_qc_channels,
+                   T Struct_type::* density_channel,const T coeff1,const T coeff2,const int level) const
     {
-        auto pressure=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,T>(pressure_channel);
+        auto density=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,T>(density_channel);
         auto flags=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
 
         Vector<uint64_t,d> negative_face_offsets;
@@ -39,10 +39,10 @@ class Apply_Pressure
         auto apply_pressure=[&](uint64_t offset)
         {
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)) for(int axis=0;axis<d;++axis){
-                auto face_velocity=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(face_velocity_channels(axis));
+                auto face_qc=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(face_qc_channels(axis));
                 if(flags(offset)&Topology_Helper::Face_Active_Mask(axis)){uint64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,negative_face_offsets(axis));
                     T one_over_dX=hierarchy.Lattice(level).one_over_dX[axis];
-                    face_velocity(offset)-=(pressure(offset)-pressure(neighbor_offset))*one_over_dX;}}
+                    face_qc(offset)+=coeff1*face_qc(offset)+coeff2*(density(offset)-density(neighbor_offset))*one_over_dX;}}
         };
 
         SPGrid_Computations::Run_Parallel_Blocks(blocks,apply_pressure);

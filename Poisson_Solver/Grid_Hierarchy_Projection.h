@@ -57,44 +57,12 @@ class Grid_Hierarchy_Projection
             Ghost_Vector_Value_Accumulate<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level+1),u_channel,u_channel,level+1);
     }
 
-    static void Compute_Laplacian(Hierarchy& hierarchy,Channel_Vector& gradient_channels,
-                                  T Struct_type::* u_channel,T Struct_type::* Lu_channel)
+    static void Compute_Laplacian(Hierarchy& hierarchy,T Struct_type::* u_channel,T Struct_type::* Lu_channel)
     {
         const int levels=hierarchy.Levels();
-
-        // propagate u
-        Propagate_Ghost_Values(hierarchy,u_channel);
-
-        // clear gradient channels
-        for(int axis=0;axis<d;++axis) for(int level=0;level<levels;++level)
-            SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),gradient_channels(axis));
-
         // compute laplace
         for(int level=0;level<levels;++level)
-            Interior_Laplace_Helper<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),gradient_channels,
-                                                     u_channel,Lu_channel,level);
-
-        // clear non-active Lu values
-        for(int level=0;level<levels;++level)
-            Clear_Non_Active<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),Lu_channel);
-
-        // accumulate gradients
-        Accumulate_Ghost_Vector_Values(hierarchy,gradient_channels);
-
-        // propagate gradients
-        Propagate_Ghost_Vector_Values(hierarchy,gradient_channels);
-
-        // apply gradients
-        for(int level=0;level<levels;++level)
-            Laplace_Gradient_Helper<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),
-                                                     gradient_channels,Lu_channel,level);
-
-        // accumulate Lu
-        Accumulate_Ghost_Values(hierarchy,Lu_channel);
-
-        // clear non-active Lu values
-        for(int level=0;level<levels;++level)
-            Clear_Non_Active<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),Lu_channel);
+            Interior_Laplace_Helper<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),u_channel,Lu_channel,level);
     }
 
     static void Compute_Divergence(Hierarchy& hierarchy,Channel_Vector& face_velocity_channels,T Struct_type::* divergence_channel)

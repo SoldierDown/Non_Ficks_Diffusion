@@ -19,8 +19,11 @@
 #include "Ficks_Solver/Ficks_CG_System.h"
 #include "Non_Ficks_Solver/Non_Ficks_CG_System.h"
 #include "Ficks_RHS_Helper.h"
+#include "Non_Ficks_RHS_Helper.h"
+#include "Non_Ficks_Smoke_Density_Explicit_Update_Helper.h"
 #include "Clamp_Helper.h"
 #include "Lap_Calculator.h"
+#include "Face_Qc_Updater.h"
 #include <omp.h>
 using namespace Nova;
 namespace Nova{
@@ -41,9 +44,11 @@ Smoke_Example()
     face_velocity_channels(0)           = &Struct_type::ch0;
     face_velocity_channels(1)           = &Struct_type::ch1;
     if(d==3) face_velocity_channels(2)  = &Struct_type::ch2;
-    pressure_channel                    = &Struct_type::ch3;
-    density_channel                     = &Struct_type::ch4;
-    lap_density_channel                 = &Struct_type::ch14;
+    face_qc_channels(0)                 = &Struct_type::ch3;
+    face_qc_channels(1)                 = &Struct_type::ch4;
+    if(d==3) face_qc_channels(2)        = &Struct_type::ch5;
+    density_channel                     = &Struct_type::ch6;
+    pressure_channel                    = &Struct_type::ch7;
 }
 //######################################################################
 // Initialize
@@ -100,11 +105,11 @@ template    <class T,int d> void Smoke_Example<T,d>::
 Advect_Density(const T dt)
 {
     Channel_Vector node_velocity_channels;
-    node_velocity_channels(0)               = &Struct_type::ch5;
-    node_velocity_channels(1)               = &Struct_type::ch6;
-    if(d==3) node_velocity_channels(2)      = &Struct_type::ch7;
-    T Struct_type::* node_density_channel   = &Struct_type::ch8;
-    T Struct_type::* temp_channel           = &Struct_type::ch9;
+    node_velocity_channels(0)               = &Struct_type::ch8;
+    node_velocity_channels(1)               = &Struct_type::ch9;
+    if(d==3) node_velocity_channels(2)      = &Struct_type::ch10;
+    T Struct_type::* node_density_channel   = &Struct_type::ch11;
+    T Struct_type::* temp_channel           = &Struct_type::ch12;
     Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Cell_Density_To_Nodes(*hierarchy,density_channel,node_density_channel,temp_channel);
     Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Face_Velocities_To_Nodes(*hierarchy,face_velocity_channels,node_velocity_channels,temp_channel);
     Grid_Hierarchy_Advection<Struct_type,T,d>::Advect_Density(*hierarchy,node_velocity_channels,density_channel,node_density_channel,temp_channel,dt);
@@ -116,7 +121,7 @@ template<class T,int d> void Smoke_Example<T,d>::
 Diffuse_Density(const T dt)
 {
     if(FICKS) Ficks_Diffusion(dt);
-    else Non_Ficks_Diffusion(dt);
+    else {Non_Ficks_Diffusion(dt); Advect_Face_Qc(dt);}
 }
 //######################################################################
 // Ficks_Diffusion
@@ -131,12 +136,13 @@ Ficks_Diffusion(const T dt)
     const T a=diff_coeff*dt*one_over_dx2; const T two_d_a_plus_one=(T)2*d*a+(T)1.;
 	if(!explicit_diffusion){
 	    Ficks_CG_System<Struct_type,Multigrid_struct_type,T,d> cg_system(*hierarchy,mg_levels,diff_coeff*dt,3,1,200);
-        T Struct_type::* q_channel              = &Struct_type::ch9;
-        T Struct_type::* r_channel              = &Struct_type::ch10;
-        T Struct_type::* s_channel              = &Struct_type::ch11;
+        T Struct_type::* q_channel              = &Struct_type::ch8;
+        T Struct_type::* r_channel              = &Struct_type::ch9;
+        T Struct_type::* s_channel              = &Struct_type::ch10;
         T Struct_type::* k_channel              = &Struct_type::ch11;
-        T Struct_type::* z_channel              = &Struct_type::ch12;
-        T Struct_type::* b_channel              = &Struct_type::ch13;
+        T Struct_type::* z_channel              = &Struct_type::ch11;
+        T Struct_type::* b_channel              = &Struct_type::ch12;
+    
     // clear all channels
     for(int level=0;level<levels;++level){
         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),q_channel);
@@ -147,7 +153,7 @@ Ficks_Diffusion(const T dt)
 
 	    for(int level=0;level<levels;++level) Ficks_RHS_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,b_channel,a);
 	    CG_Vector<Struct_type,T,d> x_V(*hierarchy,density_channel),b_V(*hierarchy,b_channel),q_V(*hierarchy,q_channel),
-                                    s_V(*hierarchy,s_channel),r_V(*hierarchy,r_channel),k_V(*hierarchy,z_channel),z_V(*hierarchy,z_channel);   
+                                    s_V(*hierarchy,s_channel),r_V(*hierarchy,r_channel),k_V(*hierarchy,k_channel),z_V(*hierarchy,z_channel);   
 	    Conjugate_Gradient<T> cg;
         cg_system.Multiply(x_V,r_V);
         r_V-=b_V;
@@ -160,10 +166,11 @@ Ficks_Diffusion(const T dt)
         cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
         for(int level=0;level<levels;++level) Clamp_Heler<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel);}
     else{
+        T Struct_type::* lap_density_channel    = &Struct_type::ch7;
+        for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),lap_density_channel);
         for(int level=0;level<levels;++level) Lap_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,lap_density_channel,one_over_dx2);        
         for(int level=0;level<levels;++level) SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),dt,lap_density_channel,density_channel,density_channel,Cell_Type_Interior);
         for(int level=0;level<levels;++level) Clamp_Heler<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel);}
-
         Log::cout<<"Fick's Diffusion finished"<<std::endl;
 }
 //######################################################################
@@ -172,7 +179,73 @@ Ficks_Diffusion(const T dt)
 template<class T,int d> void Smoke_Example<T,d>::
 Non_Ficks_Diffusion(const T dt)
 {
+    using Multigrid_struct_type             = Multigrid_Data<T>;
+    using Hierarchy_Projection              = Grid_Hierarchy_Projection<Struct_type,T,d>;
+    Log::cout<<"Non-Fick's Diffusion"<<std::endl;
+    const Grid<T,d>& grid=hierarchy->Lattice(0);
+	const T dx2=Nova_Utilities::Sqr(grid.dX(0));        const T one_over_dx2=(T)1./dx2;
+    const T coeff1=dt*diff_coeff*Fc;                    const T coeff2=-dt;
 
+    if(explicit_diffusion){
+        T Struct_type::* lap_density_channel            = &Struct_type::ch8;
+        T Struct_type::* div_qc_channel                 = &Struct_type::ch9;
+        for(int level=0;level<levels;++level) {
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),lap_density_channel);
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qc_channel);}
+        for(int level=0;level<levels;++level) Lap_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,lap_density_channel,one_over_dx2);        
+        // compute divergence
+        Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qc_channels,div_qc_channel);
+
+        for(int level=0;level<levels;++level) 
+            Non_Ficks_Smoke_Density_Explicit_Update_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,lap_density_channel,div_qc_channel,coeff1,coeff2);}
+    else{
+// 	Non_Ficks_CG_System<Struct_type,Multigrid_struct_type,T,d> cg_system(*hierarchy,mg_levels,coeff1,3,1,200);
+//     T Struct_type::* q_channel              = &Struct_type::ch8;
+//     T Struct_type::* r_channel              = &Struct_type::ch9;
+//     T Struct_type::* s_channel              = &Struct_type::ch10;
+//     T Struct_type::* k_channel              = &Struct_type::ch10;
+//     T Struct_type::* z_channel              = &Struct_type::ch11;
+//     T Struct_type::* b_channel              = &Struct_type::ch12;
+//     // clear all channels
+//     for(int level=0;level<levels;++level){
+//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),q_channel);
+//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channel);
+//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),s_channel);
+//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),z_channel);
+//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),b_channel);}
+
+// 	for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,div_Qc_channel,b_channel,coeff1*one_over_dx2,coeff2);
+// 	CG_Vector<Struct_type,T,d> x_V(*hierarchy,density_channel),b_V(*hierarchy,b_channel),q_V(*hierarchy,q_channel),
+//                                                 s_V(*hierarchy,s_channel),r_V(*hierarchy,r_channel),k_V(*hierarchy,z_channel),z_V(*hierarchy,z_channel);   
+// 	Conjugate_Gradient<T> cg;
+//     cg_system.Multiply(x_V,r_V);
+//     r_V-=b_V;
+//     const T b_norm=cg_system.Convergence_Norm(r_V);
+//     Log::cout<<"Norm: "<<b_norm<<std::endl;
+//     cg.print_residuals=true;
+//     cg.print_diagnostics=true;
+//     cg.restart_iterations=cg_restart_iterations;
+//     const T tolerance=std::max((T)1e-6*b_norm,(T)1e-6);
+//     cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
+
+//     // Clamp saturation
+//     for(int level=0;level<levels;++level) Clamp_Heler<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);        
+    
+//     for(int level=0;level<levels;++level) Lap_Calculator<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,one_over_dx2);        
+//     auto lap_saturation=hierarchy->Channel(0,lap_saturation_channel);
+// #pragma omp parallel for
+//     for(unsigned i=0;i<simulated_particles.size();++i){
+//         const int id=simulated_particles(i); 
+//         T_Particle &p=particles(id);
+//         T_INDEX closest_cell=p.closest_cell; 
+//         T p_lap_saturation=(T)0.;
+//         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
+//             T_INDEX current_cell=iterator.Current_Cell();
+//             if(grid.Cell_Indices().Inside(current_cell)) p_lap_saturation+=iterator.Weight()*lap_saturation(current_cell._data);}
+//             p.saturation+=coeff1/one_over_dx2*p_lap_saturation-coeff2*p.div_Qc;
+//             p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);
+//             p.div_Qc=-coeff3*p_lap_saturation+coeff4*p.div_Qc;}
+    }
 }
 //######################################################################
 // Modify_Density_With_Sources
@@ -197,12 +270,34 @@ template<class T,int d> void Smoke_Example<T,d>::
 Advect_Face_Velocities(const T dt)
 {
     Channel_Vector node_velocity_channels;
-    node_velocity_channels(0)               = &Struct_type::ch5;
-    node_velocity_channels(1)               = &Struct_type::ch6;
-    if(d==3) node_velocity_channels(2)      = &Struct_type::ch7;
-    T Struct_type::* temp_channel           = &Struct_type::ch9;
-    //Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Face_Velocities_To_Nodes(*hierarchy,face_velocity_channels,node_velocity_channels,temp_channel);
+    node_velocity_channels(0)               = &Struct_type::ch8;
+    node_velocity_channels(1)               = &Struct_type::ch9;
+    if(d==3) node_velocity_channels(2)      = &Struct_type::ch10;
+    T Struct_type::* temp_channel           = &Struct_type::ch11;
+    // Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Face_Velocities_To_Nodes(*hierarchy,face_velocity_channels,node_velocity_channels,temp_channel);
     Grid_Hierarchy_Advection<Struct_type,T,d>::Advect_Face_Velocities(*hierarchy,face_velocity_channels,node_velocity_channels,temp_channel,dt);
+}
+//######################################################################
+// Advect_Face_Qc
+//######################################################################
+template<class T,int d> void Smoke_Example<T,d>::
+Advect_Face_Qc(const T dt)
+{
+    Channel_Vector node_qc_channels;
+    node_qc_channels(0)                     = &Struct_type::ch8;
+    node_qc_channels(1)                     = &Struct_type::ch9;
+    if(d==3) node_qc_channels(2)            = &Struct_type::ch10;
+    Channel_Vector node_velocity_channels;
+    node_velocity_channels(0)               = &Struct_type::ch11;
+    node_velocity_channels(1)               = &Struct_type::ch12;
+    if(d==3) node_velocity_channels(2)      = &Struct_type::ch13;
+    T Struct_type::* temp_channel           = &Struct_type::ch14;
+    Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Face_Velocities_To_Nodes(*hierarchy,face_qc_channels,node_qc_channels,temp_channel);
+    Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Face_Velocities_To_Nodes(*hierarchy,face_velocity_channels,node_velocity_channels,temp_channel);
+    Grid_Hierarchy_Advection<Struct_type,T,d>::Advect_Face_Vector(*hierarchy,face_qc_channels,node_qc_channels,face_velocity_channels,node_velocity_channels,temp_channel,dt);
+    const T coeff5=(tau-dt)/tau;                        const T coeff6=-diff_coeff*dt*(1-Fc)/tau;
+    for(int level=0;level<levels;++level)
+        Face_Qc_Updater<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_qc_channels,density_channel,coeff5,coeff6,level);
 }
 //######################################################################
 // Set_Neumann_Faces_Inside_Sources
@@ -251,7 +346,7 @@ Project(const T dt)
     using Hierarchy_Projection              = Grid_Hierarchy_Projection<Struct_type,T,d>;
 
     // set up divergence channel
-    T Struct_type::* divergence_channel     = &Struct_type::ch5;
+    T Struct_type::* divergence_channel     = &Struct_type::ch8;
 
     // clear
     for(int level=0;level<levels;++level){
@@ -264,12 +359,7 @@ Project(const T dt)
     // compute divergence
     Hierarchy_Projection::Compute_Divergence(*hierarchy,face_velocity_channels,divergence_channel);
 
-    Channel_Vector gradient_channels;
-    gradient_channels(0)                    = &Struct_type::ch6;
-    gradient_channels(1)                    = &Struct_type::ch7;
-    if(d==3) gradient_channels(2)           = &Struct_type::ch8;
-
-    Poisson_CG_System<Struct_type,Multigrid_struct_type,T,d> cg_system(*hierarchy,gradient_channels,mg_levels,3,1,200);
+    Poisson_CG_System<Struct_type,Multigrid_struct_type,T,d> cg_system(*hierarchy,mg_levels,3,1,200);
 
     T Struct_type::* q_channel              = &Struct_type::ch9;
     T Struct_type::* r_channel              = &Struct_type::ch10;
@@ -303,12 +393,8 @@ Project(const T dt)
     const T tolerance=std::max(cg_tolerance*b_norm,(T)1e-6);
     cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
 
-    // compute gradients
-    Hierarchy_Projection::Compute_Gradient(*hierarchy,gradient_channels,pressure_channel);
-
     for(int level=0;level<levels;++level)
-        Apply_Pressure<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,
-                                        gradient_channels,pressure_channel,level);
+        Apply_Pressure<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,pressure_channel,level);
 }
 //######################################################################
 // Register_Options

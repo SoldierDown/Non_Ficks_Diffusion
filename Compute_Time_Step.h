@@ -30,7 +30,6 @@ class Compute_Time_Step
     {
         auto flags=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         T max_value=0;
-
 #pragma omp parallel for reduction(max:max_value)
         for(unsigned b=0;b<blocks.second;b++){uint64_t offset=blocks.first[b];
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){T local_V_norm=(T)0.;
@@ -38,11 +37,9 @@ class Compute_Time_Step
                     unsigned face_valid_mask=Topology_Helper::Face_Valid_Mask(axis);
                     uint64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,other_face_offsets(axis));
                     auto face_velocity=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,T>(face_velocity_channels(axis));
-
                     if(flags(offset)&face_valid_mask) axis_side_max=std::max(axis_side_max,std::fabs(face_velocity(offset)));
                     if(hierarchy.template Set<unsigned>(level,&Struct_type::flags).Is_Set(neighbor_offset,face_valid_mask))
                         axis_side_max=std::max(axis_side_max,std::fabs(face_velocity(neighbor_offset)));
-
                     local_V_norm+=hierarchy.Lattice(level).one_over_dX(axis)*axis_side_max;}
                 max_value=std::max(max_value,local_V_norm);}}
 

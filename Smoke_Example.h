@@ -44,8 +44,8 @@ class Smoke_Example: public Example<T,d>
 
     T Struct_type::* density_channel;
     T Struct_type::* pressure_channel;
-    T Struct_type::* lap_density_channel;
     Vector<T Struct_type::*,d> face_velocity_channels;
+    Vector<T Struct_type::*,d> face_qc_channels;
     Vector<Vector<bool,2>,d> domain_walls;
 
     Array<Implicit_Object<T,d>*> sources;
@@ -70,6 +70,7 @@ class Smoke_Example: public Example<T,d>
     void Reset_Solver_Channels();
     void Modify_Density_With_Sources();
     void Advect_Face_Velocities(const T dt);
+    void Advect_Face_Qc(const T dt);
     void Set_Neumann_Faces_Inside_Sources();
     void Initialize_Values_At_Boundary_Conditions();
     void Set_Boundary_Conditions();

@@ -417,7 +417,7 @@ int main(int argc,char** argv)
     gradient_channels(1)                = &Struct_type::ch3;
     if(d==3) gradient_channels(2)       = &Struct_type::ch4;
 
-    Poisson_CG_System<Struct_type,Multigrid_struct_type,T,d> cg_system(*hierarchy,gradient_channels,mg_levels,3,1,200);
+    Poisson_CG_System<Struct_type,Multigrid_struct_type,T,d> cg_system(*hierarchy,mg_levels,3,1,200);
 
     Hierarchy_Visualization::Visualize_Heightfield(*hierarchy,x_channel,surface_directory,frame);
 

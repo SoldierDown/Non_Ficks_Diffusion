@@ -23,10 +23,9 @@ class Poisson_Multigrid_Smoother
     Poisson_Multigrid_Smoother() {}
     ~Poisson_Multigrid_Smoother() {}
 
-    static void Multiply_With_System_Matrix(Hierarchy& hierarchy,Channel_Vector& gradient_channels,
-                                            T Struct_type::* u_channel,T Struct_type::* Lu_channel)
+    static void Multiply_With_System_Matrix(Hierarchy& hierarchy,T Struct_type::* u_channel,T Struct_type::* Lu_channel)
     {
-        Hierarchy_Projection::Compute_Laplacian(hierarchy,gradient_channels,u_channel,Lu_channel);
+        Hierarchy_Projection::Compute_Laplacian(hierarchy,u_channel,Lu_channel);
     }
 
     static void Compute_Residual(Hierarchy& hierarchy,Channel_Vector& gradient_channels,T Struct_type::* u_channel,
@@ -39,7 +38,7 @@ class Poisson_Multigrid_Smoother
             SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),temp_channel);
 
         // compute laplace
-        Multiply_With_System_Matrix(hierarchy,gradient_channels,u_channel,temp_channel);
+        Multiply_With_System_Matrix(hierarchy,u_channel,temp_channel);
 
         // subtract from right hand side
         for(int level=0;level<levels;++level)
@@ -58,7 +57,7 @@ class Poisson_Multigrid_Smoother
             SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),temp_channel);
 
         // compute laplace
-        Multiply_With_System_Matrix(hierarchy,gradient_channels,u_channel,temp_channel);
+        Multiply_With_System_Matrix(hierarchy,u_channel,temp_channel);
 
         // subtract from right hand side
         SPGrid::Masked_Subtract<Struct_type,T,d>(hierarchy.Allocator(current_level),blocks,
