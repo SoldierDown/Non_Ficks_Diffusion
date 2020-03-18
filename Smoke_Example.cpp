@@ -37,7 +37,7 @@ Smoke_Example()
     :Base(),hierarchy(nullptr),rasterizer(nullptr)
 {
     FICKS=false;
-    explicit_diffusion=true;
+    explicit_diffusion=false;
     diff_coeff=(T)1e-3;
     Fc=(T)0.;
     tau=(T)1.;
@@ -184,9 +184,10 @@ Non_Ficks_Diffusion(const T dt)
     using Hierarchy_Projection              = Grid_Hierarchy_Projection<Struct_type,T,d>;
     Log::cout<<"Non-Fick's Diffusion"<<std::endl;
     const Grid<T,d>& grid=hierarchy->Lattice(0);
-	const T one_over_dx2=(T)1./Nova_Utilities::Sqr(grid.one_over_dX(0));
-    const T coeff1=dt*diff_coeff*Fc;                    const T coeff2=-dt;
-
+	const T dx2=Nova_Utilities::Sqr(grid.dX(0));        const T one_over_dx2=(T)1./dx2;
+    const T coeff1=dt*diff_coeff*(Fc*tau+dt)/(dt+tau);  const T coeff2=dt*tau/(dt+tau);
+    const T coeff3=dt*diff_coeff*(1-Fc)/(dt+tau);       const T coeff4=tau/(dt+tau);
+    const T coeff5=dt*diff_coeff*Fc;                    const T coeff6=-dt;
     if(explicit_diffusion){
         T Struct_type::* lap_density_channel            = &Struct_type::ch8;
         T Struct_type::* div_qc_channel                 = &Struct_type::ch9;
@@ -198,41 +199,48 @@ Non_Ficks_Diffusion(const T dt)
         Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qc_channels,div_qc_channel);
 
         for(int level=0;level<levels;++level) 
-            Non_Ficks_Smoke_Density_Explicit_Update_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,lap_density_channel,div_qc_channel,coeff1,coeff2);}
+            Non_Ficks_Smoke_Density_Explicit_Update_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,lap_density_channel,div_qc_channel,coeff5,coeff6);}
     else{
-// 	Non_Ficks_CG_System<Struct_type,Multigrid_struct_type,T,d> cg_system(*hierarchy,mg_levels,coeff1,3,1,200);
-//     T Struct_type::* q_channel              = &Struct_type::ch8;
-//     T Struct_type::* r_channel              = &Struct_type::ch9;
-//     T Struct_type::* s_channel              = &Struct_type::ch10;
-//     T Struct_type::* k_channel              = &Struct_type::ch10;
-//     T Struct_type::* z_channel              = &Struct_type::ch11;
-//     T Struct_type::* b_channel              = &Struct_type::ch12;
-//     // clear all channels
-//     for(int level=0;level<levels;++level){
-//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),q_channel);
-//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channel);
-//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),s_channel);
-//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),z_channel);
-//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),b_channel);}
+        T Struct_type::* lap_density_channel    = &Struct_type::ch8;
+        T Struct_type::* div_qc_channel         = &Struct_type::ch9;
+        T Struct_type::* q_channel              = &Struct_type::ch10;
+        T Struct_type::* r_channel              = &Struct_type::ch11;
+        T Struct_type::* s_channel              = &Struct_type::ch12;
+        T Struct_type::* k_channel              = &Struct_type::ch12;
+        T Struct_type::* z_channel              = &Struct_type::ch13;
+        T Struct_type::* b_channel              = &Struct_type::ch14;
+        // clear all channels
+        for(int level=0;level<levels;++level){
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),lap_density_channel);
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qc_channel);
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),q_channel);
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channel);
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),s_channel);
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),z_channel);
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),b_channel);}
+        for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,div_qc_channel,b_channel,coeff1*one_over_dx2,coeff2);
+        // compute divergence
+        Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qc_channels,div_qc_channel);
+        Non_Ficks_CG_System<Struct_type,Multigrid_struct_type,T,d> cg_system(*hierarchy,mg_levels,coeff1,3,1,200);
 
-// 	for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,div_Qc_channel,b_channel,coeff1*one_over_dx2,coeff2);
-// 	CG_Vector<Struct_type,T,d> x_V(*hierarchy,density_channel),b_V(*hierarchy,b_channel),q_V(*hierarchy,q_channel),
-//                                                 s_V(*hierarchy,s_channel),r_V(*hierarchy,r_channel),k_V(*hierarchy,z_channel),z_V(*hierarchy,z_channel);   
-// 	Conjugate_Gradient<T> cg;
-//     cg_system.Multiply(x_V,r_V);
-//     r_V-=b_V;
-//     const T b_norm=cg_system.Convergence_Norm(r_V);
-//     Log::cout<<"Norm: "<<b_norm<<std::endl;
-//     cg.print_residuals=true;
-//     cg.print_diagnostics=true;
-//     cg.restart_iterations=cg_restart_iterations;
-//     const T tolerance=std::max((T)1e-6*b_norm,(T)1e-6);
-//     cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
+        for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,div_qc_channel,b_channel,coeff1*one_over_dx2,coeff2);
+        CG_Vector<Struct_type,T,d> x_V(*hierarchy,density_channel),b_V(*hierarchy,b_channel),q_V(*hierarchy,q_channel),
+                                                    s_V(*hierarchy,s_channel),r_V(*hierarchy,r_channel),k_V(*hierarchy,z_channel),z_V(*hierarchy,z_channel);   
+        Conjugate_Gradient<T> cg;
+        cg_system.Multiply(x_V,r_V);
+        r_V-=b_V;
+        const T b_norm=cg_system.Convergence_Norm(r_V);
+        Log::cout<<"Norm: "<<b_norm<<std::endl;
+        cg.print_residuals=true;
+        cg.print_diagnostics=true;
+        cg.restart_iterations=cg_restart_iterations;
+        const T tolerance=std::max((T)1e-6*b_norm,(T)1e-6);
+        cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
 
-//     // Clamp saturation
-//     for(int level=0;level<levels;++level) Clamp_Heler<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);        
-    
-//     for(int level=0;level<levels;++level) Lap_Calculator<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,one_over_dx2);        
+        // Clamp saturation
+        // for(int level=0;level<levels;++level) Clamp_Heler<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);        
+        
+        // for(int level=0;level<levels;++level) Lap_Calculator<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,one_over_dx2);        
 //     auto lap_saturation=hierarchy->Channel(0,lap_saturation_channel);
 // #pragma omp parallel for
 //     for(unsigned i=0;i<simulated_particles.size();++i){
