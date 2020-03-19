@@ -46,8 +46,8 @@ class Standard_Tests: public Smoke_Example<T,d>
         Base::Parse_Options();
         output_directory="Test_"+std::to_string(test_number)+"_Resolution_"+std::to_string(counts(0))+"_Levels_"+std::to_string(levels)+"_CFL_"+std::to_string(cfl);
 
-        for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=true;
-        domain_walls(1)(1)=false;           // open top
+        for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=false;
+        // domain_walls(1)(1)=false;           // open top
 
         TV min_corner,max_corner=TV(1);
         hierarchy=new Hierarchy(counts,Range<T,d>(min_corner,max_corner),levels);
@@ -75,7 +75,7 @@ class Standard_Tests: public Smoke_Example<T,d>
 
                 for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                     const T_INDEX index=base_index+range_iterator.Index();
-                    if(flags(offset)&Cell_Type_Interior && sources(0)->Inside(hierarchy->Lattice(level).Center(index))) data(offset)=(T)1.;
+                    if(flags(offset)&Cell_Type_Interior && sources(0)->Inside(hierarchy->Lattice(level).Center(index))) data(offset)=(T)10.;
                     range_iterator.Next();}}}
     }
 //######################################################################

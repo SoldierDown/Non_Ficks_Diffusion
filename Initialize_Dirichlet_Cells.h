@@ -38,8 +38,7 @@ class Initialize_Dirichlet_Cells
                 if(!domain_walls(axis)(axis_side-1)) for(Cell_Iterator iterator(hierarchy.Lattice(level),0,Grid<T,d>::Boundary_Interior_Region,side);iterator.Valid();iterator.Next()){
                     const T_INDEX& index=iterator.Cell_Index();uint64_t offset=Flag_array_mask::Linear_Offset(index._data);
                     if(hierarchy.template Set<unsigned>(level,&Struct_type::flags).Is_Set(offset,Cell_Type_Interior)){
-                        flags(offset)|=Cell_Type_Dirichlet;
-                        flags(offset)&=~Cell_Type_Interior;}}}}
+                        flags(offset)|=Cell_Type_Dirichlet; flags(offset)&=~Cell_Type_Interior;}}}}
     }
 };
 }

@@ -12,6 +12,7 @@
 #include "../../Poisson_Data.h"
 #include "../../Smoke_Example.h"
 #include "../../Rasterizers/Adaptive_Sphere_Rasterizer.h"
+#include "../../Rasterizers/Randomized_Rasterizer.h"
 
 namespace Nova{
 template<class T,int d>
@@ -48,14 +49,15 @@ class Standard_Tests: public Smoke_Example<T,d>
 
         for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=true;
         domain_walls(1)(1)=false;           // open top
-
+        domain_walls(1)(0)=false;           // open bottom
         TV min_corner,max_corner=TV(1);
         hierarchy=new Hierarchy(counts,Range<T,d>(min_corner,max_corner),levels);
     }
 //######################################################################
     void Initialize_Rasterizer() override
     {
-        rasterizer=new Adaptive_Sphere_Rasterizer<Struct_type,T,d>(*hierarchy,TV(.5),(T).1);
+        // rasterizer=new Adaptive_Sphere_Rasterizer<Struct_type,T,d>(*hierarchy,TV(.5),(T).1);
+        rasterizer=new Randomized_Rasterizer<Struct_type,T,d>(*hierarchy);
     }
 //######################################################################
     void Initialize_Fluid_State() override
@@ -75,13 +77,13 @@ class Standard_Tests: public Smoke_Example<T,d>
 
                 for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                     const T_INDEX index=base_index+range_iterator.Index();
-                    if(flags(offset)&Cell_Type_Interior && sources(0)->Inside(hierarchy->Lattice(level).Center(index))) data(offset)=(T)1.;
+                    if(flags(offset)&Cell_Type_Interior && sources(0)->Inside(hierarchy->Lattice(level).Center(index))) data(offset)=(T)10.;
                     range_iterator.Next();}}}
     }
 //######################################################################
     void Initialize_Sources() override
     {
-        TV min_corner=TV({.45,0}),max_corner=TV({.55,.05});
+        TV min_corner=TV({.45,0.1}),max_corner=TV({.55,.2});
         Implicit_Object<T,d>* obj=new Box_Implicit_Object<T,d>(min_corner,max_corner);
         sources.Append(obj);
     }

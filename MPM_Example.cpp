@@ -707,20 +707,6 @@ Ficks_Diffusion(T dt)
     cg.restart_iterations=cg_restart_iterations;
     const T tolerance=std::max((T)1e-6*b_norm,(T)1e-6);
     cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_max_iterations);
-    // Diffusion_CG_System<Diff_struct_type,T,3> ficks_diffusion_system(*diff_hierarchy,FICKS);
-    // ficks_diffusion_system.a=a;
-    // ficks_diffusion_system.twod_a_plus_one=six_a_plus_one;
-    // ficks_diffusion_system.use_preconditioner=false;
-    // Conjugate_Gradient<T> cg;
-    // Krylov_Solver<T>* solver_fd=(Krylov_Solver<T>*)&cg;
-    // // reset solver channels
-    // Reset_Solver_Channels();
-    // // set up rhs
-    // for(int level=0;level<levels;++level) Ficks_RHS_Helper<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,diff_rhs_channel,a);
-    // Diffusion_CG_Vector<Diff_struct_type,T,3> saturation_fd(*diff_hierarchy,saturation_channel),rhs_fd(*diff_hierarchy,diff_rhs_channel),solver_q_fd(*diff_hierarchy,diff_q_channel),
-    //                                             solver_s_fd(*diff_hierarchy,diff_s_channel),solver_r_fd(*diff_hierarchy,diff_r_channel),solver_k_fd(*diff_hierarchy,diff_z_channel),solver_z_fd(*diff_hierarchy,diff_z_channel);         
-    
-    // solver_fd->Solve(ficks_diffusion_system,saturation_fd,rhs_fd,solver_q_fd,solver_s_fd,solver_r_fd,solver_k_fd,solver_z_fd,solver_tolerance,0,solver_iterations);
     // Clamp saturation
     for(int level=0;level<levels;++level) Clamp_Heler<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel);}
 
@@ -1168,6 +1154,7 @@ Register_Options()
 {
     Base::Register_Options();
 	parse_args->Add_Integer_Argument("-mg_levels",2,"Number of multigrid levels.");
+	parse_args->Add_Integer_Argument("-np",40000,"Number of particles.");
 	parse_args->Add_Integer_Argument("-cg_max_iterations",10000,"Maximum cg iterations");
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
@@ -1189,6 +1176,7 @@ Register_Options()
 {
     Base::Register_Options();
 	parse_args->Add_Integer_Argument("-mg_levels",2,"Number of multigrid levels.");
+	parse_args->Add_Integer_Argument("-np",40000,"Number of particles.");
 	parse_args->Add_Integer_Argument("-cg_max_iterations",10000,"Maximum cg iterations");
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
@@ -1224,6 +1212,7 @@ Parse_Options()
 {
     Base::Parse_Options();
 	mg_levels=parse_args->Get_Integer_Value("-mg_levels");
+	np=parse_args->Get_Integer_Value("-np");
 	cg_max_iterations=parse_args->Get_Integer_Value("-cg_max_iterations");
     threads=parse_args->Get_Integer_Value("-threads");
     omp_set_num_threads(threads);
@@ -1248,6 +1237,7 @@ Parse_Options()
 {
     Base::Parse_Options();
 	mg_levels=parse_args->Get_Integer_Value("-mg_levels");
+	np=parse_args->Get_Integer_Value("-np");
 	cg_max_iterations=parse_args->Get_Integer_Value("-cg_max_iterations");
     threads=parse_args->Get_Integer_Value("-threads");
     omp_set_num_threads(threads);

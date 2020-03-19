@@ -10,6 +10,7 @@
 #include <nova/Tools/Utilities/File_Utilities.h>
 #include "Apply_Pressure.h"
 #include "Boundary_Value_Initializer.h"
+#include "Velocity_Field_Initializer.h"
 #include "Poisson_Solver/Poisson_CG_System.h"
 #include "Compute_Time_Step.h"
 #include "Density_Modifier.h"
@@ -36,9 +37,9 @@ template<class T,int d> Smoke_Example<T,d>::
 Smoke_Example()
     :Base(),hierarchy(nullptr),rasterizer(nullptr)
 {
-    FICKS=false;
+    FICKS=true;
     explicit_diffusion=false;
-    diff_coeff=(T)1e-3;
+    diff_coeff=(T)1e-1;
     Fc=(T)0.;
     tau=(T)1.;
     face_velocity_channels(0)           = &Struct_type::ch0;
@@ -331,9 +332,11 @@ Set_Neumann_Faces_Inside_Sources()
 template<class T,int d> void Smoke_Example<T,d>::
 Initialize_Values_At_Boundary_Conditions()
 {
+    // for(int level=0;level<levels;++level)
+    //     Boundary_Value_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),sources,
+    //                                                 face_velocity_channels,pressure_channel,level);
     for(int level=0;level<levels;++level)
-        Boundary_Value_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),sources,
-                                                    face_velocity_channels,pressure_channel,level);
+        Velocity_Field_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,pressure_channel,level);
 }
 //######################################################################
 // Set_Boundary_Conditions

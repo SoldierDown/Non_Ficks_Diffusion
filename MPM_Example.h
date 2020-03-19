@@ -179,7 +179,7 @@ class MPM_Example<T,2>: public Example<T,2>
     MPM_Channel_Vector velocity_star_channels;
     MPM_Channel_Vector f_channels;
 
-
+    int np;
     int mg_levels;
     int cg_max_iterations;
     int cg_restart_iterations;
@@ -313,6 +313,7 @@ class MPM_Example<T,3>: public Example<T,3>
     MPM_Channel_Vector velocity_star_channels;
     MPM_Channel_Vector f_channels;
 
+    int np;
     int mg_levels;
     int cg_max_iterations;
     int cg_restart_iterations;

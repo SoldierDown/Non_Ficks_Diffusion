@@ -24,7 +24,7 @@ class Standard_Tests: public MPM_Example<T,d>
   public:
     using Base::output_directory;using Base::test_number;using Base::particles;using Base::parse_args;using Base::counts;using Base::domain;
     using Base::barriers;using Base::FICKS;using Base::E;using Base::nu;using Base::eta;using Base::Fc;using Base::tau;using Base::diff_coeff;
-    using Base::mg_levels;
+    using Base::mg_levels; using Base::np;
     /****************************
      * example explanation:
      *
@@ -40,7 +40,7 @@ class Standard_Tests: public MPM_Example<T,d>
     {
         Base::Parse_Options();
         output_directory=std::to_string(d)+"d_"+(FICKS?"F_":"NF_")+"E_"+std::to_string(E)+"_nu_"+std::to_string(nu)+"_diff_"+std::to_string(diff_coeff)
-                                +"_eta_"+std::to_string(eta)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau)+"_Resolution_"+std::to_string(counts(0))+"_"+std::to_string(mg_levels)+"_levels";
+                                +"_eta_"+std::to_string(eta)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau)+"_Resolution_"+std::to_string(counts(0))+"_"+std::to_string(mg_levels)+"_levels_"+std::to_string(np)+"_particles";
 
         domain.min_corner=TV();domain.max_corner=TV(11);
     }
@@ -68,7 +68,7 @@ class Standard_Tests: public MPM_Example<T,d>
             {
                 const T solid_density=(T)10.;
                 const T fluid_density=(T)1.;
-                const int number_of_particles=400000;
+                const int number_of_particles=np;//40000*std::pow(counts(0)/(T)256.,3);
                 const Range<T,d> block(TV({5.4,5.4,5.49}),TV({5.6,5.6,5.51}));
                 const T block_area=block.Area();
                 const T area_per_particle=block_area/number_of_particles;
