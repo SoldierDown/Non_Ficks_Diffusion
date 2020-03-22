@@ -70,7 +70,6 @@ class Smoke_Example: public Example<T,d>
     void Reset_Solver_Channels();
     void Modify_Density_With_Sources();
     void Advect_Face_Velocities(const T dt);
-    void Advect_Face_Qc(const T dt);
     void Set_Neumann_Faces_Inside_Sources();
     void Initialize_Values_At_Boundary_Conditions();
     void Set_Boundary_Conditions();
