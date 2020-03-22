@@ -1226,7 +1226,6 @@ Parse_Options()
     eta=parse_args->Get_Double_Value("-eta");
     Fc=parse_args->Get_Double_Value("-fc");
     tau=parse_args->Get_Double_Value("-tau");
-    FICKS=parse_args->Get_Option_Value("-ficks");
     auto cell_counts_2d=parse_args->Get_Vector_2D_Value("-size");for(int v=0;v<2;++v) counts(v)=cell_counts_2d(v);
 }
 //######################################################################
@@ -1251,7 +1250,6 @@ Parse_Options()
     eta=parse_args->Get_Double_Value("-eta");
     Fc=parse_args->Get_Double_Value("-fc");
     tau=parse_args->Get_Double_Value("-tau");
-    FICKS=parse_args->Get_Option_Value("-ficks");
     auto cell_counts_3d=parse_args->Get_Vector_3D_Value("-size");for(int v=0;v<3;++v) counts(v)=cell_counts_3d(v);
 }
 //######################################################################

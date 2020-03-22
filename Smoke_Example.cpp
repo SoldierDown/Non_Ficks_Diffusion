@@ -37,9 +37,9 @@ template<class T,int d> Smoke_Example<T,d>::
 Smoke_Example()
     :Base(),hierarchy(nullptr),rasterizer(nullptr)
 {
-    FICKS=true;
+    FICKS=false;
     explicit_diffusion=false;
-    diff_coeff=(T)1e-1;
+    diff_coeff=(T).01;
     Fc=(T)0.;
     tau=(T)1.;
     face_velocity_channels(0)           = &Struct_type::ch0;
@@ -69,13 +69,13 @@ Initialize_SPGrid()
     Log::Scope scope("Initialize_SPGrid");
     Initialize_Rasterizer();
     for(Grid_Hierarchy_Iterator<d,Hierarchy_Rasterizer> iterator(hierarchy->Lattice(levels-1).Cell_Indices(),levels-1,*rasterizer);iterator.Valid();iterator.Next());
-    // Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_Ghost_Cells(*hierarchy);
+    Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_Ghost_Cells(*hierarchy);
     Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_Valid_Faces(*hierarchy);
     Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_Active_Faces(*hierarchy);
     Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_Active_Nodes(*hierarchy);
     Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_Shared_Nodes(*hierarchy);
-    // Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_Ghost_Nodes(*hierarchy);
-    // Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_T_Junction_Nodes(*hierarchy);
+    Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_Ghost_Nodes(*hierarchy);
+    Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_T_Junction_Nodes(*hierarchy);
     Initialize_Dirichlet_Cells<Struct_type,T,d>(*hierarchy,domain_walls);
     //Set_Neumann_Faces_Inside_Sources();
     hierarchy->Update_Block_Offsets();
@@ -235,24 +235,6 @@ Non_Ficks_Diffusion(const T dt)
         cg.restart_iterations=cg_restart_iterations;
         const T tolerance=std::max((T)1e-6*b_norm,(T)1e-6);
         cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
-
-        // Clamp saturation
-        // for(int level=0;level<levels;++level) Clamp_Heler<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel);        
-        
-        // for(int level=0;level<levels;++level) Lap_Calculator<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,one_over_dx2);        
-//     auto lap_saturation=hierarchy->Channel(0,lap_saturation_channel);
-// #pragma omp parallel for
-//     for(unsigned i=0;i<simulated_particles.size();++i){
-//         const int id=simulated_particles(i); 
-//         T_Particle &p=particles(id);
-//         T_INDEX closest_cell=p.closest_cell; 
-//         T p_lap_saturation=(T)0.;
-//         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
-//             T_INDEX current_cell=iterator.Current_Cell();
-//             if(grid.Cell_Indices().Inside(current_cell)) p_lap_saturation+=iterator.Weight()*lap_saturation(current_cell._data);}
-//             p.saturation+=coeff1/one_over_dx2*p_lap_saturation-coeff2*p.div_Qc;
-//             p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);
-//             p.div_Qc=-coeff3*p_lap_saturation+coeff4*p.div_Qc;}
     }
 }
 //######################################################################
@@ -282,7 +264,7 @@ Advect_Face_Velocities(const T dt)
     node_velocity_channels(1)               = &Struct_type::ch9;
     if(d==3) node_velocity_channels(2)      = &Struct_type::ch10;
     T Struct_type::* temp_channel           = &Struct_type::ch11;
-    // Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Face_Velocities_To_Nodes(*hierarchy,face_velocity_channels,node_velocity_channels,temp_channel);
+    Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Face_Velocities_To_Nodes(*hierarchy,face_velocity_channels,node_velocity_channels,temp_channel);
     Grid_Hierarchy_Advection<Struct_type,T,d>::Advect_Face_Velocities(*hierarchy,face_velocity_channels,node_velocity_channels,temp_channel,dt);
 }
 //######################################################################
@@ -332,11 +314,11 @@ Set_Neumann_Faces_Inside_Sources()
 template<class T,int d> void Smoke_Example<T,d>::
 Initialize_Values_At_Boundary_Conditions()
 {
-    // for(int level=0;level<levels;++level)
-    //     Boundary_Value_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),sources,
-    //                                                 face_velocity_channels,pressure_channel,level);
     for(int level=0;level<levels;++level)
-        Velocity_Field_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,pressure_channel,level);
+        Boundary_Value_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),sources,
+                                                    face_velocity_channels,pressure_channel,level);
+    // for(int level=0;level<levels;++level)
+    //     Velocity_Field_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,pressure_channel,level);
 }
 //######################################################################
 // Set_Boundary_Conditions
@@ -420,7 +402,11 @@ Register_Options()
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
     if(d==2) parse_args->Add_Vector_2D_Argument("-size",Vector<double,2>(64.),"n","Grid resolution");
     else if(d==3) parse_args->Add_Vector_3D_Argument("-size",Vector<double,3>(64.),"n","Grid resolution");
-
+    parse_args->Add_Double_Argument("-diff_coeff",(T)1e-3,"diffusion coefficient.");
+    parse_args->Add_Double_Argument("-fc",(T)0.,"fc.");
+    parse_args->Add_Double_Argument("-tau",(T)1.,"tau.");
+    parse_args->Add_Option_Argument("-ficks","Fick's diffusion.");
+    parse_args->Add_Option_Argument("-ed","Explicit diffusion");
     // for CG
     parse_args->Add_Integer_Argument("-cg_iterations",100,"Number of CG iterations.");
     parse_args->Add_Integer_Argument("-cg_restart_iterations",40,"Number of CG restart iterations.");
@@ -441,7 +427,11 @@ Parse_Options()
     omp_set_num_threads(number_of_threads);
     if(d==2){auto cell_counts_2d=parse_args->Get_Vector_2D_Value("-size");for(int v=0;v<d;++v) counts(v)=cell_counts_2d(v);}
     else{auto cell_counts_3d=parse_args->Get_Vector_3D_Value("-size");for(int v=0;v<d;++v) counts(v)=cell_counts_3d(v);}
-
+    FICKS=parse_args->Get_Option_Value("-ficks");
+    diff_coeff=parse_args->Get_Double_Value("-diff_coeff");
+    Fc=parse_args->Get_Double_Value("-fc");
+    tau=parse_args->Get_Double_Value("-tau");
+    explicit_diffusion=parse_args->Get_Option_Value("-ed");
     cg_iterations=parse_args->Get_Integer_Value("-cg_iterations");
     cg_restart_iterations=parse_args->Get_Integer_Value("-cg_restart_iterations");
     cg_tolerance=(T)parse_args->Get_Double_Value("-cg_tolerance");

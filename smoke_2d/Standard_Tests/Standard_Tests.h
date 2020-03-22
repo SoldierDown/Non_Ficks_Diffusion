@@ -30,6 +30,7 @@ class Standard_Tests: public Smoke_Example<T,d>
   public:
     using Base::output_directory;using Base::test_number;using Base::counts;using Base::levels;using Base::domain_walls;using Base::hierarchy;using Base::rasterizer;
     using Base::cfl;using Base::sources;using Base::density_channel;
+    using Base::FICKS;using Base::diff_coeff;using Base::Fc;using Base::tau;
 
     /****************************
      * example explanation:
@@ -45,11 +46,10 @@ class Standard_Tests: public Smoke_Example<T,d>
     void Parse_Options() override
     {
         Base::Parse_Options();
-        output_directory="Test_"+std::to_string(test_number)+"_Resolution_"+std::to_string(counts(0))+"_Levels_"+std::to_string(levels)+"_CFL_"+std::to_string(cfl);
-
+        output_directory="Smoke_"+std::to_string(d)+"d_"+(FICKS?"F":"NF")+"_diff_"+std::to_string(diff_coeff)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau)+"_Resolution_"+std::to_string(counts(0));
         for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=true;
-        domain_walls(1)(1)=false;           // open top
-        domain_walls(1)(0)=false;           // open bottom
+        // domain_walls(1)(1)=true;           // open top
+        // domain_walls(1)(0)=false;           // open bottom
         TV min_corner,max_corner=TV(1);
         hierarchy=new Hierarchy(counts,Range<T,d>(min_corner,max_corner),levels);
     }
@@ -77,13 +77,13 @@ class Standard_Tests: public Smoke_Example<T,d>
 
                 for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                     const T_INDEX index=base_index+range_iterator.Index();
-                    if(flags(offset)&Cell_Type_Interior && sources(0)->Inside(hierarchy->Lattice(level).Center(index))) data(offset)=(T)10.;
+                    if(flags(offset)&Cell_Type_Interior && sources(0)->Inside(hierarchy->Lattice(level).Center(index))) data(offset)=(T)1.;
                     range_iterator.Next();}}}
     }
 //######################################################################
     void Initialize_Sources() override
     {
-        TV min_corner=TV({.45,0.1}),max_corner=TV({.55,.2});
+        TV min_corner=TV({.45,0.25}),max_corner=TV({.55,.35});
         Implicit_Object<T,d>* obj=new Box_Implicit_Object<T,d>(min_corner,max_corner);
         sources.Append(obj);
     }

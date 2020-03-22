@@ -35,14 +35,11 @@ class Non_Ficks_Smoke_Density_Explicit_Update_Helper
         auto lap_density=allocator.template Get_Const_Array<Struct_type,T>(lap_density_channel);
         auto div_qc=allocator.template Get_Array<Struct_type,T>(div_qc_channel);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        uint64_t face_neighbor_offsets[Topology_Helper::number_of_faces_per_cell];
-        Topology_Helper::Face_Neighbor_Offsets(face_neighbor_offsets);
         auto non_ficks_smoke_density_update_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Cell_Type_Interior) {density(offset)+=coeff1*lap_density(offset)+coeff2*div_qc(offset);
-                // if(div_qc(offset)!=(T)0.)Log::cout<<"coeff1: "<<coeff1<<", lap_density: "<<lap_density(offset)<<", coeff2: "<<coeff2<<", div_qc: "<<div_qc(offset)<<", density: "<<density(offset)<<std::endl;
-                }
+                if(flags(offset)&Cell_Type_Interior) density(offset)+=coeff1*lap_density(offset)+coeff2*div_qc(offset);
+                
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,non_ficks_smoke_density_update_helper);
     }

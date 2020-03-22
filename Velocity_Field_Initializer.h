@@ -43,9 +43,9 @@ class Velocity_Field_Initializer
         {
             Range_Iterator<d> range_iterator(T_INDEX(),*reinterpret_cast<T_INDEX*>(&block_size)-1);
             T_INDEX base_index(Flag_array_mask::LinearToCoord(offset));
-            TV background_velocity=TV::Axis_Vector(1);
+            TV background_velocity=(T).1*TV::Axis_Vector(1);
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){const T_INDEX index=base_index+range_iterator.Index();
-                for(int axis=0;axis<d;++axis){
+                for(int axis=0;axis<d;++axis){TV X=hierarchy.Lattice(level).Face(axis,index);
                     const unsigned face_active_mask=Topology_Helper::Face_Active_Mask(axis);
                     const unsigned face_valid_mask=Topology_Helper::Face_Valid_Mask(axis);
                     if(flags(offset)&face_valid_mask)
