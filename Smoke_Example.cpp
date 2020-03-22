@@ -122,8 +122,7 @@ template<class T,int d> void Smoke_Example<T,d>::
 Diffuse_Density(const T dt)
 {
     if(FICKS) Ficks_Diffusion(dt);
-    else {Non_Ficks_Diffusion(dt); 
-        Advect_Face_Qc(dt);}
+    else Non_Ficks_Diffusion(dt); 
 }
 //######################################################################
 // Ficks_Diffusion
@@ -187,20 +186,34 @@ Non_Ficks_Diffusion(const T dt)
     const Grid<T,d>& grid=hierarchy->Lattice(0);
 	const T dx2=Nova_Utilities::Sqr(grid.dX(0));        const T one_over_dx2=(T)1./dx2;
     const T coeff1=dt*diff_coeff*(Fc*tau+dt)/(dt+tau);  const T coeff2=dt*tau/(dt+tau);
-    const T coeff3=dt*diff_coeff*(1-Fc)/(dt+tau);       const T coeff4=tau/(dt+tau);
-    const T coeff5=dt*diff_coeff*Fc;                    const T coeff6=-dt;
-    if(explicit_diffusion){
-        T Struct_type::* lap_density_channel            = &Struct_type::ch8;
-        T Struct_type::* div_qc_channel                 = &Struct_type::ch9;
-        for(int level=0;level<levels;++level) {
-            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),lap_density_channel);
-            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qc_channel);}
-        for(int level=0;level<levels;++level) Lap_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,lap_density_channel,one_over_dx2);        
-        // compute divergence
-        Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qc_channels,div_qc_channel);
+    const T coeff3=dt*diff_coeff*Fc;                    const T coeff4=-dt;
+    const T coeff5=(tau-dt)/tau;                        const T coeff6=-diff_coeff*dt*(1-Fc)/tau;
 
+    if(explicit_diffusion){
+        Channel_Vector node_qc_channels;
+        node_qc_channels(0)                     = &Struct_type::ch8;
+        node_qc_channels(1)                     = &Struct_type::ch9;
+        if(d==3) node_qc_channels(2)            = &Struct_type::ch10;
+        Channel_Vector node_velocity_channels;
+        node_velocity_channels(0)               = &Struct_type::ch11;
+        node_velocity_channels(1)               = &Struct_type::ch12;
+        if(d==3) node_velocity_channels(2)      = &Struct_type::ch13;
+        T Struct_type::* temp_channel           = &Struct_type::ch14;
+        Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Face_Velocities_To_Nodes(*hierarchy,face_qc_channels,node_qc_channels,temp_channel);
+        Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Face_Velocities_To_Nodes(*hierarchy,face_velocity_channels,node_velocity_channels,temp_channel);
+        T Struct_type::* div_qc_channel         = &Struct_type::ch14;
+        Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qc_channels,div_qc_channel);
+        for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qc_channel);
+        // update Qc
+        Grid_Hierarchy_Advection<Struct_type,T,d>::Advect_Face_Vector(*hierarchy,face_qc_channels,node_qc_channels,face_velocity_channels,node_velocity_channels,temp_channel,dt);
+        for(int level=0;level<levels;++level)
+            Face_Qc_Updater<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_qc_channels,density_channel,coeff5,coeff6,level);
+
+        T Struct_type::* lap_density_channel            = &Struct_type::ch8;
+        for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),lap_density_channel);
+        for(int level=0;level<levels;++level) Lap_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,lap_density_channel,one_over_dx2);        
         for(int level=0;level<levels;++level) 
-            Non_Ficks_Smoke_Density_Explicit_Update_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,lap_density_channel,div_qc_channel,coeff5,coeff6);}
+            Non_Ficks_Smoke_Density_Explicit_Update_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,lap_density_channel,div_qc_channel,coeff3,coeff4);}
     else{
         T Struct_type::* lap_density_channel    = &Struct_type::ch8;
         T Struct_type::* div_qc_channel         = &Struct_type::ch9;

@@ -47,7 +47,8 @@ class Standard_Tests: public Smoke_Example<T,d>
     {
         Base::Parse_Options();
         output_directory="Smoke_"+std::to_string(d)+"d_"+(FICKS?"F":"NF")+"_diff_"+std::to_string(diff_coeff)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau)+"_Resolution_"+std::to_string(counts(0));
-        for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=true;
+        output_directory="smoke_test";
+        for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=false;
         // domain_walls(1)(1)=true;           // open top
         // domain_walls(1)(0)=false;           // open bottom
         TV min_corner,max_corner=TV(1);
