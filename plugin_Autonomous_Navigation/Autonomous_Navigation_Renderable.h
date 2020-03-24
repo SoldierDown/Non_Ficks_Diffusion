@@ -252,7 +252,7 @@ class Autonomous_Navigation_Renderable: public Simulation_Renderable<T,d>
                     if(draw_density){T density;
                         Read_Write<T>::Read(*input3,density);
                         hierarchy->Allocator(level).template Get_Array<Struct_type,T>(density_channel)(offset)=density;
-                        if(flag&Cell_Type_Interior) density_voxels.push_back(Color_Voxel(location,glm::vec3(1,1,1)*std::max(density,(T)0.)));}
+                        if(flag&Cell_Type_Interior && density>(T).01) density_voxels.push_back(Color_Voxel(location,glm::vec3(1,1,1)*std::max(density,(T)0.)));}
 
                     if(draw_velocity) for(int axis=0;axis<d;++axis){T velocity;
                         Read_Write<T>::Read(*velocity_input(axis),velocity);
@@ -352,6 +352,18 @@ class Autonomous_Navigation_Renderable: public Simulation_Renderable<T,d>
                 glDisable(GL_POLYGON_OFFSET_LINE);
                 glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);}}
 
+        if(draw_density){
+                auto shader = _app.GetShaderManager().GetShader("Density");
+                shader->SetMatrix4("projection",projection);
+                shader->SetMatrix4("view",view);
+                shader->SetMatrix4("model",model);
+                shader->SetVector4f("slice_plane0",slicePlanes[0]);
+                shader->SetVector4f("slice_plane1",slicePlanes[1]);
+                glBindVertexArray(VADO);
+                glEnable(GL_PROGRAM_POINT_SIZE);
+                glDrawArrays(GL_POINTS,0,density_voxels.size());
+                glBindVertexArray(0);}
+
         if(draw_voxels){auto shader = _app.GetShaderManager().GetShader("Grid");
             shader->SetMatrix4("projection",projection);
             shader->SetMatrix4("view",view);
@@ -363,18 +375,6 @@ class Autonomous_Navigation_Renderable: public Simulation_Renderable<T,d>
             glBindVertexArray(VAO);
             glDrawArrays(GL_POINTS,0,voxels.size());
             glBindVertexArray(0); 
-
-            if(draw_density){
-                auto shader = _app.GetShaderManager().GetShader("Density");
-                shader->SetMatrix4("projection",projection);
-                shader->SetMatrix4("view",view);
-                shader->SetMatrix4("model",model);
-                shader->SetVector4f("slice_plane0",slicePlanes[0]);
-                shader->SetVector4f("slice_plane1",slicePlanes[1]);
-                glBindVertexArray(VADO);
-                glEnable(GL_PROGRAM_POINT_SIZE);
-                glDrawArrays(GL_POINTS,0,density_voxels.size());
-                glBindVertexArray(0);}
 
             if(selected_voxel_level != -1){
                 glBindVertexArray(VASO);
