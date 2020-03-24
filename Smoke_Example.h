@@ -33,6 +33,7 @@ class Smoke_Example: public Example<T,d>
 
     bool FICKS;
     bool explicit_diffusion;
+    T bv;
     T diff_coeff;
     T Fc;
     T tau;
@@ -71,7 +72,7 @@ class Smoke_Example: public Example<T,d>
     void Modify_Density_With_Sources();
     void Advect_Face_Velocities(const T dt);
     void Set_Neumann_Faces_Inside_Sources();
-    void Initialize_Values_At_Boundary_Conditions();
+    void Initialize_Velocity_Field();
     void Set_Boundary_Conditions();
     void Project(const T dt);
     void Register_Options() override;

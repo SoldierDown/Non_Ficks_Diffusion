@@ -56,7 +56,9 @@ class Boundary_Value_Initializer
                     if(flags(offset)&face_valid_mask){bool inside=false;
                         for(size_t i=0;i<sources.size();++i) if(sources(i)->Inside(X)){
                             hierarchy.Allocator(level).template Get_Array<Struct_type,T>(face_velocity_channels(axis))(offset)=source_velocity(i)(axis);inside=true;break;}
-                        if(!inside && !(flags(offset)&face_active_mask)) hierarchy.Allocator(level).template Get_Array<Struct_type,T>(face_velocity_channels(axis))(offset)=(T)0.;}}
+                        if(!inside && !(flags(offset)&face_active_mask))  hierarchy.Allocator(level).template Get_Array<Struct_type,T>(face_velocity_channels(axis))(offset)=(T)0.;
+                            
+                            }}
                 if(flags(offset)&Cell_Type_Dirichlet) pressure(offset)=(T)0.;
                 range_iterator.Next();}
         };

@@ -24,7 +24,8 @@ Initialize()
     if(!example.restart) example.Initialize();
     else example.Read_Output_Files(example.restart_frame);
 
-    example.Set_Boundary_Conditions();
+    example.Initialize_Velocity_Field();
+    // example.Set_Boundary_Conditions();
 }
 //######################################################################
 // Advance_One_Time_Step_Explicit_Part
@@ -34,8 +35,8 @@ Advance_One_Time_Step_Explicit_Part(const T dt,const T time)
 {
     // scalar advance
     example.Advect_Density(dt);
-    example.Modify_Density_With_Sources();
     example.Diffuse_Density(dt);
+    example.Modify_Density_With_Sources();
     // convect
     example.Advect_Face_Velocities(dt);
 }

@@ -10,7 +10,8 @@
 #include <nova/Tools/Utilities/File_Utilities.h>
 #include "Apply_Pressure.h"
 #include "Boundary_Value_Initializer.h"
-#include "Velocity_Field_Initializer.h"
+#include "Uniform_Velocity_Field_Initializer.h"
+#include "Boundary_Condition_Helper.h"
 #include "Poisson_Solver/Poisson_CG_System.h"
 #include "Compute_Time_Step.h"
 #include "Density_Modifier.h"
@@ -40,6 +41,7 @@ Smoke_Example()
     FICKS=false;
     explicit_diffusion=false;
     diff_coeff=(T).01;
+    bv=(T)1.;
     Fc=(T)0.;
     tau=(T)1.;
     face_velocity_channels(0)           = &Struct_type::ch0;
@@ -199,17 +201,22 @@ Non_Ficks_Diffusion(const T dt)
         node_velocity_channels(1)               = &Struct_type::ch12;
         if(d==3) node_velocity_channels(2)      = &Struct_type::ch13;
         T Struct_type::* temp_channel           = &Struct_type::ch14;
+        for(int level=0;level<levels;++level) { for(int v=0;v<d;++v) {
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),node_qc_channels(v));
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),node_velocity_channels(v));}
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),temp_channel);}
         Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Face_Velocities_To_Nodes(*hierarchy,face_qc_channels,node_qc_channels,temp_channel);
         Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Face_Velocities_To_Nodes(*hierarchy,face_velocity_channels,node_velocity_channels,temp_channel);
         T Struct_type::* div_qc_channel         = &Struct_type::ch14;
         for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qc_channel);
+        // compute div(Qc) at time n
         Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qc_channels,div_qc_channel);
-        // update Qc
+        // update Qc  
         Grid_Hierarchy_Advection<Struct_type,T,d>::Advect_Face_Vector(*hierarchy,face_qc_channels,node_qc_channels,face_velocity_channels,node_velocity_channels,temp_channel,dt);
         for(int level=0;level<levels;++level)
             Face_Qc_Updater<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_qc_channels,density_channel,coeff5,coeff6,level);
 
-        T Struct_type::* lap_density_channel            = &Struct_type::ch8;
+        T Struct_type::* lap_density_channel    = &Struct_type::ch8;
         for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),lap_density_channel);
         for(int level=0;level<levels;++level) Lap_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,lap_density_channel,one_over_dx2);        
         for(int level=0;level<levels;++level) 
@@ -226,9 +233,10 @@ Non_Ficks_Diffusion(const T dt)
         T Struct_type::* temp_channel           = &Struct_type::ch14;
         Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Face_Velocities_To_Nodes(*hierarchy,face_qc_channels,node_qc_channels,temp_channel);
         Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Face_Velocities_To_Nodes(*hierarchy,face_velocity_channels,node_velocity_channels,temp_channel);
+
+        // compute div(Qc^n) 
         T Struct_type::* div_qc_channel         = &Struct_type::ch14;
         for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qc_channel);
-        // compute divergence n
         Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qc_channels,div_qc_channel);
         // update Qc
         Grid_Hierarchy_Advection<Struct_type,T,d>::Advect_Face_Vector(*hierarchy,face_qc_channels,node_qc_channels,face_velocity_channels,node_velocity_channels,temp_channel,dt);
@@ -245,7 +253,6 @@ Non_Ficks_Diffusion(const T dt)
         // clear all channels
         for(int level=0;level<levels;++level){
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),lap_density_channel);
-            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qc_channel);
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),q_channel);
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channel);
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),s_channel);
@@ -318,16 +325,13 @@ Set_Neumann_Faces_Inside_Sources()
                 break;}}}
 }
 //######################################################################
-// Initialize_Values_At_Boundary_Conditions
+// Initialize_Velocity_Field
 //######################################################################
 template<class T,int d> void Smoke_Example<T,d>::
-Initialize_Values_At_Boundary_Conditions()
+Initialize_Velocity_Field()
 {
     for(int level=0;level<levels;++level)
-        Boundary_Value_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),sources,
-                                                    face_velocity_channels,pressure_channel,level);
-    // for(int level=0;level<levels;++level)
-    //     Velocity_Field_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,pressure_channel,level);
+        Uniform_Velocity_Field_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,bv,level);
 }
 //######################################################################
 // Set_Boundary_Conditions
@@ -335,7 +339,11 @@ Initialize_Values_At_Boundary_Conditions()
 template<class T,int d> void Smoke_Example<T,d>::
 Set_Boundary_Conditions()
 {
-    Initialize_Values_At_Boundary_Conditions();
+    // for(int level=0;level<levels;++level)
+    //     Boundary_Value_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),sources,
+    //                                                 face_velocity_channels,pressure_channel,level);
+    for(int level=0;level<levels;++level)
+        Boundary_Condition_Helper<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,pressure_channel,bv,level);
 }
 //######################################################################
 // Project
@@ -413,6 +421,7 @@ Register_Options()
     else if(d==3) parse_args->Add_Vector_3D_Argument("-size",Vector<double,3>(64.),"n","Grid resolution");
     parse_args->Add_Double_Argument("-diff_coeff",(T)1e-3,"diffusion coefficient.");
     parse_args->Add_Double_Argument("-fc",(T)0.,"fc.");
+    parse_args->Add_Double_Argument("-bv",(T)1.,"Background velocity(along y axis).");
     parse_args->Add_Double_Argument("-tau",(T)1.,"tau.");
     parse_args->Add_Option_Argument("-ficks","Fick's diffusion.");
     parse_args->Add_Option_Argument("-ed","Explicit diffusion");
@@ -438,6 +447,7 @@ Parse_Options()
     else{auto cell_counts_3d=parse_args->Get_Vector_3D_Value("-size");for(int v=0;v<d;++v) counts(v)=cell_counts_3d(v);}
     FICKS=parse_args->Get_Option_Value("-ficks");
     diff_coeff=parse_args->Get_Double_Value("-diff_coeff");
+    bv=parse_args->Get_Double_Value("-bv");
     Fc=parse_args->Get_Double_Value("-fc");
     tau=parse_args->Get_Double_Value("-tau");
     explicit_diffusion=parse_args->Get_Option_Value("-ed");

@@ -6,12 +6,13 @@
 #ifndef __Standard_Tests__
 #define __Standard_Tests__
 
-#include <nova/Geometry/Implicit_Objects/Cylinder_Implicit_Object.h>
+#include <nova/Geometry/Implicit_Objects/Box_Implicit_Object.h>
 #include <nova/SPGrid/Tools/SPGrid_Clear.h>
 #include <nova/Tools/Utilities/Range_Iterator.h>
 #include "../../Poisson_Data.h"
 #include "../../Smoke_Example.h"
 #include "../../Rasterizers/Adaptive_Sphere_Rasterizer.h"
+#include "../../Rasterizers/Randomized_Rasterizer.h"
 
 namespace Nova{
 template<class T,int d>
@@ -29,6 +30,7 @@ class Standard_Tests: public Smoke_Example<T,d>
   public:
     using Base::output_directory;using Base::test_number;using Base::counts;using Base::levels;using Base::domain_walls;using Base::hierarchy;using Base::rasterizer;
     using Base::cfl;using Base::sources;using Base::density_channel;
+    using Base::FICKS;using Base::diff_coeff;using Base::Fc;using Base::tau;
 
     /****************************
      * example explanation:
@@ -44,18 +46,16 @@ class Standard_Tests: public Smoke_Example<T,d>
     void Parse_Options() override
     {
         Base::Parse_Options();
-        output_directory="Test_"+std::to_string(test_number)+"_Resolution_"+std::to_string(counts(0))+"_Levels_"+std::to_string(levels)+"_CFL_"+std::to_string(cfl);
-
-        for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=false;
-        // domain_walls(1)(1)=false;           // open top
-
+        output_directory="Smoke_"+std::to_string(d)+"d_"+(FICKS?"F":"NF")+"_diff_"+std::to_string(diff_coeff)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau)+"_Resolution_"+std::to_string(counts(0));
+        for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=false; // open
         TV min_corner,max_corner=TV(1);
         hierarchy=new Hierarchy(counts,Range<T,d>(min_corner,max_corner),levels);
     }
 //######################################################################
     void Initialize_Rasterizer() override
     {
-        rasterizer=new Adaptive_Sphere_Rasterizer<Struct_type,T,d>(*hierarchy,TV(.5),(T).1);
+        // rasterizer=new Adaptive_Sphere_Rasterizer<Struct_type,T,d>(*hierarchy,TV(.5),(T).1);
+        rasterizer=new Randomized_Rasterizer<Struct_type,T,d>(*hierarchy);
     }
 //######################################################################
     void Initialize_Fluid_State() override
@@ -75,14 +75,14 @@ class Standard_Tests: public Smoke_Example<T,d>
 
                 for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                     const T_INDEX index=base_index+range_iterator.Index();
-                    if(flags(offset)&Cell_Type_Interior && sources(0)->Inside(hierarchy->Lattice(level).Center(index))) data(offset)=(T)10.;
+                    if(flags(offset)&Cell_Type_Interior && sources(0)->Inside(hierarchy->Lattice(level).Center(index))) data(offset)=(T)1.;
                     range_iterator.Next();}}}
     }
 //######################################################################
     void Initialize_Sources() override
     {
-        TV point1({.5,0,.5}),point2({.5,.04,.5});T radius=(T).04;
-        Implicit_Object<T,d>* obj=new Cylinder_Implicit_Object<T>(point1,point2,radius);
+        TV min_corner({.45,0.25,.45}),max_corner({.55,.35,.55});
+        Implicit_Object<T,d>* obj=new Box_Implicit_Object<T,d>(min_corner,max_corner);
         sources.Append(obj);
     }
 //######################################################################
