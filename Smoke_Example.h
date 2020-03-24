@@ -33,6 +33,7 @@ class Smoke_Example: public Example<T,d>
 
     bool FICKS;
     bool explicit_diffusion;
+    T source_rate;
     T bv;
     T diff_coeff;
     T Fc;
@@ -70,6 +71,7 @@ class Smoke_Example: public Example<T,d>
     void Non_Ficks_Diffusion(const T dt);
     void Reset_Solver_Channels();
     void Modify_Density_With_Sources();
+    void Add_Source(const T dt);
     void Advect_Face_Velocities(const T dt);
     void Set_Neumann_Faces_Inside_Sources();
     void Initialize_Velocity_Field();

@@ -1,4 +1,5 @@
-if(ENABLE_NON_FICKS_DIFFUSION)
+set(ENABLE_NON_FICKS_DIFFUSION_PLUGIN OFF CACHE BOOL "Enable non-Fick's diffusion plugin.")
+if(ENABLE_NON_FICKS_DIFFUSION_PLUGIN)
   find_package(assimp)
 
   if(NOT assimp_FOUND)

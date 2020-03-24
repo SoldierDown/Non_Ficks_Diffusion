@@ -1,3 +1,4 @@
+set(ENABLE_AUTONOMOUS_NAVIGATION OFF CACHE BOOL "Enable Autonomous navigation.")
 if(ENABLE_AUTONOMOUS_NAVIGATION)
   find_package(assimp)
 

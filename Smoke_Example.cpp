@@ -15,6 +15,7 @@
 #include "Poisson_Solver/Poisson_CG_System.h"
 #include "Compute_Time_Step.h"
 #include "Density_Modifier.h"
+#include "Source_Adder.h"
 #include "Initialize_Dirichlet_Cells.h"
 #include "Poisson_Solver/Multigrid_Data.h"
 #include "Smoke_Example.h"
@@ -42,6 +43,7 @@ Smoke_Example()
     explicit_diffusion=false;
     diff_coeff=(T).01;
     bv=(T)1.;
+    source_rate=(T)1.;
     Fc=(T)0.;
     tau=(T)1.;
     face_velocity_channels(0)           = &Struct_type::ch0;
@@ -285,6 +287,15 @@ Modify_Density_With_Sources()
         Density_Modifier<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),density_channel,sources,level);
 }
 //######################################################################
+// Add_Source
+//######################################################################
+template<class T,int d> void Smoke_Example<T,d>::
+Add_Source(const T dt)
+{
+    for(int level=0;level<levels;++level)
+        Source_Adder<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),density_channel,sources,source_rate,dt,level);
+}
+//######################################################################
 // Reset_Solver_Channels
 //######################################################################
 template<class T,int d> void Smoke_Example<T,d>::
@@ -422,6 +433,7 @@ Register_Options()
     parse_args->Add_Double_Argument("-diff_coeff",(T)1e-3,"diffusion coefficient.");
     parse_args->Add_Double_Argument("-fc",(T)0.,"fc.");
     parse_args->Add_Double_Argument("-bv",(T)1.,"Background velocity(along y axis).");
+    parse_args->Add_Double_Argument("-sr",(T)1.,"Source rate");
     parse_args->Add_Double_Argument("-tau",(T)1.,"tau.");
     parse_args->Add_Option_Argument("-ficks","Fick's diffusion.");
     parse_args->Add_Option_Argument("-ed","Explicit diffusion");
@@ -448,6 +460,7 @@ Parse_Options()
     FICKS=parse_args->Get_Option_Value("-ficks");
     diff_coeff=parse_args->Get_Double_Value("-diff_coeff");
     bv=parse_args->Get_Double_Value("-bv");
+    source_rate=parse_args->Get_Double_Value("-sr");
     Fc=parse_args->Get_Double_Value("-fc");
     tau=parse_args->Get_Double_Value("-tau");
     explicit_diffusion=parse_args->Get_Option_Value("-ed");

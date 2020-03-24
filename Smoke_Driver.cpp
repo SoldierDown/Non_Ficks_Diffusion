@@ -34,9 +34,10 @@ template<class T,int d> void Smoke_Driver<T,d>::
 Advance_One_Time_Step_Explicit_Part(const T dt,const T time)
 {
     // scalar advance
+    example.Add_Source(dt);
     example.Advect_Density(dt);
     example.Diffuse_Density(dt);
-    example.Modify_Density_With_Sources();
+    // example.Modify_Density_With_Sources();
     // convect
     example.Advect_Face_Velocities(dt);
 }
