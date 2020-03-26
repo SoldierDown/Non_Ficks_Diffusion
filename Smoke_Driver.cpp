@@ -25,7 +25,6 @@ Initialize()
     else example.Read_Output_Files(example.restart_frame);
 
     example.Initialize_Velocity_Field();
-    // example.Set_Boundary_Conditions();
 }
 //######################################################################
 // Advance_One_Time_Step_Explicit_Part
@@ -36,10 +35,9 @@ Advance_One_Time_Step_Explicit_Part(const T dt,const T time)
     // scalar advance
     example.Add_Source(dt);
     example.Advect_Density(dt);
-    example.Diffuse_Density(dt);
-    // example.Modify_Density_With_Sources();
+    // example.Diffuse_Density(dt);
     // convect
-    example.Advect_Face_Velocities(dt);
+    // example.Advect_Face_Velocities(dt);
 }
 //######################################################################
 // Advance_One_Time_Step_Implicit_Part
@@ -47,7 +45,7 @@ Advance_One_Time_Step_Explicit_Part(const T dt,const T time)
 template<class T,int d> void Smoke_Driver<T,d>::
 Advance_One_Time_Step_Implicit_Part(const T dt,const T time)
 {
-    example.Project(dt);
+    // example.Project(dt);
 }
 //######################################################################
 // Advance_To_Target_Time

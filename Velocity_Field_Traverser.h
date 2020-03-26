@@ -1,10 +1,10 @@
 //!#####################################################################
-//! \file Uniform_Velocity_Field_Initializer.h
+//! \file Velocity_Field_Traverser.h
 //!#####################################################################
-// Class Uniform_Velocity_Field_Initializer
+// Class Velocity_Field_Traverser
 //######################################################################
-#ifndef __Uniform_Velocity_Field_Initializer__
-#define __Uniform_Velocity_Field_Initializer__
+#ifndef __Velocity_Field_Traverser__
+#define __Velocity_Field_Traverser__
 
 #include <nova/Geometry/Implicit_Objects/Implicit_Object.h>
 #include <nova/Dynamics/Hierarchy/Grid_Hierarchy.h>
@@ -14,7 +14,7 @@
 
 namespace Nova{
 template<class Struct_type,class T,int d>
-class Uniform_Velocity_Field_Initializer
+class Velocity_Field_Traverser
 {
     using TV                        = Vector<T,d>;
     using T_INDEX                   = Vector<int,d>;
@@ -26,7 +26,7 @@ class Uniform_Velocity_Field_Initializer
     using Topology_Helper           = Grid_Topology_Helper<Flag_array_mask>;
 
   public:
-    Uniform_Velocity_Field_Initializer(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& face_velocity_channels,const T bv,const int level)
+    Velocity_Field_Traverser(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& face_velocity_channels,const T bv,const int level)
     {
         Run(hierarchy,blocks,face_velocity_channels,bv,level);
     }
@@ -36,21 +36,20 @@ class Uniform_Velocity_Field_Initializer
         auto block_size=hierarchy.Allocator(level).Block_Size();
         auto flags=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
 
-        auto uniform_velocity_field_initializer=[&](uint64_t offset)
+        auto velocity_field_traverser=[&](uint64_t offset)
         {
             Range_Iterator<d> range_iterator(T_INDEX(),*reinterpret_cast<T_INDEX*>(&block_size)-1);
             T_INDEX base_index(Flag_array_mask::LinearToCoord(offset));
             TV background_velocity=TV::Axis_Vector(1)*bv;
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                for(int axis=0;axis<d;++axis){const unsigned face_valid_mask=Topology_Helper::Face_Valid_Mask(axis); const unsigned face_active_mask=Topology_Helper::Face_Active_Mask(axis);
-                    if(!(flags(offset)&face_active_mask)) hierarchy.Allocator(level).template Get_Array<Struct_type,T>(face_velocity_channels(axis))(offset)=(T)0.;
-                    if(flags(offset)&face_valid_mask)  hierarchy.Allocator(level).template Get_Array<Struct_type,T>(face_velocity_channels(axis))(offset)=background_velocity(axis);
-                    hierarchy.Allocator(level).template Get_Array<Struct_type,T>(face_velocity_channels(axis))(offset)=background_velocity(axis);
-                    }
+                for(int axis=0;axis<d;++axis)
+                    if(hierarchy.Allocator(level).template Get_Array<Struct_type,T>(face_velocity_channels(axis))(offset)!=background_velocity(axis))
+                        Log::cout<<"Different! real: "<<hierarchy.Allocator(level).template Get_Array<Struct_type,T>(face_velocity_channels(axis))(offset)
+                                <<", should be: "<<background_velocity(axis)<<std::endl;
                 range_iterator.Next();}
         };
 
-        SPGrid_Computations::Run_Parallel_Blocks(blocks,uniform_velocity_field_initializer);
+        SPGrid_Computations::Run_Parallel_Blocks(blocks,velocity_field_traverser);
     }
 };
 }

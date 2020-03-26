@@ -11,6 +11,7 @@
 #include "Apply_Pressure.h"
 #include "Boundary_Value_Initializer.h"
 #include "Uniform_Velocity_Field_Initializer.h"
+#include "Velocity_Field_Traverser.h"
 #include "Boundary_Condition_Helper.h"
 #include "Poisson_Solver/Poisson_CG_System.h"
 #include "Compute_Time_Step.h"
@@ -343,6 +344,8 @@ Initialize_Velocity_Field()
 {
     for(int level=0;level<levels;++level)
         Uniform_Velocity_Field_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,bv,level);
+    for(int level=0;level<levels;++level)
+        Velocity_Field_Traverser<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,bv,level);
 }
 //######################################################################
 // Set_Boundary_Conditions

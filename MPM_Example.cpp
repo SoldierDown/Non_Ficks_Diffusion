@@ -53,7 +53,7 @@ MPM_Example()
     gravity=TV::Axis_Vector(1)*(T)0.;
     flip=(T).9;
     explicit_diffusion=false;
-     
+
     mpm_flags_channel                       = &MPM_struct_type::flags;
     mass_channel                            = &MPM_struct_type::ch0;
     velocity_channels(0)                    = &MPM_struct_type::ch1;
@@ -1159,6 +1159,8 @@ Register_Options()
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
     parse_args->Add_Double_Argument("-cfl",(T)0.1,"CFL number.");
+    parse_args->Add_Double_Argument("-min_dt",(T)1.e-6,"min time step.");
+    parse_args->Add_Double_Argument("-max_dt",(T)1.e-3,"max time step.");
     parse_args->Add_Double_Argument("-diff_coeff",(T)1e-3,"diffusion coefficient.");
     parse_args->Add_Double_Argument("-E",(T)40.,"E.");
     parse_args->Add_Double_Argument("-nu",(T)0.2,"nu.");
@@ -1181,6 +1183,8 @@ Register_Options()
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
     parse_args->Add_Double_Argument("-cfl",(T)0.1,"CFL number.");
+    parse_args->Add_Double_Argument("-min_dt",(T)1.e-6,"min time step.");
+    parse_args->Add_Double_Argument("-max_dt",(T)1.e-3,"max time step.");
     parse_args->Add_Double_Argument("-diff_coeff",(T)1e-3,"diffusion coefficient.");
     parse_args->Add_Double_Argument("-E",(T)40.,"E.");
     parse_args->Add_Double_Argument("-nu",(T)0.2,"nu.");
@@ -1226,6 +1230,8 @@ Parse_Options()
     eta=parse_args->Get_Double_Value("-eta");
     Fc=parse_args->Get_Double_Value("-fc");
     tau=parse_args->Get_Double_Value("-tau");
+    min_dt=parse_args->Get_Double_Value("-min_dt");
+    max_dt=parse_args->Get_Double_Value("-max_dt");
     auto cell_counts_2d=parse_args->Get_Vector_2D_Value("-size");for(int v=0;v<2;++v) counts(v)=cell_counts_2d(v);
 }
 //######################################################################
@@ -1250,6 +1256,8 @@ Parse_Options()
     eta=parse_args->Get_Double_Value("-eta");
     Fc=parse_args->Get_Double_Value("-fc");
     tau=parse_args->Get_Double_Value("-tau");
+    min_dt=parse_args->Get_Double_Value("-min_dt");
+    max_dt=parse_args->Get_Double_Value("-max_dt");
     auto cell_counts_3d=parse_args->Get_Vector_3D_Value("-size");for(int v=0;v<3;++v) counts(v)=cell_counts_3d(v);
 }
 //######################################################################

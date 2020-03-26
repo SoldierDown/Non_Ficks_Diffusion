@@ -25,6 +25,7 @@ class Standard_Tests: public MPM_Example<T,d>
     using Base::output_directory;using Base::test_number;using Base::particles;using Base::parse_args;using Base::counts;using Base::domain;
     using Base::barriers;using Base::FICKS;using Base::E;using Base::nu;using Base::eta;using Base::Fc;using Base::tau;using Base::diff_coeff;
     using Base::mg_levels; using Base::np;
+    using Base::min_dt; using Base::max_dt;
     /****************************
      * example explanation:
      *
@@ -40,7 +41,8 @@ class Standard_Tests: public MPM_Example<T,d>
     {
         Base::Parse_Options();
         output_directory=std::to_string(d)+"d_"+(FICKS?"F_":"NF_")+"E_"+std::to_string(E)+"_nu_"+std::to_string(nu)+"_diff_"+std::to_string(diff_coeff)
-                                +"_eta_"+std::to_string(eta)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau)+"_Resolution_"+std::to_string(counts(0))+"_"+std::to_string(mg_levels)+"_levels_"+std::to_string(np)+"_particles";
+                                +"_eta_"+std::to_string(eta)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau)+"_Resolution_"+std::to_string(counts(0))+"_"+std::to_string(mg_levels)+"_levels_"+std::to_string(np)+"_particles_dt_"
+                                +std::to_string(min_dt)+"_"+std::to_string(max_dt);
 
         domain.min_corner=TV();domain.max_corner=TV(11);
     }

@@ -46,10 +46,11 @@ class Standard_Tests: public Smoke_Example<T,d>
     void Parse_Options() override
     {
         Base::Parse_Options();
-        output_directory="Source_Smoke_"+std::to_string(d)+"d_"+(FICKS?"F":"NF")+"_diff_"+std::to_string(diff_coeff)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau)+"_bv_"+std::to_string(bv)+"_sr_"+std::to_string(source_rate)+"_Resolution_"+std::to_string(counts(0));
-        for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=true;
-        domain_walls(1)(0)=false; domain_walls(1)(1)=false;
-        TV min_corner,max_corner=TV(1);
+        output_directory="Source_Smoke_"+std::to_string(d)+"d_"+(FICKS?"F":"NF")+"_diff_"+std::to_string(diff_coeff)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau)+"_bv_"+std::to_string(bv)+"_sr_"+std::to_string(source_rate)+"_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
+        for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=false;
+        // domain_walls(1)(0)=false; domain_walls(1)(1)=false;
+        TV min_corner,max_corner=TV(.5);
+        max_corner(1)=(T)1.;
         hierarchy=new Hierarchy(counts,Range<T,d>(min_corner,max_corner),levels);
     }
 //######################################################################
@@ -82,7 +83,7 @@ class Standard_Tests: public Smoke_Example<T,d>
 //######################################################################
     void Initialize_Sources() override
     {
-        TV min_corner=TV({.45,0.25}),max_corner=TV({.55,.35});
+        TV min_corner=TV({.2375,0.225}),max_corner=TV({.2625,.25});
         Implicit_Object<T,d>* obj=new Box_Implicit_Object<T,d>(min_corner,max_corner);
         sources.Append(obj);
     }

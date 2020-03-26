@@ -183,6 +183,8 @@ class MPM_Example<T,2>: public Example<T,2>
     int mg_levels;
     int cg_max_iterations;
     int cg_restart_iterations;
+    T min_dt;
+    T max_dt;
     // Hydrogel variables
     T E;
     T nu;
@@ -326,7 +328,8 @@ class MPM_Example<T,3>: public Example<T,3>
     T Fc;
     bool FICKS;
     bool explicit_diffusion;
-
+    T min_dt;
+    T max_dt;
     // Hydrogel channels
     unsigned Diff_struct_type::* diff_flags_channel;
     T Diff_struct_type::* saturation_channel;
