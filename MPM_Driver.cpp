@@ -54,8 +54,9 @@ Execute_Main_Program()
 template<class T,int d> void MPM_Driver<T,d>::
 Advance_To_Target_Time(const T target_time)
 {
-    T min_dt=(T)1e-6;
-    T max_dt=(T)1e-3;
+    Log::cout<<"min dt: "<<example.min_dt<<", max_dt: "<<example.max_dt<<std::endl;
+    T min_dt=example.min_dt;
+    T max_dt=example.max_dt;
     T cfl=example.cfl;
     T dx_min=example.mpm_hierarchy->Lattice(0).dX(0);
     bool done=false;
