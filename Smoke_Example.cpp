@@ -28,6 +28,7 @@
 #include "Clamp_Helper.h"
 #include "Lap_Calculator.h"
 #include "Face_Qc_Updater.h"
+#include "Uniform_Grid_Advection/Uniform_Grid_Advection_Helper.h"
 #include <omp.h>
 using namespace Nova;
 namespace Nova{
@@ -114,11 +115,12 @@ Advect_Density(const T dt)
     node_velocity_channels(0)               = &Struct_type::ch8;
     node_velocity_channels(1)               = &Struct_type::ch9;
     if(d==3) node_velocity_channels(2)      = &Struct_type::ch10;
-    T Struct_type::* node_density_channel   = &Struct_type::ch11;
+    // T Struct_type::* node_density_channel   = &Struct_type::ch11;
     T Struct_type::* temp_channel           = &Struct_type::ch12;
-    Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Cell_Density_To_Nodes(*hierarchy,density_channel,node_density_channel,temp_channel);
+    // Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Cell_Density_To_Nodes(*hierarchy,density_channel,node_density_channel,temp_channel);
     Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Face_Velocities_To_Nodes(*hierarchy,face_velocity_channels,node_velocity_channels,temp_channel);
-    Grid_Hierarchy_Advection<Struct_type,T,d>::Advect_Density(*hierarchy,node_velocity_channels,density_channel,node_density_channel,temp_channel,dt);
+    // Grid_Hierarchy_Advection<Struct_type,T,d>::Advect_Density(*hierarchy,node_velocity_channels,density_channel,node_density_channel,temp_channel,dt);
+    Uniform_Grid_Advection_Helper<Struct_type,T,d>::Uniform_Grid_Advect_Density(*hierarchy,node_velocity_channels,density_channel,temp_channel,dt);
 }
 //######################################################################
 // Diffuse_Density
