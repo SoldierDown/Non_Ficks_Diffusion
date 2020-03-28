@@ -4,7 +4,6 @@
 #include <nova/Dynamics/Hierarchy/Grid_Hierarchy_Initializer.h>
 #include <nova/Dynamics/Hierarchy/Grid_Hierarchy_Iterator.h>
 #include <nova/Dynamics/Hierarchy/Advection/Grid_Hierarchy_Advection.h>
-#include <nova/Dynamics/Hierarchy/Interpolation/Grid_Hierarchy_Averaging.h>
 #include <nova/Tools/Grids/Grid_Iterator_Face.h>
 #include <nova/Tools/Krylov_Solvers/Conjugate_Gradient.h>
 #include <nova/Tools/Utilities/File_Utilities.h>
@@ -28,7 +27,8 @@
 #include "Clamp_Helper.h"
 #include "Lap_Calculator.h"
 #include "Face_Qc_Updater.h"
-#include "Uniform_Grid_Advection/Uniform_Grid_Advection_Helper.h"
+#include "Uniform_Grid_Helper/Uniform_Grid_Advection_Helper.h"
+#include "Uniform_Grid_Helper/Uniform_Grid_Averaging_Helper.h"
 #include <omp.h>
 using namespace Nova;
 namespace Nova{
@@ -111,16 +111,15 @@ Limit_Dt(T& dt,const T time)
 template    <class T,int d> void Smoke_Example<T,d>::
 Advect_Density(const T dt)
 {
-    Channel_Vector node_velocity_channels;
-    node_velocity_channels(0)               = &Struct_type::ch8;
-    node_velocity_channels(1)               = &Struct_type::ch9;
-    if(d==3) node_velocity_channels(2)      = &Struct_type::ch10;
-    // T Struct_type::* node_density_channel   = &Struct_type::ch11;
-    T Struct_type::* temp_channel           = &Struct_type::ch12;
-    // Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Cell_Density_To_Nodes(*hierarchy,density_channel,node_density_channel,temp_channel);
-    Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Face_Velocities_To_Nodes(*hierarchy,face_velocity_channels,node_velocity_channels,temp_channel);
-    // Grid_Hierarchy_Advection<Struct_type,T,d>::Advect_Density(*hierarchy,node_velocity_channels,density_channel,node_density_channel,temp_channel,dt);
-    Uniform_Grid_Advection_Helper<Struct_type,T,d>::Uniform_Grid_Advect_Density(*hierarchy,node_velocity_channels,density_channel,temp_channel,dt);
+    Channel_Vector cell_velocity_channels;
+    cell_velocity_channels(0)               = &Struct_type::ch8;
+    cell_velocity_channels(1)               = &Struct_type::ch9;
+    if(d==3) cell_velocity_channels(2)      = &Struct_type::ch10;
+    T Struct_type::* temp_channel           = &Struct_type::ch11;
+    Vector<uint64_t,d> other_face_offsets;
+    for(int axis=0;axis<d;++axis) other_face_offsets(axis)=Topology_Helper::Axis_Vector_Offset(axis);
+    Uniform_Grid_Averaging_Helper<Struct_type,T,d>::Uniform_Grid_Average_Face_Velocities_To_Cells(*hierarchy,hierarchy->Allocator(0),hierarchy->Blocks(0),face_velocity_channels,cell_velocity_channels,other_face_offsets);
+    Uniform_Grid_Advection_Helper<Struct_type,T,d>::Uniform_Grid_Advect_Density(*hierarchy,cell_velocity_channels,density_channel,temp_channel,dt);
 }
 //######################################################################
 // Diffuse_Density
@@ -197,27 +196,43 @@ Non_Ficks_Diffusion(const T dt)
     const T coeff5=(tau-dt)/tau;                        const T coeff6=-diff_coeff*dt*(1-Fc)/tau;
 
     if(explicit_diffusion){
-        Channel_Vector node_qc_channels;
-        node_qc_channels(0)                     = &Struct_type::ch8;
-        node_qc_channels(1)                     = &Struct_type::ch9;
-        if(d==3) node_qc_channels(2)            = &Struct_type::ch10;
-        Channel_Vector node_velocity_channels;
-        node_velocity_channels(0)               = &Struct_type::ch11;
-        node_velocity_channels(1)               = &Struct_type::ch12;
-        if(d==3) node_velocity_channels(2)      = &Struct_type::ch13;
-        T Struct_type::* temp_channel           = &Struct_type::ch14;
-        for(int level=0;level<levels;++level) { for(int v=0;v<d;++v) {
-            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),node_qc_channels(v));
-            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),node_velocity_channels(v));}
-            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),temp_channel);}
-        Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Face_Velocities_To_Nodes(*hierarchy,face_qc_channels,node_qc_channels,temp_channel);
-        Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Face_Velocities_To_Nodes(*hierarchy,face_velocity_channels,node_velocity_channels,temp_channel);
-        T Struct_type::* div_qc_channel         = &Struct_type::ch14;
+        T Struct_type::* div_qc_channel                     = &Struct_type::ch8;
         for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qc_channel);
         // compute div(Qc) at time n
-        Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qc_channels,div_qc_channel);
-        // update Qc  
-        Grid_Hierarchy_Advection<Struct_type,T,d>::Advect_Face_Vector(*hierarchy,face_qc_channels,node_qc_channels,face_velocity_channels,node_velocity_channels,temp_channel,dt);
+        Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qc_channels,div_qc_channel); 
+        
+        // Advect face vector by axis
+        Channel_Vector advected_face_qc;
+        advected_face_qc(0)              = &Struct_type::ch8;
+        advected_face_qc(1)              = &Struct_type::ch9;
+        if(d==3) advected_face_qc(2)     = &Struct_type::ch10;
+        for(int level=0;level<levels;++level) for(int v=0;v<d;++v) 
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),advected_face_qc(v));
+        for(int axis=0;axis<d;++axis){
+            Channel_Vector interpolated_face_velocity_channels;
+            interpolated_face_velocity_channels(0)              = &Struct_type::ch11;
+            interpolated_face_velocity_channels(1)              = &Struct_type::ch12;
+            if(d==3) interpolated_face_velocity_channels(2)     = &Struct_type::ch13;  
+            T Struct_type::* temp_channel                       = &Struct_type::ch14;  
+
+            for(int level=0;level<levels;++level) for(int v=0;v<d;++v) 
+                SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),interpolated_face_velocity_channels(v));
+            // interpolate velocity at faces for each axis
+            Uniform_Grid_Averaging_Helper<Struct_type,T,d>::Uniform_Grid_Average_Face_Velocities_To_Faces(*hierarchy,hierarchy->Allocator(0),hierarchy->Blocks(0),face_velocity_channels,interpolated_face_velocity_channels,axis);
+            // advect face vector for each axis
+            Uniform_Grid_Advection_Helper<Struct_type,T,d>::Uniform_Grid_Advect_Face_Vector(*hierarchy,interpolated_face_velocity_channels,face_qc_channels,temp_channel,dt);
+        }       
+
+
+        // copy result
+        for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis)
+            SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),advected_face_qc(axis),
+                                                 face_qc_channels(axis),(unsigned)Cell_Type_Interior);
+
+        
+
+        // update Qc  TODO
+        // Uniform_Grid_Advection_Helper<Struct_type,T,d>::Uniform_Grid_Advect_Face_Vector(*hierarchy,face_qc_channels,node_qc_channels,face_velocity_channels,node_velocity_channels,temp_channel,dt);
         for(int level=0;level<levels;++level)
             Face_Qc_Updater<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_qc_channels,density_channel,coeff5,coeff6,level);
 
@@ -227,24 +242,19 @@ Non_Ficks_Diffusion(const T dt)
         for(int level=0;level<levels;++level) 
             Non_Ficks_Smoke_Density_Explicit_Update_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,lap_density_channel,div_qc_channel,coeff3,coeff4);}
     else{
-        Channel_Vector node_qc_channels;
-        node_qc_channels(0)                     = &Struct_type::ch8;
-        node_qc_channels(1)                     = &Struct_type::ch9;
-        if(d==3) node_qc_channels(2)            = &Struct_type::ch10;
-        Channel_Vector node_velocity_channels;
-        node_velocity_channels(0)               = &Struct_type::ch11;
-        node_velocity_channels(1)               = &Struct_type::ch12;
-        if(d==3) node_velocity_channels(2)      = &Struct_type::ch13;
-        T Struct_type::* temp_channel           = &Struct_type::ch14;
-        Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Face_Velocities_To_Nodes(*hierarchy,face_qc_channels,node_qc_channels,temp_channel);
-        Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Face_Velocities_To_Nodes(*hierarchy,face_velocity_channels,node_velocity_channels,temp_channel);
+        Channel_Vector interpolated_face_velocity_channels;
+        interpolated_face_velocity_channels(0)               = &Struct_type::ch11;
+        interpolated_face_velocity_channels(1)               = &Struct_type::ch12;
+        if(d==3) interpolated_face_velocity_channels(2)      = &Struct_type::ch13;
+        // TODO
+        // Uniform_Grid_Averaging_Helper<Struct_type,T,d>::Average_Face_Velocities_To_Faces(*hierarchy,,node_qc_channels,temp_channel);
 
         // compute div(Qc^n) 
         T Struct_type::* div_qc_channel         = &Struct_type::ch14;
         for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qc_channel);
         Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qc_channels,div_qc_channel);
-        // update Qc
-        Grid_Hierarchy_Advection<Struct_type,T,d>::Advect_Face_Vector(*hierarchy,face_qc_channels,node_qc_channels,face_velocity_channels,node_velocity_channels,temp_channel,dt);
+        // update Qc TODO
+        // Uniform_Grid_Advection_Helper<Struct_type,T,d>::Uniform_Grid_Advect_Face_Vector(*hierarchy,face_qc_channels,node_qc_channels,face_velocity_channels,node_velocity_channels,temp_channel,dt);
         for(int level=0;level<levels;++level)
             Face_Qc_Updater<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_qc_channels,density_channel,coeff5,coeff6,level);
         
@@ -311,13 +321,13 @@ Reset_Solver_Channels()
 template<class T,int d> void Smoke_Example<T,d>::
 Advect_Face_Velocities(const T dt)
 {
-    Channel_Vector node_velocity_channels;
-    node_velocity_channels(0)               = &Struct_type::ch8;
-    node_velocity_channels(1)               = &Struct_type::ch9;
-    if(d==3) node_velocity_channels(2)      = &Struct_type::ch10;
-    T Struct_type::* temp_channel           = &Struct_type::ch11;
-    Grid_Hierarchy_Averaging<Struct_type,T,d>::Average_Face_Velocities_To_Nodes(*hierarchy,face_velocity_channels,node_velocity_channels,temp_channel);
-    Grid_Hierarchy_Advection<Struct_type,T,d>::Advect_Face_Velocities(*hierarchy,face_velocity_channels,node_velocity_channels,temp_channel,dt);
+    Channel_Vector interpolated_face_velocity_channels;
+    interpolated_face_velocity_channels(0)              = &Struct_type::ch8;
+    interpolated_face_velocity_channels(1)              = &Struct_type::ch9;
+    if(d==3) interpolated_face_velocity_channels(2)     = &Struct_type::ch10;
+    // TODO
+    // Uniform_Grid_Averaging_Helper<Struct_type,T,d>::Average_Face_Velocities_To_Cells(*hierarchy,face_velocity_channels,node_velocity_channels,temp_channel);
+    // Grid_Hierarchy_Advection<Struct_type,T,d>::Advect_Face_Velocities(*hierarchy,face_velocity_channels,node_velocity_channels,temp_channel,dt);
 }
 //######################################################################
 // Set_Neumann_Faces_Inside_Sources

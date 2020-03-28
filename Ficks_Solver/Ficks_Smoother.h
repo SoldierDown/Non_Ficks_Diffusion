@@ -30,9 +30,6 @@ class Ficks_Smoother
         // compute laplace
         for(int level=0;level<levels;++level)
             Ficks_Ax_Helper<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),u_channel,Lu_channel,Ddt,level);
-
-        // for(int level=0;level<levels;++level)
-        //     Clear_Non_Active<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),Lu_channel);
     }
 
     static void Compute_Residual(Hierarchy& hierarchy,T Struct_type::* u_channel,T Struct_type::* b_channel,
