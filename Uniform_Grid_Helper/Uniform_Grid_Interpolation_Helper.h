@@ -15,6 +15,7 @@ namespace Nova{
 template<class Struct_type,class T,int d>
 class Uniform_Grid_Interpolation_Helper
 {
+	using T_INDEX 					= Vector<int,d>;
     using TV                        = Vector<T,d>;
     using TV2                       = Vector<T,d-1>;
     using Channel_Vector            = Vector<T Struct_type::*,d>;
@@ -36,35 +37,27 @@ class Uniform_Grid_Interpolation_Helper
 
         for(int cell=0;cell<number_of_nodes_per_cell;++cell){
             uint64_t cell_offset=Flag_array_mask::Packed_Add(offset,nodes_of_cell_offsets[cell]);
-            T cell_value=cell_data(cell_offset);
-            density_cell_array[cell]=cell_value;}
+            density_cell_array[cell]=cell_data(cell_offset);}
 
         // weights are reversed to account for "reverse" ordering of nodes_of_cell_offsets array
         T multilinear_from_cells=Uniform_Grid_Linear_Interpolation<T,T>::Linear(density_cell_array,weights.Reversed());
         return multilinear_from_cells;
     }
         
-    // static T Face_Interpolation_Helper(Hierarchy& hierarchy,uint64_t* nodes_of_face_offsets,const int axis,const int level,const uint64_t offset,
-    //                                    const TV2& weights,Channel_Vector& face_velocity_channels,Channel_Vector& node_velocity_channels)
-    // {
-    //     unsigned face_valid_mask=Topology_Helper::Face_Valid_Mask(axis);
-    //     int face_level=level;uint64_t face_offset=offset;TV2 face_weights=weights;
-    //     const bool face_found=Hierarchy_Lookup::Face_Lookup(hierarchy,face_offset,face_level,face_weights,face_valid_mask,axis);
-
-    //     T velocity_node_array[number_of_nodes_per_face],interpolated_face_value=(T)0.;
-    //     for(int node=0;node<number_of_nodes_per_face;++node){uint64_t node_offset=Flag_array_mask::Packed_Add(face_offset,nodes_of_face_offsets[node]);
-    //         const T node_value=hierarchy.Allocator(face_level).template Get_Const_Array<Struct_type,T>(node_velocity_channels(axis))(node_offset);
-    //         interpolated_face_value+=node_value;
-    //         velocity_node_array[node]=node_value;}
-    //     interpolated_face_value/=(T)number_of_nodes_per_face;
-
-    //     // weights are reversed to account for "reverse" ordering of nodes_of_face_offsets array
-    //     const T multilinear_from_nodes=Nova::Linear_Interpolation<T,T>::Linear(velocity_node_array,face_weights.Reversed());
-    //     const T phi=(T)2.*std::min(face_weights.Min(),(TV2(1)-face_weights).Min());
-    //     T actual_face_value=hierarchy.Allocator(face_level).template Get_Const_Array<Struct_type,T>(face_velocity_channels(axis))(face_offset);
-
-    //     return multilinear_from_nodes + phi*(actual_face_value-interpolated_face_value);
-    // }
+    static T Face_Interpolation_Helper(Hierarchy& hierarchy,const int axis,const int level,const uint64_t offset,const TV& weights,Channel_Vector& face_vector_channels)
+    {
+		T face_array[number_of_nodes_per_cell];
+        auto face_data=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,T>(face_vector_channels(axis));
+		Vector<int,d> base_index(Flag_array_mask::LinearToCoord(offset));
+		int counter=0;
+		for(Range_Iterator<d> iterator(T_INDEX(),T_INDEX(1));iterator.Valid();iterator.Next()){
+			const T_INDEX& index=base_index+iterator.Index();
+			uint64_t face_offset=Flag_array_mask::Linear_Offset(index._data);
+			face_array[counter++]=hierarchy.Channel(level,face_vector_channels(axis))(index._data);}
+        // weights are reversed to account for "reverse" ordering of nodes_of_cell_offsets array
+        T multilinear_from_faces=Uniform_Grid_Linear_Interpolation<T,T>::Linear(face_array,weights.Reversed());
+        return multilinear_from_faces;
+    }
 };
 }
 #endif

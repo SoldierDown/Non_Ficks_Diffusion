@@ -54,8 +54,6 @@ class Uniform_Grid_Linear_Interpolation
     // X in [0,1]x[0,1]
     static T2 Bilinear(const T2& u1,const T2& u2,const T2& u3,const T2& u4,const Vector<T,2>& X)
     {
-        // T eps=(T)1.e-10; bool flag0=abs(X(0))<eps,flag1=abs(X(1))<eps;
-        // if(flag0&flag1) return u1; if(flag0) return Linear_Normalized(u1,u3-u1,X(1)); if(flag1) return Linear_Normalized(u1,u2-u1,X(0));
         T2 u_bottom=Linear_Normalized(u1,u2-u1,X(0)),u_top=Linear_Normalized(u3,u4-u3,X(0));
         return Linear_Normalized(u_bottom,u_top-u_bottom,X(1));
     }
@@ -82,12 +80,6 @@ class Uniform_Grid_Linear_Interpolation
     // X in [0,1]x[0,1]x[0,1]
     static T2 Trilinear(const T2& u1,const T2& u2,const T2& u3,const T2& u4,const T2& u5,const T2& u6,const T2& u7,const T2& u8,const Vector<T,3>& X)
     {
-        // T eps=(T)1.e-10; bool flag0=abs(X(0))<eps,flag1=abs(X(1))<eps,flag2=abs(X(2))<eps;
-        // if(flag0) return Bilinear(u1,u5,u3,u7,Vector<T,2>({X(1),X(2)}));
-        // if(flag1)
-
-        // if(flag0&flag1) return u1; if(flag0) return Linear_Normalized(u1,u3-u1,X(1)); if(flag1) return Linear_Normalized(u1,u2-u1,X(0));
-
         T2 u_bottom=Linear_Normalized(u1,u2-u1,X(0)),u_top=Linear_Normalized(u3,u4-u3,X(0)),u_front=Linear_Normalized(u_bottom,u_top-u_bottom,X(1));
            u_bottom=Linear_Normalized(u5,u6-u5,X(0));u_top=Linear_Normalized(u7,u8-u7,X(0));T2 u_back=Linear_Normalized(u_bottom,u_top-u_bottom,X(1));
         return Linear_Normalized(u_front,u_back-u_front,X(2));

@@ -52,7 +52,7 @@ class Uniform_Grid_Density_Advection_Helper
                     // backtrace
                     TV dX=-velocity*dt;
                     uint64_t new_offset=offset;int new_level=level;
-                    TV weights=Uniform_Grid_Backtrace_Helper<Struct_type,T,d>::Uniform_Grid_Backtrace(hierarchy,new_level,index,new_offset,dX);
+                    TV weights=Uniform_Grid_Backtrace_Helper<Struct_type,T,d>::Uniform_Grid_Cell_Backtrace(hierarchy,new_level,index,new_offset,dX);
                     // Log::cout<<"velocity: "<<velocity<<", weights: "<<weights<<std::endl;
                     T value=Uniform_Grid_Interpolation_Helper<Struct_type,T,d>::Uniform_Grid_Cell_Interpolation_Helper(hierarchy,nodes_of_cell_offsets,new_level,new_offset,weights,cell_channel);
                     // Log::cout<<"velocity: "<<velocity<<", dt: "<<dt<<", dX:"<<dX<<", weights: "<<weights<<", value: "<<value<<std::endl;

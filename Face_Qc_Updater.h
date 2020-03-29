@@ -36,7 +36,7 @@ class Face_Qc_Updater
         Vector<uint64_t,d> negative_face_offsets;
         for(int axis=0;axis<d;++axis) negative_face_offsets(axis)=Topology_Helper::Negative_Axis_Vector_Offset(axis);
         T one_over_dx=hierarchy.Lattice(0).one_over_dX(0);
-        auto apply_pressure=[&](uint64_t offset)
+        auto face_qc_updater=[&](uint64_t offset)
         {
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)) for(int axis=0;axis<d;++axis){
                 auto face_qc=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(face_qc_channels(axis));
@@ -44,7 +44,7 @@ class Face_Qc_Updater
                     face_qc(offset)=coeff1*face_qc(offset)+coeff2*(density(offset)-density(neighbor_offset))*one_over_dx;}}
         };
 
-        SPGrid_Computations::Run_Parallel_Blocks(blocks,apply_pressure);
+        SPGrid_Computations::Run_Parallel_Blocks(blocks,face_qc_updater);
     }
 };
 }

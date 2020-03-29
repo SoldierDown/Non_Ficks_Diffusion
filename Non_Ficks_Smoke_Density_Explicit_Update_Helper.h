@@ -39,7 +39,7 @@ class Non_Ficks_Smoke_Density_Explicit_Update_Helper
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
                 if(flags(offset)&Cell_Type_Interior) density(offset)+=coeff1*lap_density(offset)+coeff2*div_qc(offset);
-                
+
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,non_ficks_smoke_density_update_helper);
     }
