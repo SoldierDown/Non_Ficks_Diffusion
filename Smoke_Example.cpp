@@ -227,11 +227,11 @@ Non_Ficks_Diffusion(const T dt)
     }
 
     else{
-
         // compute div(Qc^n) 
         T Struct_type::* div_qc_channel                     = &Struct_type::ch8;
         for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qc_channel);
         Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qc_channels,div_qc_channel);
+        for(int level=0;level<levels;++level) Flip_Helper<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),div_qc_channel,level);
         Channel_Vector interpolated_face_velocity_channels;
         interpolated_face_velocity_channels(0)              = &Struct_type::ch9;
         interpolated_face_velocity_channels(1)              = &Struct_type::ch10;
@@ -240,7 +240,6 @@ Non_Ficks_Diffusion(const T dt)
         // Clear
         for(int level=0;level<levels;++level) {for(int v=0;v<d;++v) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),interpolated_face_velocity_channels(v));
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),temp_channel);} 
-
         // advect Qc
         Uniform_Grid_Advection_Helper<Struct_type,T,d>::Uniform_Grid_Advect_Face_Vector(*hierarchy,face_qc_channels,face_velocity_channels,interpolated_face_velocity_channels,temp_channel,dt);
         // update Qc 
@@ -277,7 +276,6 @@ Non_Ficks_Diffusion(const T dt)
         const T tolerance=std::max((T)1e-6*b_norm,(T)1e-6);
         cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
         for(int level=0;level<levels;++level) Density_Clamp_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel);
-
     }
 }
 //######################################################################

@@ -31,7 +31,7 @@ class Standard_Tests: public Smoke_Example<T,d>
     using Base::output_directory; using Base::test_number;using Base::counts;using Base::levels;using Base::domain_walls;using Base::hierarchy;using Base::rasterizer;
     using Base::cfl;    using Base::sources;    using Base::density_channel;
     using Base::FICKS;  using Base::diff_coeff; using Base::Fc; using Base::tau; using Base::bv; using Base::source_rate;
-
+    using Base::explicit_diffusion;
     /****************************
      * example explanation:
      *
@@ -46,7 +46,7 @@ class Standard_Tests: public Smoke_Example<T,d>
     void Parse_Options() override
     {
         Base::Parse_Options();
-        output_directory="Source_Smoke_"+std::to_string(d)+"d_"+(FICKS?"F":"NF")+"_diff_"+std::to_string(diff_coeff)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau)+"_bv_"+std::to_string(bv)+"_sr_"+std::to_string(source_rate)+"_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
+        output_directory=(explicit_diffusion?"Source_Smoke_":"Implicit_Source_Smoke_2d_")+std::to_string(d)+"d_"+(FICKS?"F":"NF")+"_diff_"+std::to_string(diff_coeff)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau)+"_bv_"+std::to_string(bv)+"_sr_"+std::to_string(source_rate)+"_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
         for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=false;
         // domain_walls(1)(0)=false; domain_walls(1)(1)=false;
         TV min_corner,max_corner=TV(.5);
