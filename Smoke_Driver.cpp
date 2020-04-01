@@ -34,8 +34,10 @@ Advance_One_Time_Step_Explicit_Part(const T dt,const T time)
 {
     // scalar advance
     example.Add_Source(dt);
+    example.Backup_Density();
     example.Advect_Density(dt);
     example.Diffuse_Density(dt);
+    example.Backup_Density();
     // convect
     // example.Advect_Face_Velocities(dt);
 }

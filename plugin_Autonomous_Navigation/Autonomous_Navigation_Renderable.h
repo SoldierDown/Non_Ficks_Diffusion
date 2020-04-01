@@ -270,7 +270,6 @@ class Autonomous_Navigation_Renderable: public Simulation_Renderable<T,d>
         if(draw_velocity){
             for(int level=0;level<levels;++level)
                 SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),divergence_channel);
-
             Hierarchy_Projection::Compute_Divergence(*hierarchy,face_velocity_channels,divergence_channel);}
 
         Initialize_Buffers();

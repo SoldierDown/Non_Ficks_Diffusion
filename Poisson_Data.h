@@ -22,7 +22,7 @@ struct Poisson_Data
     T ch4;      // Y-Qc
     T ch5;      // Z-Qc
     T ch6;      // density
-    T ch7;      // pressure
+    T ch7;      // density_backup
     T ch8;      // temp
     T ch9;      // temp
     T ch10;     // temp

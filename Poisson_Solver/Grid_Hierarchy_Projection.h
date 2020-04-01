@@ -73,7 +73,7 @@ class Grid_Hierarchy_Projection
         for(int level=0;level<hierarchy.Levels();++level)
             Divergence_Helper<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),face_velocity_channels,
                                                divergence_channel,other_face_offsets,level);
-
+        
         // Accumulate_Ghost_Values(hierarchy,divergence_channel);
     }
 

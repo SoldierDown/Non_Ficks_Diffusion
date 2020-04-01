@@ -45,6 +45,7 @@ class Smoke_Example: public Example<T,d>
     Hierarchy_Rasterizer *rasterizer;
 
     T Struct_type::* density_channel;
+    T Struct_type::* density_backup_channel;
     T Struct_type::* pressure_channel;
     Vector<T Struct_type::*,d> face_velocity_channels;
     Vector<T Struct_type::*,d> face_qc_channels;
@@ -67,15 +68,14 @@ class Smoke_Example: public Example<T,d>
     void Limit_Dt(T& dt,const T time) override;
     void Advect_Density(const T dt);
     void Diffuse_Density(const T dt);
+    void Backup_Density();
     void Ficks_Diffusion(const T dt);
     void Non_Ficks_Diffusion(const T dt);
-    void Reset_Solver_Channels();
     void Modify_Density_With_Sources();
     void Add_Source(const T dt);
     void Advect_Face_Velocities(const T dt);
     void Set_Neumann_Faces_Inside_Sources();
     void Initialize_Velocity_Field();
-    void Set_Boundary_Conditions();
     void Project(const T dt);
     void Register_Options() override;
     void Parse_Options() override;

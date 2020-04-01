@@ -48,15 +48,13 @@ class Standard_Tests: public Smoke_Example<T,d>
         Base::Parse_Options();
         output_directory=(explicit_diffusion?"Source_Smoke_":"Implicit_Source_Smoke_2d_")+std::to_string(d)+"d_"+(FICKS?"F":"NF")+"_diff_"+std::to_string(diff_coeff)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau)+"_bv_"+std::to_string(bv)+"_sr_"+std::to_string(source_rate)+"_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
         for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=false;
-        // domain_walls(1)(0)=false; domain_walls(1)(1)=false;
-        TV min_corner,max_corner=TV(.5);
-        max_corner(1)=(T)1.;
+        TV min_corner,max_corner=TV(4);
+        max_corner(1)=(T)8.;
         hierarchy=new Hierarchy(counts,Range<T,d>(min_corner,max_corner),levels);
     }
 //######################################################################
     void Initialize_Rasterizer() override
     {
-        // rasterizer=new Adaptive_Sphere_Rasterizer<Struct_type,T,d>(*hierarchy,TV(.5),(T).1);
         rasterizer=new Randomized_Rasterizer<Struct_type,T,d>(*hierarchy);
     }
 //######################################################################
@@ -83,7 +81,8 @@ class Standard_Tests: public Smoke_Example<T,d>
 //######################################################################
     void Initialize_Sources() override
     {
-        TV min_corner=TV({.2375,0.225}),max_corner=TV({.2625,.25});
+        const T cell_width=(T)4/counts(0);
+        TV min_corner=TV({2.-cell_width,2.-cell_width}),max_corner=TV({2.+cell_width,2.+cell_width});
         Implicit_Object<T,d>* obj=new Box_Implicit_Object<T,d>(min_corner,max_corner);
         sources.Append(obj);
     }
