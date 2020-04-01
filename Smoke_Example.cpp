@@ -479,6 +479,7 @@ Write_Output_Files(const int frame) const
     hierarchy->template Write_Channel<T>(output_directory+"/"+std::to_string(frame)+"/spgrid_u",face_velocity_channels(0));
     hierarchy->template Write_Channel<T>(output_directory+"/"+std::to_string(frame)+"/spgrid_v",face_velocity_channels(1));
     if(d==3) hierarchy->template Write_Channel<T>(output_directory+"/"+std::to_string(frame)+"/spgrid_w",face_velocity_channels(2));
+    Write_To_File_Helper<Struct_type,T,d>(*hierarchy,hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,output_directory+"/density_data/"+std::to_string(frame)+".txt");
 }
 //######################################################################
 // Read_Output_Files
@@ -486,14 +487,6 @@ Write_Output_Files(const int frame) const
 template<class T,int d> void Smoke_Example<T,d>::
 Read_Output_Files(const int frame)
 {
-}
-//######################################################################
-// Write_To_File
-//######################################################################
-template<class T,int d> void Smoke_Example<T,d>::
-Wrtie_To_File(const int frame)
-{
-    Write_To_File_Helper<Struct_type,T,d>(*hierarchy,hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,output_directory+"/"+std::to_string(frame)+"/density_data.txt");
 }
 //######################################################################
 template class Nova::Smoke_Example<float,2>;

@@ -42,7 +42,7 @@ class Write_To_File_Helper
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
                 if(flags(offset)&(Cell_Type_Interior|Cell_Type_Dirichlet)){
                     Vector<int,2> index(Flag_array_mask::LinearToCoord(offset)); Vector<T,2> location=grid.Center(index);
-                    fprintf(fp, "(%.6f,%.6f,%.6f)\n", location(0),location(1),density(offset));}
+                    fprintf(fp, "%.6f %.6f %.6f\n", location(0),location(1),density(offset));}
         };
         for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
             uint64_t offset=iterator.Offset();
@@ -61,7 +61,7 @@ class Write_To_File_Helper
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
                 if(flags(offset)&(Cell_Type_Interior|Cell_Type_Dirichlet)){
                     Vector<int,3> index(Flag_array_mask::LinearToCoord(offset)); Vector<T,3> location=grid.Center(index);
-                    fprintf(fp, "(%.6f,%.6f,%.6f,%.6f)\n", location(0),location(1),location(2),density(offset));}
+                    fprintf(fp, "%.6f %.6f %.6f %.6f\n", location(0),location(1),location(2),density(offset));}
         };
         for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
             uint64_t offset=iterator.Offset();
