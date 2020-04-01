@@ -81,6 +81,7 @@ class Smoke_Example: public Example<T,d>
     void Parse_Options() override;
     void Read_Output_Files(const int frame);
     void Write_Output_Files(const int frame) const override;
+    void Wrtie_To_File(const int frame);
 //######################################################################
 };
 }

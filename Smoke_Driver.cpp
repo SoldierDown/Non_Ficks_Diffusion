@@ -83,8 +83,8 @@ Simulate_To_Frame(const int target_frame)
         Advance_To_Target_Time(example.Time_At_Frame(example.current_frame));
 
         example.frame_title="Frame "+std::to_string(example.current_frame);
+        example.Wrtie_To_File(example.current_frame);
         Write_Output_Files(++example.output_number);
-
         *(example.output)<<"TIME = "<<time<<std::endl;}
 }
 //######################################################################

@@ -32,6 +32,7 @@
 #include "Uniform_Grid_Helper/Uniform_Grid_Averaging_Helper.h"
 #include "Density_Clamp_Helper.h"
 #include "Flip_Helper.h"
+#include "Write_To_File_Helper.h"
 #include <omp.h>
 using namespace Nova;
 namespace Nova{
@@ -485,6 +486,14 @@ Write_Output_Files(const int frame) const
 template<class T,int d> void Smoke_Example<T,d>::
 Read_Output_Files(const int frame)
 {
+}
+//######################################################################
+// Write_To_File
+//######################################################################
+template<class T,int d> void Smoke_Example<T,d>::
+Wrtie_To_File(const int frame)
+{
+    Write_To_File_Helper<Struct_type,T,d>(*hierarchy,hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,output_directory+"/"+std::to_string(frame)+"/density_data.txt");
 }
 //######################################################################
 template class Nova::Smoke_Example<float,2>;
