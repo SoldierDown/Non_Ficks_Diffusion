@@ -318,9 +318,8 @@ Advect_Face_Velocities(const T dt)
     interpolated_face_velocity_channels(0)              = &Struct_type::ch8;
     interpolated_face_velocity_channels(1)              = &Struct_type::ch9;
     if(d==3) interpolated_face_velocity_channels(2)     = &Struct_type::ch10;
-    // TODO
-    // Uniform_Grid_Averaging_Helper<Struct_type,T,d>::Average_Face_Velocities_To_Cells(*hierarchy,face_velocity_channels,node_velocity_channels,temp_channel);
-    // Grid_Hierarchy_Advection<Struct_type,T,d>::Advect_Face_Velocities(*hierarchy,face_velocity_channels,node_velocity_channels,temp_channel,dt);
+    T Struct_type::* temp_channel                       = &Struct_type::ch11;
+    Uniform_Grid_Advection_Helper<Struct_type,T,d>::Uniform_Grid_Advect_Face_Velocities(*hierarchy,face_velocity_channels,interpolated_face_velocity_channels,temp_channel,dt);
 }
 //######################################################################
 // Set_Neumann_Faces_Inside_Sources

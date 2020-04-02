@@ -44,7 +44,7 @@ class Uniform_Grid_Interpolation_Helper
         return multilinear_from_cells;
     }
         
-    static T Face_Interpolation_Helper(Hierarchy& hierarchy,const int axis,const int level,const uint64_t offset,const TV& weights,Channel_Vector& face_vector_channels)
+    static T Uniform_Grid_Face_Interpolation_Helper(Hierarchy& hierarchy,const int axis,const int level,const uint64_t offset,const TV& weights,Channel_Vector& face_vector_channels)
     {
 		T face_array[number_of_nodes_per_cell];
         auto face_data=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,T>(face_vector_channels(axis));

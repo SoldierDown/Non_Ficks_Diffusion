@@ -46,13 +46,12 @@ class Uniform_Grid_Face_Vector_Advection_Helper
             T_INDEX base_index(Flag_array_mask::LinearToCoord(offset));
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){const T_INDEX index=base_index+range_iterator.Index();
                 if(flags(offset)&mask){TV velocity;
-                    // for(int axis=0;axis<axis) velocity(axis)=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,T>(interpolated_face_velocity_channels(axis));
-                    velocity=TV::Axis_Vector(1);
+                    for(int axis=0;axis<d;++axis) velocity(axis)=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,T>(interpolated_face_velocity_channels(axis))(offset);
                     // backtrace
                     TV dX=-velocity*dt;
                     uint64_t new_offset=offset;int new_level=level;
                     TV weights=Uniform_Grid_Backtrace_Helper<Struct_type,T,d>::Uniform_Grid_Face_Backtrace(hierarchy,new_level,index,new_offset,dX,axis);
-                    T value=Uniform_Grid_Interpolation_Helper<Struct_type,T,d>::Face_Interpolation_Helper(hierarchy,axis,new_level,new_offset,weights,face_vector_channels);
+                    T value=Uniform_Grid_Interpolation_Helper<Struct_type,T,d>::Uniform_Grid_Face_Interpolation_Helper(hierarchy,axis,new_level,new_offset,weights,face_vector_channels);
                     result(offset)=value;}
                 range_iterator.Next();}
         };
