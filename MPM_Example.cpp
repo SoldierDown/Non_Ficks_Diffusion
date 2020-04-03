@@ -938,13 +938,14 @@ Update_Particle_Velocities_And_Positions(const T dt)
     auto vs0=mpm_hierarchy->Channel(0,velocity_star_channels(0));   auto vs1=mpm_hierarchy->Channel(0,velocity_star_channels(1)); auto vs2=mpm_hierarchy->Channel(0,velocity_star_channels(2)); 
     auto v0=mpm_hierarchy->Channel(0,velocity_channels(0));         auto v1=mpm_hierarchy->Channel(0,velocity_channels(1)); auto v2=mpm_hierarchy->Channel(0,velocity_channels(2));
     Apply_Force(dt);
-    T average_velocity=(T)10.;
-    T velocity_sum=(T)0.;
+    T average_velocity=(T)0.; T average_z_location=(T)0.; 
+    T velocity_sum=(T)0.; T z_location_sum=(T)0.; 
     int particle_counter=0;
     const Grid<T,3>& mpm_grid=mpm_hierarchy->Lattice(0);
+
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
-        const int id=simulated_particles(i); 
+        const int id=simulated_particles(i);
         T_Particle &p=particles(id); TV V_pic=TV(),V_flip=p.V; T_Mat grad_Vp=T_Mat();
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             auto data=iterator.Current_Cell()._data; T weight=iterator.Weight();
@@ -954,18 +955,23 @@ Update_Particle_Velocities_And_Positions(const T dt)
                 V_flip+=weight*delta_V_grid;
                 grad_Vp+=T_Mat::Outer_Product(V_grid,iterator.Weight_Gradient());}}
             p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
-            // Log::cout<<"dFe: "<<dt*grad_Vp*p.constitutive_model.Fe<<std::endl;
-            p.V=V_flip*flip+V_pic*((T)1.-flip);
-            p.X+=V_pic*dt;
-            T vp_norm=V_pic.Norm();
-            if(vp_norm>10.*average_velocity) {remove_indices(omp_get_thread_num()).Append(i);p.valid=false;}
-            else{particle_counter+=1; velocity_sum+=vp_norm; average_velocity=velocity_sum/particle_counter;
+            p.V=V_flip*flip+V_pic*((T)1.-flip); p.X+=V_pic*dt;
+            velocity_sum+=V_pic.Norm(); z_location_sum+=abs(p.X(2)-(T)5.5); particle_counter++;
             const T J=p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
             p.mass_fluid=p.volume*J*p.volume_fraction_0*p.saturation;
             p.mass=p.mass_solid+p.mass_fluid;
         if(!mpm_grid.domain.Inside(p.X)){
             remove_indices(omp_get_thread_num()).Append(i);
-            p.valid=false;}}}
+            p.valid=false;}}
+    
+    T two_cell_widths=(T)2.*mpm_grid.dX(0);
+    average_velocity=velocity_sum/particle_counter; average_z_location=z_location_sum/particle_counter;
+#pragma omp parallel for
+    for(unsigned i=0;i<simulated_particles.size();++i){
+        const int id=simulated_particles(i); T_Particle &p=particles(id);
+        if((p.V.Norm()>(T)10.*average_velocity)||(abs(p.X(2)-5.5)>(T)2.*average_z_location+two_cell_widths)){p.valid=false;remove_indices(omp_get_thread_num()).Append(i);}}
+
+    // get rid of flying away particles
     Log::cout<<"average velocity: "<<average_velocity<<std::endl;
     for(int i=1;i<remove_indices.size();++i)
             remove_indices(0).Append_Elements(remove_indices(i));
