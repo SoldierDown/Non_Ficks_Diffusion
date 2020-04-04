@@ -60,8 +60,8 @@ Advance_To_Target_Time(const T target_time)
     T cfl=example.cfl;
     T dx_min=example.mpm_hierarchy->Lattice(0).dX(0);
     bool done=false;
-    example.Populate_Simulated_Particles(); // add only valid particles to array
     for(int substep=1;!done;substep++){
+        example.Populate_Simulated_Particles(); // add only valid particles to array
         T max_v=example.Max_Particle_Velocity();
         Log::Scope scope("SUBSTEP","substep "+std::to_string(substep));
         T dt=std::max(min_dt,std::min(max_dt,cfl*dx_min/std::max(max_v,(T)1e-2)));

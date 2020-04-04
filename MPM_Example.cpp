@@ -961,7 +961,7 @@ Update_Particle_Velocities_And_Positions(const T dt)
             p.mass_fluid=p.volume*J*p.volume_fraction_0*p.saturation;
             p.mass=p.mass_solid+p.mass_fluid;
         if(!mpm_grid.domain.Inside(p.X)){
-            remove_indices(omp_get_thread_num()).Append(i);
+            // remove_indices(omp_get_thread_num()).Append(i);
             p.valid=false;}}
     
     T two_cell_widths=(T)2.*mpm_grid.dX(0);
@@ -969,17 +969,19 @@ Update_Particle_Velocities_And_Positions(const T dt)
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i); T_Particle &p=particles(id);
-        if((p.V.Norm()>(T)10.*average_velocity)||(abs(p.X(2)-5.5)>(T)2.*average_z_location+two_cell_widths)){p.valid=false;remove_indices(omp_get_thread_num()).Append(i);}}
+        if((p.V.Norm()>(T)10.*average_velocity)||(abs(p.X(2)-5.5)>(T)2.*average_z_location+two_cell_widths)){p.valid=false;
+        // remove_indices(omp_get_thread_num()).Append(i);
+        }}
 
     // get rid of flying away particles
-    Log::cout<<"average velocity: "<<average_velocity<<std::endl;
-    for(int i=1;i<remove_indices.size();++i)
-            remove_indices(0).Append_Elements(remove_indices(i));
-        Array<int>::Sort(remove_indices(0));
-        for(int i=remove_indices(0).size()-1;i>=0;i--){
-            int k=remove_indices(0)(i);
-            invalid_particles.Append(simulated_particles(k));
-            simulated_particles.Remove_Index(k);}
+    Log::cout<<"average velocity: "<<average_velocity<<", average z location: "<<average_z_location<<std::endl;
+    // for(int i=1;i<remove_indices.size();++i)
+    //         remove_indices(0).Append_Elements(remove_indices(i));
+    //     Array<int>::Sort(remove_indices(0));
+    //     for(int i=remove_indices(0).size()-1;i>=0;i--){
+    //         int k=remove_indices(0)(i);
+    //         invalid_particles.Append(simulated_particles(k));
+    //         simulated_particles.Remove_Index(k);}
 
     high_resolution_clock::time_point te=high_resolution_clock::now();
 	duration<double> dur=duration_cast<duration<double>>(te-tb);
