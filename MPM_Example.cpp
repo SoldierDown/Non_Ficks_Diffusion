@@ -937,15 +937,14 @@ Update_Particle_Velocities_And_Positions(const T dt)
     Array<Array<int> > remove_indices(threads);
     auto vs0=mpm_hierarchy->Channel(0,velocity_star_channels(0));   auto vs1=mpm_hierarchy->Channel(0,velocity_star_channels(1)); auto vs2=mpm_hierarchy->Channel(0,velocity_star_channels(2)); 
     auto v0=mpm_hierarchy->Channel(0,velocity_channels(0));         auto v1=mpm_hierarchy->Channel(0,velocity_channels(1)); auto v2=mpm_hierarchy->Channel(0,velocity_channels(2));
-    Apply_Force(dt);
-    T average_velocity=(T)0.;T average_x_location=(T)0.;T average_y_location=(T)0.;T average_z_location=(T)0.; 
-    T velocity_sum=(T)0.;T x_location_sum=(T)0.;T y_location_sum=(T)0.;T z_location_sum=(T)0.;  
-    int particle_counter=0;
-    const Grid<T,3>& mpm_grid=mpm_hierarchy->Lattice(0);
 
+    Apply_Force(dt);
+
+    Array<TV> X_location_sum(threads);
+    const Grid<T,3>& mpm_grid=mpm_hierarchy->Lattice(0);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
-        const int id=simulated_particles(i);
+        const int thread_id=omp_get_thread_num(); const int id=simulated_particles(i);
         T_Particle &p=particles(id); TV V_pic=TV(),V_flip=p.V; T_Mat grad_Vp=T_Mat();
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             auto data=iterator.Current_Cell()._data; T weight=iterator.Weight();
@@ -956,29 +955,44 @@ Update_Particle_Velocities_And_Positions(const T dt)
                 grad_Vp+=T_Mat::Outer_Product(V_grid,iterator.Weight_Gradient());}}
             p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
             p.V=V_flip*flip+V_pic*((T)1.-flip); p.X+=V_pic*dt;
-            velocity_sum+=V_pic.Norm();x_location_sum+=abs(p.X(0)-(T)5.5);y_location_sum+=abs(p.X(1)-(T)5.5);z_location_sum+=abs(p.X(2)-(T)5.5); 
-            particle_counter++;
+            X_location_sum(thread_id)+=p.X;
             const T J=p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
             p.mass_fluid=p.volume*J*p.volume_fraction_0*p.saturation;
             p.mass=p.mass_solid+p.mass_fluid;
         if(!mpm_grid.domain.Inside(p.X)){
             // remove_indices(omp_get_thread_num()).Append(i);
             p.valid=false;}}
-    
-    T two_cell_widths=(T)2.*mpm_grid.dX(0);
-    average_velocity=velocity_sum/particle_counter;average_x_location=x_location_sum/particle_counter;
-    average_y_location=y_location_sum/particle_counter;average_z_location=z_location_sum/particle_counter;
+
+    // calculate center of the hydrogel and average velocity norm;
+    const int particle_number=simulated_particles.size();
+    TV average_X_location=TV(); 
+    for(int i=0;i<threads;++i) average_X_location+=X_location_sum(i);
+    average_X_location/=particle_number;
+    Log::cout<<"average location: "<<average_X_location<<std::endl;
+    // calculate abs axis shift sum
+    Array<TV> abs_X_shift_sum(threads);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
-        const int id=simulated_particles(i); T_Particle &p=particles(id);
-        if((p.V.Norm()>(T)10.*average_velocity)||(abs(p.X(0)-5.5)>(T)2.*average_x_location+two_cell_widths)
-            ||(abs(p.X(1)-5.5)>(T)2.*average_y_location+two_cell_widths) ||(abs(p.X(2)-5.5)>(T)2.*average_z_location+two_cell_widths))
-            {p.valid=false;
-        // remove_indices(omp_get_thread_num()).Append(i);
-        }}
+        const int thread_id=omp_get_thread_num(); const int id=simulated_particles(i);
+        T_Particle &p=particles(id); TV X=p.X;
+        abs_X_shift_sum(thread_id)+=(X-average_X_location).Abs();}
+
+    // calculate average abs axis shift
+    TV average_abs_X_shift=TV(); 
+    for(int i=0;i<threads;++i) average_abs_X_shift+=abs_X_shift_sum(i);
+    average_abs_X_shift/=particle_number;
+    Log::cout<<"average shift: "<<average_abs_X_shift<<std::endl;
+    
+    const T three_cell_widths=(T)3.*mpm_grid.dX(0);
+    TV min_corner=TV(), max_corner=average_abs_X_shift+TV(three_cell_widths);
+    Range<T,3> shift_box(min_corner,max_corner);
+#pragma omp parallel for
+    for(unsigned i=0;i<simulated_particles.size();++i){
+        const int id=simulated_particles(i);
+        T_Particle &p=particles(id);
+        if(shift_box.Inside(p.X)) p.valid=false;}
 
     // get rid of flying away particles
-    Log::cout<<"average velocity: "<<average_velocity<<", average z location: "<<average_z_location<<std::endl;
     // for(int i=1;i<remove_indices.size();++i)
     //         remove_indices(0).Append_Elements(remove_indices(i));
     //     Array<int>::Sort(remove_indices(0));
