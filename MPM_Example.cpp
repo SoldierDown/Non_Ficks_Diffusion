@@ -990,7 +990,7 @@ Update_Particle_Velocities_And_Positions(const T dt)
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i);
         T_Particle &p=particles(id);
-        if(shift_box.Inside(p.X)) p.valid=false;}
+        if(!shift_box.Inside((p.X-average_X_location).Abs())) p.valid=false;}
 
     // get rid of flying away particles
     // for(int i=1;i<remove_indices.size();++i)
