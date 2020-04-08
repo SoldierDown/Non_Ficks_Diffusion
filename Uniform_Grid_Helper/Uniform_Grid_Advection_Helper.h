@@ -31,7 +31,7 @@ class Uniform_Grid_Advection_Helper
 
   public:
     static void Uniform_Grid_Advect_Density(Hierarchy& hierarchy,Channel_Vector& cell_velocity_channels,T Struct_type::* density_channel,
-                               T Struct_type::* temp_channel,const T dt)
+                                            T Struct_type::* temp_channel,const T dt)
     {
         uint64_t nodes_of_cell_offsets[number_of_nodes_per_cell];
         Topology_Helper::Nodes_Of_Cell_Offsets(nodes_of_cell_offsets);
@@ -52,8 +52,8 @@ class Uniform_Grid_Advection_Helper
                                                  density_channel,(unsigned)Cell_Type_Interior);
     }
 
-    static void Uniform_Grid_Advect_Face_Velocities(Hierarchy& hierarchy,Channel_Vector& face_velocity_channels,Channel_Vector& interpolated_face_velocity_channels,
-                                                    T Struct_type::* temp_channel,const T dt)
+    static void Uniform_Grid_Advect_Face_Velocities(Hierarchy& hierarchy,Channel_Vector& face_velocity_channels,Channel_Vector& face_velocity_backup_channels,
+                                                    Channel_Vector& interpolated_face_velocity_channels,T Struct_type::* temp_channel,const T dt)
     {
         Log::Scope scope("Grid_Hierarchy_Advection::Advect_Face_Velocities");
         Vector<uint64_t,d> other_face_offsets; for(int v=0;v<d;++v) other_face_offsets(v)=Topology_Helper::Axis_Vector_Offset(v);
@@ -61,25 +61,24 @@ class Uniform_Grid_Advection_Helper
         uint64_t nodes_of_cell_offsets[number_of_nodes_per_cell]; Topology_Helper::Nodes_Of_Cell_Offsets(nodes_of_cell_offsets);
         const int levels=hierarchy.Levels();
 
-        // advect velocities along each axis
+        // advect velocities for each axis
         for(int axis=0;axis<d;++axis){unsigned face_active_mask=Topology_Helper::Face_Active_Mask(axis);
             uint64_t nodes_of_face_offsets[number_of_nodes_per_face];
             Topology_Helper::Nodes_Of_Face_Offsets(nodes_of_face_offsets,axis);
 
             // clear
-            for(int level=0;level<levels;++level){ for(int axis=0;axis<d;++axis) 
-				SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),interpolated_face_velocity_channels(axis));
+            for(int level=0;level<levels;++level){for(int v=0;v<d;++v) SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),interpolated_face_velocity_channels(v));
 				SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),temp_channel);}
 
             // interpolate velocity at face
             for(int level=0;level<levels;++level)
                 Uniform_Grid_Averaging_Helper<Struct_type,T,d>::Uniform_Grid_Average_Face_Velocities_To_Faces(hierarchy,hierarchy.Allocator(level),hierarchy.Blocks(level),
-                                            face_velocity_channels,interpolated_face_velocity_channels,negative_face_offsets,nodes_of_cell_offsets,axis);
+                                            face_velocity_backup_channels,interpolated_face_velocity_channels,negative_face_offsets,nodes_of_cell_offsets,axis);
 
             // advect
             for(int level=0;level<levels;++level)
-                Uniform_Grid_Face_Velocity_Advection_Helper<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),face_velocity_channels,interpolated_face_velocity_channels,temp_channel,
-                                                                nodes_of_face_offsets,other_face_offsets,level,dt,face_active_mask,axis);
+                Uniform_Grid_Face_Velocity_Advection_Helper<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),face_velocity_backup_channels,interpolated_face_velocity_channels,temp_channel,
+                                                                other_face_offsets,level,dt,face_active_mask,axis);
 
             // copy result
             for(int level=0;level<levels;++level)
@@ -98,8 +97,8 @@ class Uniform_Grid_Advection_Helper
         for(int axis=0;axis<d;++axis){unsigned face_active_mask=Topology_Helper::Face_Active_Mask(axis);
 
             // clear
-            for(int level=0;level<levels;++level){ for(int axis=0;axis<d;++axis) 
-				SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),interpolated_face_velocity_channels(axis));
+            for(int level=0;level<levels;++level){ for(int v=0;v<d;++v) 
+				SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),interpolated_face_velocity_channels(v));
 				SPGrid::Clear<Struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),temp_channel);}
 
             // interpolate velocity at face

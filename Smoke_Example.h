@@ -33,6 +33,7 @@ class Smoke_Example: public Example<T,d>
 
     bool FICKS;
     bool explicit_diffusion;
+    bool uvf;
     T source_rate;
     T bv;
     T diff_coeff;
@@ -46,7 +47,6 @@ class Smoke_Example: public Example<T,d>
 
     T Struct_type::* density_channel;
     T Struct_type::* density_backup_channel;
-    T Struct_type::* pressure_channel;
     Vector<T Struct_type::*,d> face_velocity_channels;
     Vector<T Struct_type::*,d> face_qc_channels;
     Vector<Vector<bool,2>,d> domain_walls;
@@ -76,7 +76,7 @@ class Smoke_Example: public Example<T,d>
     void Advect_Face_Velocities(const T dt);
     void Set_Neumann_Faces_Inside_Sources();
     void Initialize_Velocity_Field();
-    void Project(const T dt);
+    void Project();
     void Register_Options() override;
     void Parse_Options() override;
     void Read_Output_Files(const int frame);

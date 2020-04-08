@@ -34,6 +34,7 @@ class Uniform_Grid_Averaging_Helper
     enum {nodes_per_face            = Topology_Helper::number_of_nodes_per_face};
 
   public:
+    // Checked
     static void Uniform_Grid_Average_Face_Velocities_To_Cells(Hierarchy& hierarchy,Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
                                                             Channel_Vector& face_channels,Channel_Vector& cell_channels,const Vector<uint64_t,d>& other_face_offsets)
     {
@@ -64,11 +65,14 @@ class Uniform_Grid_Averaging_Helper
                     auto face_velocity=allocator.template Get_Const_Array<Struct_type,T>(face_velocity_channels(v));
                     auto interpolated_face_velocity=allocator.template Get_Array<Struct_type,T>(interpolated_face_velocity_channels(v));
                     if(v==axis) interpolated_face_velocity(offset)=face_velocity(offset);
-                    else{ uint64_t base_offset=Flag_array_mask::Packed_Add(offset,negative_face_offsets(v)); T axis_velocity=(T)0.;
+                    else{uint64_t base_offset=Flag_array_mask::Packed_Add(offset,negative_face_offsets(axis)); T axis_velocity=(T)0.;
+                    Vector<int,d> index(Flag_array_mask::LinearToCoord(offset)); Vector<int,d> base_index(Flag_array_mask::LinearToCoord(base_offset));
                     for(int face=0;face<nodes_per_cell;++face){ 
                         uint64_t face_offset=Flag_array_mask::Packed_Add(base_offset,nodes_of_cell_offsets[face]);
+                        Vector<int,d> neighbor_index(Flag_array_mask::LinearToCoord(face_offset));
                         axis_velocity+=face_velocity(face_offset);}
-                    interpolated_face_velocity(offset)=(T).25*axis_velocity;}}}
+                    interpolated_face_velocity(offset)=(T).25*axis_velocity;
+                    }}}
         };
 
         SPGrid_Computations::Run_Parallel_Blocks(blocks,uniform_grid_average_face_velocities_to_faces_helper);

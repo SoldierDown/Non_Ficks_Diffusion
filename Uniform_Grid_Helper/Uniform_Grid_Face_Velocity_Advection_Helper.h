@@ -28,11 +28,11 @@ class Uniform_Grid_Face_Velocity_Advection_Helper
 
   public:
     Uniform_Grid_Face_Velocity_Advection_Helper(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& face_velocity_channels,Channel_Vector& interpolated_face_velocity_channels,
-                                   T Struct_type::* result_channel,uint64_t* nodes_of_face_offsets,const Vector<uint64_t,d>& other_face_offsets,const int level,const T dt,const unsigned mask,const int axis)
-    {Run(hierarchy,blocks,face_velocity_channels,interpolated_face_velocity_channels,result_channel,nodes_of_face_offsets,other_face_offsets,level,dt,mask,axis);}
+                                   T Struct_type::* result_channel,const Vector<uint64_t,d>& other_face_offsets,const int level,const T dt,const unsigned mask,const int axis)
+    {Run(hierarchy,blocks,face_velocity_channels,interpolated_face_velocity_channels,result_channel,other_face_offsets,level,dt,mask,axis);}
 
     void Run(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& face_velocity_channels,Channel_Vector& interpolated_face_velocity_channels,
-             T Struct_type::* result_channel,uint64_t* nodes_of_face_offsets,const Vector<uint64_t,d>& other_face_offsets,const int level,const T dt,const unsigned mask,const int axis) const
+             T Struct_type::* result_channel,const Vector<uint64_t,d>& other_face_offsets,const int level,const T dt,const unsigned mask,const int axis) const
     {
         auto block_size=hierarchy.Allocator(level).Block_Size();
         auto flags=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
@@ -46,14 +46,13 @@ class Uniform_Grid_Face_Velocity_Advection_Helper
 
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){const T_INDEX index=base_index+range_iterator.Index();
                 if(flags(offset)&mask){TV velocity;
-                    velocity(axis)=hierarchy.Channel(level,interpolated_face_velocity_channels(axis))(offset);
+                    for(int v=0;v<d;++v) velocity(v)=hierarchy.Channel(level,interpolated_face_velocity_channels(v))(offset);
                     // backtrace
                     TV dX=-velocity*dt;
                     uint64_t new_offset=offset;int new_level=level;
                     TV weights=Uniform_Grid_Backtrace_Helper<Struct_type,T,d>::Uniform_Grid_Face_Backtrace(hierarchy,new_level,index,new_offset,dX,axis);
                     T value=Uniform_Grid_Interpolation_Helper<Struct_type,T,d>::Uniform_Grid_Face_Interpolation_Helper(hierarchy,axis,new_level,new_offset,weights,face_velocity_channels);
-                    result(offset)=value;
-                }
+                    result(offset)=value;}
                 range_iterator.Next();}
         };
 

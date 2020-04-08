@@ -15,6 +15,7 @@
 #include "Poisson_Solver/Poisson_CG_System.h"
 #include "Compute_Time_Step.h"
 #include "Density_Modifier.h"
+#include "Source_Velocity_Setup.h"
 #include "Source_Adder.h"
 #include "Initialize_Dirichlet_Cells.h"
 #include "Poisson_Solver/Multigrid_Data.h"
@@ -317,8 +318,17 @@ Advect_Face_Velocities(const T dt)
     interpolated_face_velocity_channels(0)              = &Struct_type::ch8;
     interpolated_face_velocity_channels(1)              = &Struct_type::ch9;
     if(d==3) interpolated_face_velocity_channels(2)     = &Struct_type::ch10;
-    T Struct_type::* temp_channel                       = &Struct_type::ch11;
-    Uniform_Grid_Advection_Helper<Struct_type,T,d>::Uniform_Grid_Advect_Face_Velocities(*hierarchy,face_velocity_channels,interpolated_face_velocity_channels,temp_channel,dt);
+    Channel_Vector face_velocity_backup_channels;
+    face_velocity_backup_channels(0)                    = &Struct_type::ch11;
+    face_velocity_backup_channels(1)                    = &Struct_type::ch12;
+    if(d==3) face_velocity_backup_channels(2)           = &Struct_type::ch13;
+    T Struct_type::* temp_channel                       = &Struct_type::ch14;
+    // backup face velocity
+    for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis) {
+        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_velocity_backup_channels(axis));
+        SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_velocity_channels(axis),
+                                                face_velocity_backup_channels(axis),Topology_Helper::Face_Active_Mask(axis));}  
+    Uniform_Grid_Advection_Helper<Struct_type,T,d>::Uniform_Grid_Advect_Face_Velocities(*hierarchy,face_velocity_channels,face_velocity_backup_channels,interpolated_face_velocity_channels,temp_channel,dt);
 }
 //######################################################################
 // Set_Neumann_Faces_Inside_Sources
@@ -345,40 +355,46 @@ Set_Neumann_Faces_Inside_Sources()
 template<class T,int d> void Smoke_Example<T,d>::
 Initialize_Velocity_Field()
 {
+    Array<TV> source_velocity;
+    source_velocity.Append(TV::Axis_Vector(1)*bv);
     for(int level=0;level<levels;++level)
-        Uniform_Velocity_Field_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,bv,level);
+        if(uvf)Uniform_Velocity_Field_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,bv,level);
+        else Source_Velocity_Setup<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),sources,source_velocity,face_velocity_channels,level);
 }
 //######################################################################
 // Project
 //######################################################################
 template<class T,int d> void Smoke_Example<T,d>::
-Project(const T dt)
+Project()
 {
     using Multigrid_struct_type             = Multigrid_Data<T>;
     using Hierarchy_Projection              = Grid_Hierarchy_Projection<Struct_type,T,d>;
 
     // set up divergence channel
     T Struct_type::* divergence_channel     = &Struct_type::ch8;
+    T Struct_type::* pressure_channel       = &Struct_type::ch9;
 
     // clear
     for(int level=0;level<levels;++level){
         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),pressure_channel);
         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),divergence_channel);}
 
+    Array<TV> source_velocity;
+    source_velocity.Append(TV::Axis_Vector(1)*bv);
     // set boundary conditions
-    for(int level=0;level<levels;++level)
-        Boundary_Condition_Helper<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,pressure_channel,bv,level);
-
+    for(int level=0;level<levels;++level){Boundary_Condition_Helper<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,pressure_channel,level);
+        Source_Velocity_Setup<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),sources,source_velocity,face_velocity_channels,level);}
+        
     // compute divergence
     Hierarchy_Projection::Compute_Divergence(*hierarchy,face_velocity_channels,divergence_channel);
 
     Poisson_CG_System<Struct_type,Multigrid_struct_type,T,d> cg_system(*hierarchy,mg_levels,3,1,200);
 
-    T Struct_type::* q_channel              = &Struct_type::ch9;
-    T Struct_type::* r_channel              = &Struct_type::ch10;
-    T Struct_type::* s_channel              = &Struct_type::ch11;
-    T Struct_type::* k_channel              = &Struct_type::ch11;
-    T Struct_type::* z_channel              = &Struct_type::ch12;
+    T Struct_type::* q_channel              = &Struct_type::ch10;
+    T Struct_type::* r_channel              = &Struct_type::ch11;
+    T Struct_type::* s_channel              = &Struct_type::ch12;
+    T Struct_type::* k_channel              = &Struct_type::ch12;
+    T Struct_type::* z_channel              = &Struct_type::ch13;
 
     // clear all channels
     for(int level=0;level<levels;++level){
@@ -400,8 +416,8 @@ Project(const T dt)
     r_V-=b_V;
     const T b_norm=cg_system.Convergence_Norm(r_V);
     Log::cout<<"Norm: "<<b_norm<<std::endl;
-    // cg.print_residuals=true;
-    // cg.print_diagnostics=true;
+    cg.print_residuals=true;
+    cg.print_diagnostics=true;
     cg.restart_iterations=cg_restart_iterations;
     const T tolerance=std::max(cg_tolerance*b_norm,(T)1e-6);
     cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
@@ -430,6 +446,7 @@ Register_Options()
     parse_args->Add_Double_Argument("-tau",(T)1.,"tau.");
     parse_args->Add_Option_Argument("-ficks","Fick's diffusion.");
     parse_args->Add_Option_Argument("-ed","Explicit diffusion");
+    parse_args->Add_Option_Argument("-uvf","Uniform velocity field");
     // for CG
     parse_args->Add_Integer_Argument("-cg_iterations",100,"Number of CG iterations.");
     parse_args->Add_Integer_Argument("-cg_restart_iterations",40,"Number of CG restart iterations.");
@@ -450,12 +467,13 @@ Parse_Options()
     omp_set_num_threads(number_of_threads);
     if(d==2){auto cell_counts_2d=parse_args->Get_Vector_2D_Value("-size");for(int v=0;v<d;++v) counts(v)=cell_counts_2d(v);}
     else{auto cell_counts_3d=parse_args->Get_Vector_3D_Value("-size");for(int v=0;v<d;++v) counts(v)=cell_counts_3d(v);}
-    FICKS=parse_args->Get_Option_Value("-ficks");
     diff_coeff=parse_args->Get_Double_Value("-diff_coeff");
     bv=parse_args->Get_Double_Value("-bv");
     source_rate=parse_args->Get_Double_Value("-sr");
     Fc=parse_args->Get_Double_Value("-fc");
     tau=parse_args->Get_Double_Value("-tau");
+    FICKS=parse_args->Get_Option_Value("-ficks");
+    uvf=parse_args->Get_Option_Value("-uvf");
     explicit_diffusion=parse_args->Get_Option_Value("-ed");
     cg_iterations=parse_args->Get_Integer_Value("-cg_iterations");
     cg_restart_iterations=parse_args->Get_Integer_Value("-cg_restart_iterations");

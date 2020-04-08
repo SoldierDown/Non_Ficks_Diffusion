@@ -28,6 +28,7 @@ class Uniform_Grid_Density_Advection_Helper
     enum {number_of_nodes_per_cell  = Topology_Helper::number_of_nodes_per_cell};
 
   public:
+    // Checked
     Uniform_Grid_Density_Advection_Helper(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,
                                     Channel_Vector& cell_velocity_channels,T Struct_type::* cell_channel,T Struct_type::* result_channel,
                                     uint64_t* nodes_of_cell_offsets,const int level,const T dt,const unsigned mask)

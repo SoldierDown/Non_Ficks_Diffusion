@@ -54,6 +54,7 @@ class Uniform_Grid_Interpolation_Helper
 			const T_INDEX& index=base_index+iterator.Index();
 			uint64_t face_offset=Flag_array_mask::Linear_Offset(index._data);
 			face_array[counter++]=hierarchy.Channel(level,face_vector_channels(axis))(index._data);}
+
         // weights are reversed to account for "reverse" ordering of nodes_of_cell_offsets array
         T multilinear_from_faces=Uniform_Grid_Linear_Interpolation<T,T>::Linear(face_array,weights.Reversed());
         return multilinear_from_faces;

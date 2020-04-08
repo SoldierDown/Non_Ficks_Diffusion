@@ -23,11 +23,14 @@ class Uniform_Grid_Backtrace_Helper
     using Topology_Helper           = Grid_Topology_Helper<Flag_array_mask>;
 
   public:
+    // Checked
     static TV Uniform_Grid_Cell_Backtrace(Hierarchy& hierarchy,int& level,const T_INDEX& cell_index,uint64_t& cell_offset,const TV& dX)
     {
         const int original_level=level;
         const uint64_t original_cell_offset=cell_offset;
         const Grid<T,d>& grid=hierarchy.Lattice(level);
+
+        Vector<int,d> base_index(Flag_array_mask::LinearToCoord(cell_offset));
 
         // get raw backtraced location index
         TV d_i=dX*hierarchy.Lattice(level).one_over_dX;           // delta in cell coord = intra_cell_dX + dX/h (dX = -vel*dt)
@@ -36,7 +39,6 @@ class Uniform_Grid_Backtrace_Helper
         TV weights=d_i-TV(d_index);
         T_INDEX backtraced_cell_index=cell_index+d_index;
         TV backtraced_cell_location=grid.Center(cell_index)+dX;
-
         // clamp index, weights to grid
         const TV cell_width=grid.dX;
         const TV min_corner=grid.domain.min_corner+TV(.5)*cell_width;
@@ -61,7 +63,7 @@ class Uniform_Grid_Backtrace_Helper
         const Grid<T,d>& grid=hierarchy.Lattice(level);
 
         // get raw backtraced location index
-        TV d_i=dX*hierarchy.Lattice(level).one_over_dX;           // delta in cell coord = intra_cell_dX + dX/h (dX = -vel*dt)
+        TV d_i=dX*hierarchy.Lattice(level).one_over_dX;
         T_INDEX d_index;
         for(int axis=0;axis<d;++axis) d_index(axis)=std::floor(d_i(axis));
         TV weights=d_i-TV(d_index);

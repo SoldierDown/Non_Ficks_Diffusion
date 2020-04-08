@@ -25,6 +25,8 @@ Initialize()
     else example.Read_Output_Files(example.restart_frame);
 
     example.Initialize_Velocity_Field();
+    // divergence free
+    example.Project();
 }
 //######################################################################
 // Advance_One_Time_Step_Explicit_Part
@@ -33,13 +35,15 @@ template<class T,int d> void Smoke_Driver<T,d>::
 Advance_One_Time_Step_Explicit_Part(const T dt,const T time)
 {
     // scalar advance
-    example.Add_Source(dt);
-    example.Backup_Density();
+    // example.Add_Source(dt);
+    // example.Backup_Density();
     example.Advect_Density(dt);
-    example.Diffuse_Density(dt);
-    example.Backup_Density();
+    example.Modify_Density_With_Sources();
+
+    // example.Diffuse_Density(dt);
+    // example.Backup_Density();
     // convect
-    // example.Advect_Face_Velocities(dt);
+    example.Advect_Face_Velocities(dt);
 }
 //######################################################################
 // Advance_One_Time_Step_Implicit_Part
@@ -47,7 +51,7 @@ Advance_One_Time_Step_Explicit_Part(const T dt,const T time)
 template<class T,int d> void Smoke_Driver<T,d>::
 Advance_One_Time_Step_Implicit_Part(const T dt,const T time)
 {
-    // example.Project(dt);
+    example.Project();
 }
 //######################################################################
 // Advance_To_Target_Time
@@ -59,12 +63,11 @@ Advance_To_Target_Time(const T target_time)
     for(int substep=1;!done;substep++){
         Log::Scope scope("SUBSTEP","substep "+std::to_string(substep));
         T dt=Compute_Dt(time,target_time);
-        if(example.explicit_diffusion) dt/=(T)100.;
+        // if(example.explicit_diffusion) dt/=(T)100.;
         Example<T,d>::Clamp_Time_Step_With_Target_Time(time,target_time,dt,done);
-        
         Advance_One_Time_Step_Explicit_Part(dt,time);
         Advance_One_Time_Step_Implicit_Part(dt,time);
-
+        done=true;
         if(!done) example.Write_Substep("END Substep",substep,0);
         time+=dt;}
 }

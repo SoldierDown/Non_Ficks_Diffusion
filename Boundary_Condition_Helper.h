@@ -27,13 +27,13 @@ class Boundary_Condition_Helper
 
   public:
     Boundary_Condition_Helper(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& face_velocity_channels,T Struct_type::* pressure_channel,
-                                const T bv,const int level)
+                                const int level)
     {
-        Run(hierarchy,blocks,face_velocity_channels,pressure_channel,bv,level);
+        Run(hierarchy,blocks,face_velocity_channels,pressure_channel,level);
     }
 
     void Run(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& face_velocity_channels,T Struct_type::* pressure_channel,
-            const T bv,const int level) const
+            const int level) const
     {
         auto block_size=hierarchy.Allocator(level).Block_Size();
         auto pressure=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(pressure_channel);
@@ -43,7 +43,6 @@ class Boundary_Condition_Helper
         {
             Range_Iterator<d> range_iterator(T_INDEX(),*reinterpret_cast<T_INDEX*>(&block_size)-1);
             T_INDEX base_index(Flag_array_mask::LinearToCoord(offset));
-            TV background_velocity=TV::Axis_Vector(1)*bv;
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                 for(int axis=0;axis<d;++axis){ const unsigned face_active_mask=Topology_Helper::Face_Active_Mask(axis);
                     if(!(flags(offset)&face_active_mask))  hierarchy.Allocator(level).template Get_Array<Struct_type,T>(face_velocity_channels(axis))(offset)=(T)0.;}
