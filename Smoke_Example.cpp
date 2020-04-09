@@ -46,13 +46,6 @@ template<class T,int d> Smoke_Example<T,d>::
 Smoke_Example()
     :Base(),hierarchy(nullptr),rasterizer(nullptr)
 {
-    FICKS=false;
-    explicit_diffusion=false;
-    diff_coeff=(T).01;
-    bv=(T)1.;
-    source_rate=(T)1.;
-    Fc=(T)0.;
-    tau=(T)1.;
     face_velocity_channels(0)           = &Struct_type::ch0;
     face_velocity_channels(1)           = &Struct_type::ch1;
     if(d==3) face_velocity_channels(2)  = &Struct_type::ch2;
@@ -328,7 +321,7 @@ Advect_Face_Velocities(const T dt)
         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_velocity_backup_channels(axis));
         SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_velocity_channels(axis),
                                                 face_velocity_backup_channels(axis),Topology_Helper::Face_Active_Mask(axis));}  
-    Uniform_Grid_Advection_Helper<Struct_type,T,d>::Uniform_Grid_Advect_Face_Velocities(*hierarchy,face_velocity_channels,face_velocity_backup_channels,interpolated_face_velocity_channels,temp_channel,dt);
+        Uniform_Grid_Advection_Helper<Struct_type,T,d>::Uniform_Grid_Advect_Face_Velocities(*hierarchy,face_velocity_channels,face_velocity_backup_channels,interpolated_face_velocity_channels,temp_channel,dt);
 }
 //######################################################################
 // Set_Neumann_Faces_Inside_Sources
@@ -383,7 +376,7 @@ Project()
     source_velocity.Append(TV::Axis_Vector(1)*bv);
     // set boundary conditions
     for(int level=0;level<levels;++level){Boundary_Condition_Helper<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,pressure_channel,level);
-        Source_Velocity_Setup<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),sources,source_velocity,face_velocity_channels,level);}
+       if(uvf) Source_Velocity_Setup<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),sources,source_velocity,face_velocity_channels,level);}
         
     // compute divergence
     Hierarchy_Projection::Compute_Divergence(*hierarchy,face_velocity_channels,divergence_channel);
@@ -416,8 +409,8 @@ Project()
     r_V-=b_V;
     const T b_norm=cg_system.Convergence_Norm(r_V);
     Log::cout<<"Norm: "<<b_norm<<std::endl;
-    cg.print_residuals=true;
-    cg.print_diagnostics=true;
+    // cg.print_residuals=true;
+    // cg.print_diagnostics=true;
     cg.restart_iterations=cg_restart_iterations;
     const T tolerance=std::max(cg_tolerance*b_norm,(T)1e-6);
     cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);

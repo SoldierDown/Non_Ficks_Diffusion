@@ -66,13 +66,10 @@ class Uniform_Grid_Averaging_Helper
                     auto interpolated_face_velocity=allocator.template Get_Array<Struct_type,T>(interpolated_face_velocity_channels(v));
                     if(v==axis) interpolated_face_velocity(offset)=face_velocity(offset);
                     else{uint64_t base_offset=Flag_array_mask::Packed_Add(offset,negative_face_offsets(axis)); T axis_velocity=(T)0.;
-                    Vector<int,d> index(Flag_array_mask::LinearToCoord(offset)); Vector<int,d> base_index(Flag_array_mask::LinearToCoord(base_offset));
                     for(int face=0;face<nodes_per_cell;++face){ 
                         uint64_t face_offset=Flag_array_mask::Packed_Add(base_offset,nodes_of_cell_offsets[face]);
-                        Vector<int,d> neighbor_index(Flag_array_mask::LinearToCoord(face_offset));
                         axis_velocity+=face_velocity(face_offset);}
-                    interpolated_face_velocity(offset)=(T).25*axis_velocity;
-                    }}}
+                    interpolated_face_velocity(offset)=(T).25*axis_velocity;}}}
         };
 
         SPGrid_Computations::Run_Parallel_Blocks(blocks,uniform_grid_average_face_velocities_to_faces_helper);
