@@ -984,7 +984,7 @@ Update_Particle_Velocities_And_Positions(const T dt)
     Log::cout<<"average shift: "<<average_abs_X_shift<<std::endl;
     
     const T three_cell_widths=(T)3.*mpm_grid.dX(0);
-    TV min_corner=TV(), max_corner=average_abs_X_shift+TV(three_cell_widths);
+    TV min_corner=TV(), max_corner=(T)2*average_abs_X_shift+TV(three_cell_widths);
     Range<T,3> shift_box(min_corner,max_corner);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
