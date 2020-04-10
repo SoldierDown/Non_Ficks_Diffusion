@@ -41,7 +41,7 @@ class Epsilon_Epsilon_Prime_dSdX_Helper
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto epsilon_epsilon_prime_dSdX_helper=[&](uint64_t offset)
         {
-            const T coeff1=(T).01; const T coeff2=(T).01*delta; const T coeff3=(T)-.01*delta*omega;
+            const T coeff1=(T).01; const T coeff2=coeff1*delta; const T coeff3=-coeff2*omega;
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)) if(flags(offset)&Cell_Type_Interior){
                 const T psi=psi_data(offset); const T epsilon=coeff1+coeff2*cos(omega*psi); const T epsilon_prime=coeff3*sin(omega*psi);
                 for(int axis=0;axis<d;++axis) allocator.template Get_Array<Struct_type,T>(dSdX_channels(axis))(offset)*=epsilon*epsilon_prime;

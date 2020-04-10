@@ -1,7 +1,7 @@
-add_executable(phase_change_2d
+add_executable(phase_field_2d
   main.cpp
-  ../PC_Driver.cpp
-  ../PC_Example.cpp
+  ../PF_Driver.cpp
+  ../PF_Example.cpp
   )
 
 find_package(OpenMP)
@@ -10,7 +10,7 @@ if (OPENMP_FOUND)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
-target_link_libraries(phase_change_2d
+target_link_libraries(phase_field_2d
   PRIVATE
   nova::dynamics
   nova::geometry
@@ -20,4 +20,4 @@ target_link_libraries(phase_change_2d
 
 file( RELATIVE_PATH REL ${PROJECT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR} )
 
-install(TARGETS phase_change_2d RUNTIME DESTINATION ${REL})
+install(TARGETS phase_field_2d RUNTIME DESTINATION ${REL})

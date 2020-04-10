@@ -43,13 +43,12 @@ class Psi_Evaluation_Helper
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)) if(flags(offset)&Cell_Type_Interior){
                 if(dSdx_data(offset)==(T)0.){
                     if(dSdy_data(offset)>(T)0.) psi_data(offset)=half_pi;
-                    else if(dSdy_data(offset)<(T)0.) psi_data(offset)=-half_pi;
-                    else psi_data(offset)=(T)0.;}
-                else if(dSdx_data(offset)>(T)0.){
-                    if(dSdy_data(offset)>(T)0.) psi_data(offset)=atan(dSdy_data(offset)/dSdx_data(offset));
-                    else if(dSdy_data(offset)<(T)0.) psi_data(offset)=two_pi+atan(dSdy_data(offset)/dSdx_data(offset));}
-                else{psi_data(offset)=pi+atan(dSdy_data(offset)/dSdx_data(offset));}} 
-                
+                    else if(dSdy_data(offset)<(T)0.) psi_data(offset)=-half_pi;}
+                else{ const T atan_value=atan(dSdy_data(offset)/dSdx_data(offset));
+                    if(dSdx_data(offset)>(T)0.){
+                        if(dSdy_data(offset)>(T)0.) psi_data(offset)=atan_value;
+                        else if(dSdy_data(offset)<(T)0.) psi_data(offset)=two_pi+atan_value;}
+                    else psi_data(offset)=pi+atan_value;}} 
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,psi_evaluation_helper_2d);
     }

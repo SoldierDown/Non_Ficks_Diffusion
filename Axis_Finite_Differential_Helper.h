@@ -24,6 +24,7 @@ class Axis_Finite_Differential_Helper
     enum {number_of_faces_per_cell  = Topology_Helper::number_of_faces_per_cell};
 
   public:
+    // Checked
     Axis_Finite_Differential_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* cell_channel,T Struct_type::* result_channel,
                                     const T one_over_2dx,const int axis)
     {Run(allocator,blocks,cell_channel,result_channel,one_over_2dx,axis);}
@@ -42,7 +43,7 @@ class Axis_Finite_Differential_Helper
         auto axis_finite_differential_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)) if(flags(offset)&Cell_Type_Interior) 
-            {uint64_t neighbor_offset[2];for(int nb=0;nb<2;nb++) neighbor_offset[nb]=Flag_array_mask::Packed_Add(offset,axis_neighbor_offsets[nb]);
+            {uint64_t neighbor_offset[2];for(int nb=0;nb<2;++nb) neighbor_offset[nb]=Flag_array_mask::Packed_Add(offset,axis_neighbor_offsets[nb]);
                 result_data(offset)=one_over_2dx*(cell_data(neighbor_offset[1])-cell_data(neighbor_offset[0]));}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,axis_finite_differential_helper);

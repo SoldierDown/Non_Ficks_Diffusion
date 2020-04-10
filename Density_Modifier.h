@@ -44,7 +44,7 @@ class Density_Modifier
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                 const T_INDEX index=base_index+range_iterator.Index();
                 if(flags(offset)&Cell_Type_Interior){const TV X=hierarchy.Lattice(level).Center(index);
-                    for(size_t i=0;i<sources.size();++i) if(sources(i)->Inside(X)) density(offset)=(T)1.;}
+                    for(size_t i=0;i<sources.size();++i) if(sources(i)->Inside(X)) density(offset)=(T)10.;}
                 range_iterator.Next();}
         };
 

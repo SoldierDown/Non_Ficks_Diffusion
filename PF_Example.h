@@ -1,21 +1,22 @@
 //!#####################################################################
-//! \file PC_Example.h
+//! \file PF_Example.h
 //!#####################################################################
-// Class PC_Example
+// Class PF_Example
 //######################################################################
-#ifndef __PC_Example__
-#define __PC_Example__
+#ifndef __PF_Example__
+#define __PF_Example__
 
 #include <nova/Dynamics/Hierarchy/Grid_Hierarchy.h>
 #include <nova/Dynamics/Hierarchy/Grid_Topology_Helper.h>
 #include <nova/Dynamics/Hierarchy/Rasterizers/Hierarchical_Rasterizer.h>
 #include <nova/Geometry/Implicit_Objects/Implicit_Object.h>
 #include <nova/Tools/Utilities/Example.h>
-#include "PC_Data.h"
+#include "PF_Data.h"
+#include <nova/Tools/Random_Numbers/Random_Numbers.h>
 
 namespace Nova{
 template<class T,int d>
-class PC_Example: public Example<T,d>
+class PF_Example: public Example<T,d>
 {
     using TV                        = Vector<T,d>;
     using Base                      = Example<T,d>;
@@ -31,10 +32,12 @@ class PC_Example: public Example<T,d>
   public:
     using Base::frame_title;using Base::output_directory;using Base::parse_args;using Base::first_frame;
 
+    Random_Numbers<T> random;
+    bool FICKS;
     bool explicit_diffusion;
     // phase change paras
     // for updating density
-    T tau_p;
+    T tau_s;
     // for updating face_qs_channels
     T tau_1,SR,K;
     // for updating face_qt_channels
@@ -65,11 +68,11 @@ class PC_Example: public Example<T,d>
     Channel_Vector face_velocity_channels;
 
     Vector<Vector<bool,2>,d> domain_walls;
-
+    
     Array<Implicit_Object<T,d>*> sources;
 
-    PC_Example();
-    ~PC_Example()
+    PF_Example();
+    ~PF_Example()
     {if(hierarchy!=nullptr) delete hierarchy;}
 
 //######################################################################
@@ -91,6 +94,7 @@ class PC_Example: public Example<T,d>
 
     void Update_Density(const T dt);
     void Explicitly_Update_Density(const T dt);
+    void Add_Laplacian_Term_To_Density(const T dt);
     void Add_Divergence_Term_To_Density(const T dt);
     void Add_Differential_Term_To_Density(const T dt);
     void Add_Poly_Term_To_Density(const T dt);
@@ -106,6 +110,7 @@ class PC_Example: public Example<T,d>
 
     void Update_Temperature(const T dt);
     void Explicitly_Update_Temperature(const T dt);
+    void Add_Laplacian_Term_To_Temperature(const T dt);
     void Add_Divergence_Term_To_Temperature(const T dt);
     void Add_Constant_Term_To_Temperature(const T dt);
     void Add_dSdt_Term_To_Temperature(const T dt);

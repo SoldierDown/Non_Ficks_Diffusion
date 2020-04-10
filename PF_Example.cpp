@@ -1,5 +1,5 @@
 //!#####################################################################
-//! \file PC_Example.cpp
+//! \file PF_Example.cpp
 //!#####################################################################
 #include <nova/Dynamics/Hierarchy/Grid_Hierarchy_Initializer.h>
 #include <nova/Dynamics/Hierarchy/Grid_Hierarchy_Iterator.h>
@@ -18,7 +18,7 @@
 #include "Source_Adder.h"
 #include "Initialize_Dirichlet_Cells.h"
 #include "Poisson_Solver/Multigrid_Data.h"
-#include "PC_Example.h"
+#include "PF_Example.h"
 #include "Clamp_Helper.h"
 #include "Lap_Calculator.h"
 #include "Density_Backup_Helper.h"
@@ -35,9 +35,11 @@
 #include "Psi_Evaluation_Helper.h"
 #include "Epsilon_Epsilon_Prime_dSdX_Helper.h"
 #include "Epsilon_Squared_Grad_S_Helper.h"
+#include "Epsilon_Squared_Lap_S_Helper.h"
 #include "Add_Constant.h"
 #include "K_Gradient_T_Helper.h"
 #include "Add_Random_Term.h"
+#include "Boundary_Check.h"
 #include <omp.h>
 using namespace Nova;
 namespace Nova{
@@ -46,21 +48,23 @@ extern int number_of_threads;
 //######################################################################
 // Constructor
 //######################################################################
-template<class T,int d> PC_Example<T,d>::
-PC_Example()
+template<class T,int d> PF_Example<T,d>::
+PF_Example()
     :Base(),hierarchy(nullptr),rasterizer(nullptr)
 {
+    FICKS=true;
+    random.Set_Seed(0);
     explicit_diffusion=true;
     // for updating density
-    tau_p=(T)3.e-4;
+    tau_s=(T)1.e-4;
     // for updating face_qs_channels
-    tau_1=(T)0.; SR=(T)0.; K=(T)1.2;
+    SR=(T)0.;
     // for updating face_qt_channels
-    tau_2=(T)0.; k=(T)1.;
+    k=(T)1.;
     // for updating m_channel
     m_alpha=(T).9; gamma=(T)10.; Teq=(T)1.;
     // for updating epsilon_channel
-    omega=6; delta=(T).05;
+    omega=6; delta=(T).01;
     bv=(T)1.;
 
     density_channel                     = &Struct_type::ch0;            // intermedia 
@@ -89,7 +93,7 @@ PC_Example()
 //######################################################################
 // Initialize
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Initialize()
 {
     Initialize_SPGrid();
@@ -98,7 +102,7 @@ Initialize()
 //######################################################################
 // Initialize_SPGrid
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Initialize_SPGrid()
 {
     Log::Scope scope("Initialize_SPGrid");
@@ -112,14 +116,16 @@ Initialize_SPGrid()
     Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_Ghost_Nodes(*hierarchy);
     Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_T_Junction_Nodes(*hierarchy);
     Initialize_Dirichlet_Cells<Struct_type,T,d>(*hierarchy,domain_walls);
+    // Surrounding_Dirichlet_Boundary<Struct_type,T,d>(*hierarchy,domain_walls);
     //Set_Neumann_Faces_Inside_Sources();
     hierarchy->Update_Block_Offsets();
     hierarchy->Initialize_Red_Black_Partition(2*number_of_threads);
+    // for(int level=0;level<levels;++level) Boundary_Check<Struct_type,T,d>(*hierarchy,hierarchy->Allocator(level),hierarchy->Blocks(level));
 }
 //######################################################################
 // Limit_Dt
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Limit_Dt(T& dt,const T time)
 {
     T dt_convection=(T)0.;
@@ -137,7 +143,7 @@ Limit_Dt(T& dt,const T time)
 //######################################################################
 // Advect_Scalar_Field
 //######################################################################
-template    <class T,int d> void PC_Example<T,d>::
+template    <class T,int d> void PF_Example<T,d>::
 Advect_Scalar_Field(const T dt)
 {
     Advect_Density(dt);
@@ -146,10 +152,9 @@ Advect_Scalar_Field(const T dt)
 //######################################################################
 // Advect_Temperature
 //######################################################################
-template    <class T,int d> void PC_Example<T,d>::
+template    <class T,int d> void PF_Example<T,d>::
 Advect_Density(const T dt)
 {
-    Log::Scope scope("Advect Density");
     Channel_Vector cell_velocity_channels;
     cell_velocity_channels(0)               = &Struct_type::ch20;
     cell_velocity_channels(1)               = &Struct_type::ch21;
@@ -163,10 +168,9 @@ Advect_Density(const T dt)
 //######################################################################
 // Advect_Density
 //######################################################################
-template    <class T,int d> void PC_Example<T,d>::
+template    <class T,int d> void PF_Example<T,d>::
 Advect_Temperature(const T dt)
 {
-    Log::Scope scope("Advect Temperature");
     Channel_Vector cell_velocity_channels;
     cell_velocity_channels(0)               = &Struct_type::ch20;
     cell_velocity_channels(1)               = &Struct_type::ch21;
@@ -180,7 +184,7 @@ Advect_Temperature(const T dt)
 //######################################################################
 // Advect_Face_Vector_Field
 //######################################################################
-template    <class T,int d> void PC_Example<T,d>::
+template    <class T,int d> void PF_Example<T,d>::
 Advect_Face_Vector_Field(const T dt)
 {
     Advect_Face_Qs(dt);
@@ -189,10 +193,9 @@ Advect_Face_Vector_Field(const T dt)
 //######################################################################
 // Advect_Face_Qs
 //######################################################################
-template    <class T,int d> void PC_Example<T,d>::
+template    <class T,int d> void PF_Example<T,d>::
 Advect_Face_Qs(const T dt)
 {
-    Log::Scope scope("Advect Face Qs");
     // Advect face vector by axis
     Channel_Vector interpolated_face_velocity_channels;
     interpolated_face_velocity_channels(0)              = &Struct_type::ch20;
@@ -207,10 +210,9 @@ Advect_Face_Qs(const T dt)
 //######################################################################
 // Advect_Face_Qt
 //######################################################################
-template    <class T,int d> void PC_Example<T,d>::
+template    <class T,int d> void PF_Example<T,d>::
 Advect_Face_Qt(const T dt)
 {
-    Log::Scope scope("Advect Face Qt");
     // Advect face vector by axis
     Channel_Vector interpolated_face_velocity_channels;
     interpolated_face_velocity_channels(0)              = &Struct_type::ch20;
@@ -225,60 +227,71 @@ Advect_Face_Qt(const T dt)
 //######################################################################
 // Update_Density
 //######################################################################
-template    <class T,int d> void PC_Example<T,d>::
-Update_Density(const T dt)
+template    <class T,int d> void PF_Example<T,d>::
+ Update_Density(const T dt)
 {
-    Log::Scope scope("Update Density");
     if(explicit_diffusion) Explicitly_Update_Density(dt);
     else Implicitly_Update_Density(dt);    
 }
 //######################################################################
 // Explicitly_Update_Density
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Explicitly_Update_Density(const T dt)
 {
-    Add_Divergence_Term_To_Density(dt);
     Add_Differential_Term_To_Density(dt);
     Add_Poly_Term_To_Density(dt);
     Add_Random_Term_To_Density(dt);
+    if(FICKS) Add_Laplacian_Term_To_Density(dt);
+    else Add_Divergence_Term_To_Density(dt);
+}
+//######################################################################
+// Add_Laplacian_Term_To_Density
+//######################################################################
+template<class T,int d> void PF_Example<T,d>::
+Add_Laplacian_Term_To_Density(const T dt)
+{
+    T Struct_type::* lap_density_channel         = &Struct_type::ch20;
+    const T one_over_dx2=Nova_Utilities::Sqr(hierarchy->Lattice(0).one_over_dX(0)); const T dt_over_tau_s=dt/tau_s;
+    for(int level=0;level<levels;++level){SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),lap_density_channel);
+        Lap_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_backup_channel,lap_density_channel,one_over_dx2);
+        Epsilon_Squared_Lap_S_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,epsilon_channel,lap_density_channel,dt_over_tau_s,level);}
 }
 //######################################################################
 // Add_Divergence_Term_To_Density
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Add_Divergence_Term_To_Density(const T dt)
 {
-    Log::Scope scope("Add_Divergence_Term_To_Density");
     using Hierarchy_Projection              = Grid_Hierarchy_Projection<Struct_type,T,d>;
     T Struct_type::* div_qs_channel         = &Struct_type::ch20;
-    for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qs_channel);
-    // compute -div(Qc) at time n
-    Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qs_backup_channels,div_qs_channel); 
-    const T dt_over_tau_p=(T)dt/tau_p;
-    for(int level=0;level<levels;++level) SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),dt_over_tau_p,div_qs_channel,density_channel,density_channel,Cell_Type_Interior);
+    const T dt_over_tau_s=(T)dt/tau_s;
+    for(int level=0;level<levels;++level){SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qs_channel);
+        // compute -div(Qc) at time n
+        Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qs_backup_channels,div_qs_channel); 
+        SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),dt_over_tau_s,div_qs_channel,
+                                                density_channel,density_channel,Cell_Type_Interior);}
 }
 //######################################################################
 // Add_Differential_Term_To_Density
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Add_Differential_Term_To_Density(const T dt)
 {
-    Log::Scope scope("Add_Differential_Term_To_Density");
     epsilon_channel                 = &Struct_type::ch19;
     Channel_Vector dSdX_channels;
     dSdX_channels(0)                = &Struct_type::ch20;
     dSdX_channels(1)                = &Struct_type::ch21;
     if(d==3) dSdX_channels(2)       = &Struct_type::ch22;
-
     T Struct_type::* psi_channel    = &Struct_type::ch23;
+
     for(int level=0;level<levels;++level){ for(int axis=0;axis<d;++axis) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),dSdX_channels(axis));
         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),psi_channel);
         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),epsilon_channel);}
     // compute dS/dx and dS/dy (dS/dz)
-    const T one_over_2dx=(T).5*hierarchy->Lattice(0).one_over_dX(0);
+    const TV one_over_2dx=(T).5*hierarchy->Lattice(0).one_over_dX;
     for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis)
-        Axis_Finite_Differential_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_backup_channel,dSdX_channels(axis),one_over_2dx,axis);
+        Axis_Finite_Differential_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_backup_channel,dSdX_channels(axis),one_over_2dx(axis),axis);
     // evaluate psi
     for(int level=0;level<levels;++level) 
         Psi_Evaluation_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),dSdX_channels,psi_channel);
@@ -286,47 +299,47 @@ Add_Differential_Term_To_Density(const T dt)
     for(int level=0;level<levels;++level) 
         Epsilon_Epsilon_Prime_dSdX_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),dSdX_channels,psi_channel,epsilon_channel,
                                                             omega,delta);
-    const T dt_over_tau_p=dt/tau_p;
+    const T dt_over_tau_s=dt/tau_s;
     T Struct_type::* temp_channel = &Struct_type::ch24;    
     for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis){
         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),temp_channel);
-        Axis_Finite_Differential_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),dSdX_channels((axis+1)%d),temp_channel,one_over_2dx,axis);
-        SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),dt_over_tau_p,temp_channel,density_channel,density_channel,Cell_Type_Interior);}
+        Axis_Finite_Differential_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),dSdX_channels((axis+1)%d),temp_channel,one_over_2dx(axis),axis);
+        SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),dt_over_tau_s,temp_channel,density_channel,density_channel,Cell_Type_Interior);}
 
 }
 //######################################################################
 // Add_Poly_Term_To_Density
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Add_Poly_Term_To_Density(const T dt)
 {
-    Log::Scope scope("Add_Poly_Term_To_Density");
     T Struct_type::* m_channel                     = &Struct_type::ch20;
     for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),m_channel);
-    for(int level=0;level<levels;++level) M_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),m_channel,T_backup_channel);
-    const T dt_over_tau_p=dt/tau_p;
-    for(int level=0;level<levels;++level) Density_Plus_Poly_Term_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,density_backup_channel,m_channel,dt_over_tau_p);
+    for(int level=0;level<levels;++level) M_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),m_channel,T_backup_channel,m_alpha);
+    const T dt_over_tau_s=dt/tau_s;
+    for(int level=0;level<levels;++level) Density_Plus_Poly_Term_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,density_backup_channel,m_channel,dt_over_tau_s);
 }
 //######################################################################
 // Add_Random_Term_To_Density
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Add_Random_Term_To_Density(const T dt)
 {
-    const T alpha=(T).01;
-    for(int level=0;level<levels;++level) Add_Random_Term<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,density_backup_channel,alpha);
+    const T alpha_dt_over_tau_s=(T).01*dt/tau_s;
+    const T random_value=random.Get_Uniform_Number(0,1);
+    for(int level=0;level<levels;++level) Add_Random_Term<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,density_backup_channel,alpha_dt_over_tau_s,random_value);
 }
 //######################################################################
 // Implicitly_Update_Density
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Implicitly_Update_Density(const T dt)
 {
 }
 //######################################################################
 // Update_Face_Qs
 //######################################################################
-template    <class T,int d> void PC_Example<T,d>::
+template    <class T,int d> void PF_Example<T,d>::
 Update_Face_Qs(const T dt)
 {
     if(explicit_diffusion) Explicitly_Update_Face_Qs(dt);
@@ -335,7 +348,7 @@ Update_Face_Qs(const T dt)
 //######################################################################
 // Explicitly_Update_Face_Qs
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Explicitly_Update_Face_Qs(const T dt)
 {
     Add_Linear_Term_To_Face_Qs(dt);
@@ -344,7 +357,7 @@ Explicitly_Update_Face_Qs(const T dt)
 //######################################################################
 // Add_Linear_Term_To_Face_Qs
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Add_Linear_Term_To_Face_Qs(const T dt)
 {
     const T minus_dt_over_tau_1=-dt/tau_1;
@@ -355,25 +368,24 @@ Add_Linear_Term_To_Face_Qs(const T dt)
 //######################################################################
 // Add_Gradient_Term_To_Face_Qs
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Add_Gradient_Term_To_Face_Qs(const T dt)
 {
-    const T minus_dt_over_tau_1=-dt/tau_1; const T one_over_dx=hierarchy->Lattice(0).one_over_dX(0);
-    for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis)  
-    Epsilon_Squared_Grad_S_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),
-            face_qs_channels,epsilon_channel,density_backup_channel,minus_dt_over_tau_1,one_over_dx,level);
+    const T minus_dt_over_tau_1=-dt/tau_1; const TV one_over_dx=hierarchy->Lattice(0).one_over_dX;
+    for(int level=0;level<levels;++level) Epsilon_Squared_Grad_S_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),
+                                                face_qs_channels,epsilon_channel,density_backup_channel,minus_dt_over_tau_1,one_over_dx,level);
 }
 //######################################################################
 // Implicitly_Update_Face_Qs
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Implicitly_Update_Face_Qs(const T dt)
 {
 }
 //######################################################################
 // Update_Temperature
 //######################################################################
-template    <class T,int d> void PC_Example<T,d>::
+template    <class T,int d> void PF_Example<T,d>::
 Update_Temperature(const T dt)
 {
     if(explicit_diffusion) Explicitly_Update_Temperature(dt);
@@ -382,17 +394,18 @@ Update_Temperature(const T dt)
 //######################################################################
 // Explicitly_Update_Temperature
 //######################################################################
-template    <class T,int d> void PC_Example<T,d>::
+template    <class T,int d> void PF_Example<T,d>::
 Explicitly_Update_Temperature(const T dt)
 {
     Add_Constant_Term_To_Temperature(dt);
     Add_dSdt_Term_To_Temperature(dt);
-    Add_Divergence_Term_To_Temperature(dt);
+    if(FICKS) Add_Laplacian_Term_To_Temperature(dt);
+    else Add_Divergence_Term_To_Temperature(dt);
 }
 //######################################################################
 // Add_Constant_Term_To_Temperature
 //######################################################################
-template    <class T,int d> void PC_Example<T,d>::
+template    <class T,int d> void PF_Example<T,d>::
 Add_Constant_Term_To_Temperature(const T dt)
 {
     for(int level=0;level<levels;++level) Add_Constant<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),T_channel,SR*dt);
@@ -400,7 +413,7 @@ Add_Constant_Term_To_Temperature(const T dt)
 //######################################################################
 // Add_dSdt_Term_To_Temperature
 //######################################################################
-template    <class T,int d> void PC_Example<T,d>::
+template    <class T,int d> void PF_Example<T,d>::
 Add_dSdt_Term_To_Temperature(const T dt)
 {
     T Struct_type::* temp_channel         = &Struct_type::ch20;
@@ -411,29 +424,41 @@ Add_dSdt_Term_To_Temperature(const T dt)
     for(int level=0;level<levels;++level) SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),K,temp_channel,T_channel,T_channel,Cell_Type_Interior);
 }
 //######################################################################
+// Add_Laplacian_Term_To_Temperature
+//######################################################################
+template    <class T,int d> void PF_Example<T,d>::
+Add_Laplacian_Term_To_Temperature(const T dt)
+{
+    T Struct_type::* lap_T_channel      = &Struct_type::ch20;
+    const T one_over_dx2=Nova_Utilities::Sqr(hierarchy->Lattice(0).one_over_dX(0)); 
+    for(int level=0;level<levels;++level){SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),lap_T_channel);
+        Lap_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),T_backup_channel,lap_T_channel,one_over_dx2);
+        SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),k*dt,lap_T_channel,T_channel,T_channel,Cell_Type_Interior);}
+}
+//######################################################################
 // Add_Divergence_Term_To_Temperature
 //######################################################################
-template    <class T,int d> void PC_Example<T,d>::
+template    <class T,int d> void PF_Example<T,d>::
 Add_Divergence_Term_To_Temperature(const T dt)
 {
     using Hierarchy_Projection              = Grid_Hierarchy_Projection<Struct_type,T,d>;
     T Struct_type::* div_qt_channel         = &Struct_type::ch20;
     for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qt_channel);
     // compute -div(Qc) at time n
-    Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qs_channels,div_qt_channel); 
+    Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qt_backup_channels,div_qt_channel); 
     for(int level=0;level<levels;++level) SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),dt,div_qt_channel,T_channel,T_channel,Cell_Type_Interior);
 }
 //######################################################################
 // Implicitly_Update_Temperature
 //######################################################################
-template    <class T,int d> void PC_Example<T,d>::
+template    <class T,int d> void PF_Example<T,d>::
 Implicitly_Update_Temperature(const T dt)
 {
 }
 //######################################################################
 // Update_Face_Qt
 //######################################################################
-template    <class T,int d> void PC_Example<T,d>::
+template    <class T,int d> void PF_Example<T,d>::
 Update_Face_Qt(const T dt)
 {
     if(explicit_diffusion) Explicitly_Update_Face_Qt(dt);
@@ -442,7 +467,7 @@ Update_Face_Qt(const T dt)
 //######################################################################
 // Explicitly_Update_Face_Qt
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Explicitly_Update_Face_Qt(const T dt)
 {
     Add_Linear_Term_To_Face_Qt(dt);
@@ -451,7 +476,7 @@ Explicitly_Update_Face_Qt(const T dt)
 //######################################################################
 // Add_Linear_Term_To_Face_Qt
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Add_Linear_Term_To_Face_Qt(const T dt)
 {
     const T minus_dt_over_tau_2=-dt/tau_2;
@@ -462,71 +487,77 @@ Add_Linear_Term_To_Face_Qt(const T dt)
 //######################################################################
 // Add_Gradient_Term_To_Face_Qt
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Add_Gradient_Term_To_Face_Qt(const T dt)
 {
-    const T minus_dt_over_tau_2=-dt/tau_1; const T one_over_dx=hierarchy->Lattice(0).one_over_dX(0);
-    for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis)  
-    K_Gradient_T_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),
-            face_qt_channels,T_backup_channel,k,minus_dt_over_tau_2,one_over_dx,level);
+    const T minus_dt_over_tau_2=-dt/tau_2; const TV one_over_dx=hierarchy->Lattice(0).one_over_dX;
+    for(int level=0;level<levels;++level) K_Gradient_T_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),
+                                                face_qt_channels,T_backup_channel,k,minus_dt_over_tau_2,one_over_dx,level);
 }
 //######################################################################
 // Implicitly_Update_Face_Qt
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Implicitly_Update_Face_Qt(const T dt)
 {
 }
 //######################################################################
 // Backup
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Backup()
 {
-    Backup_Density(); Backup_Temperature(); Backup_Qs(); Backup_Qt();
+    if(FICKS){Backup_Density();Backup_Temperature();}
+    else{Backup_Density();Backup_Temperature();Backup_Qs();Backup_Qt();}
 }
 //######################################################################
 // Backup_Density
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Backup_Density()
 {
-    for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_backup_channel);
-    for(int level=0;level<levels;++level) SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,
-                                                                                density_backup_channel,(unsigned)Cell_Type_Interior);
+    for(int level=0;level<levels;++level){
+        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_backup_channel);
+        SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,
+                                            density_backup_channel,(unsigned)Cell_Type_Interior);}
 }
 //######################################################################
 // Backup_Temperature
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Backup_Temperature()
 {
-    for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),T_backup_channel);
-    for(int level=0;level<levels;++level) SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),T_channel,
-                                                                                T_backup_channel,(unsigned)Cell_Type_Interior);
+    for(int level=0;level<levels;++level){
+        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),T_backup_channel);
+        SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),T_channel,
+                                            T_backup_channel,(unsigned)Cell_Type_Interior);}
 }
 //######################################################################
 // Backup_Qs
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Backup_Qs()
 {
-    for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qs_backup_channels(axis));
-    for(int level=0;level<levels;++level) Face_Vector_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qs_channels,face_qs_backup_channels);
+    for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis) {
+        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qs_backup_channels(axis));
+        SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qs_channels(axis),
+                                                face_qs_backup_channels(axis),Topology_Helper::Face_Active_Mask(axis));}
 }
 //######################################################################
 // Backup_Qt
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Backup_Qt()
 {
-    for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qt_backup_channels(axis));
-    for(int level=0;level<levels;++level) Face_Vector_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qt_channels,face_qt_backup_channels);
+    for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis) {
+        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qt_backup_channels(axis));
+        SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qt_channels(axis),
+                                                face_qt_backup_channels(axis),Topology_Helper::Face_Active_Mask(axis));}        
 }
 //######################################################################
 // Modify_Density_With_Sources
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Modify_Density_With_Sources()
 {
     for(int level=0;level<levels;++level)
@@ -535,7 +566,7 @@ Modify_Density_With_Sources()
 //######################################################################
 // Add_Source
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Add_Source(const T dt)
 {
     // for(int level=0;level<levels;++level)
@@ -544,7 +575,7 @@ Add_Source(const T dt)
 //######################################################################
 // Advect_Face_Velocities
 //######################################################################
-// template<class T,int d> void PC_Example<T,d>::
+// template<class T,int d> void PF_Example<T,d>::
 // Advect_Face_Velocities(const T dt)
 // {
 //     Channel_Vector interpolated_face_velocity_channels;
@@ -557,7 +588,7 @@ Add_Source(const T dt)
 //######################################################################
 // Set_Neumann_Faces_Inside_Sources
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Set_Neumann_Faces_Inside_Sources()
 {
     for(int level=0;level<levels;++level){
@@ -576,7 +607,7 @@ Set_Neumann_Faces_Inside_Sources()
 //######################################################################
 // Initialize_Velocity_Field
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Initialize_Velocity_Field()
 {
     // for(int level=0;level<levels;++level)
@@ -585,7 +616,7 @@ Initialize_Velocity_Field()
 //######################################################################
 // Project
 //######################################################################
-// template<class T,int d> void PC_Example<T,d>::
+// template<class T,int d> void PF_Example<T,d>::
 // Project(const T dt)
 // {
 //     using Multigrid_struct_type             = Multigrid_Data<T>;
@@ -646,18 +677,22 @@ Initialize_Velocity_Field()
 //######################################################################
 // Register_Options
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Register_Options()
 {
     Base::Register_Options();
 
     parse_args->Add_Double_Argument("-cfl",(T).5,"CFL number.");
+    parse_args->Add_Double_Argument("-tau1",(T)1.,"tau 1.");
+    parse_args->Add_Double_Argument("-tau2",(T)1.,"tau 2.");
+    parse_args->Add_Double_Argument("-K",(T)1.,"K.");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
     parse_args->Add_Integer_Argument("-mg_levels",1,"Number of levels in the Multigrid hierarchy.");
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
-    if(d==2) parse_args->Add_Vector_2D_Argument("-size",Vector<double,2>(64.),"n","Grid resolution");
-    else if(d==3) parse_args->Add_Vector_3D_Argument("-size",Vector<double,3>(64.),"n","Grid resolution");
+    if(d==2) parse_args->Add_Vector_2D_Argument("-size",Vector<double,2>(100.),"n","Grid resolution");
+    else if(d==3) parse_args->Add_Vector_3D_Argument("-size",Vector<double,3>(100.),"n","Grid resolution");
     parse_args->Add_Option_Argument("-ed","Explicit diffusion");
+    parse_args->Add_Option_Argument("-ficks","Fick's diffusion");
     parse_args->Add_Integer_Argument("-omega",4,"Number of branches.");
     // for CG
     parse_args->Add_Integer_Argument("-cg_iterations",100,"Number of CG iterations.");
@@ -667,11 +702,14 @@ Register_Options()
 //######################################################################
 // Parse_Options
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Parse_Options()
 {
     Base::Parse_Options();
     cfl=(T)parse_args->Get_Double_Value("-cfl");
+    tau_1=(T)parse_args->Get_Double_Value("-tau1");
+    tau_2=(T)parse_args->Get_Double_Value("-tau2");
+    K=(T)parse_args->Get_Double_Value("-K");
     levels=parse_args->Get_Integer_Value("-levels");
     mg_levels=parse_args->Get_Integer_Value("-mg_levels");
     number_of_threads=parse_args->Get_Integer_Value("-threads");
@@ -679,6 +717,7 @@ Parse_Options()
     if(d==2){auto cell_counts_2d=parse_args->Get_Vector_2D_Value("-size");for(int v=0;v<d;++v) counts(v)=cell_counts_2d(v);}
     else{auto cell_counts_3d=parse_args->Get_Vector_3D_Value("-size");for(int v=0;v<d;++v) counts(v)=cell_counts_3d(v);}
     explicit_diffusion=parse_args->Get_Option_Value("-ed");
+    FICKS=parse_args->Get_Option_Value("-ficks");
     cg_iterations=parse_args->Get_Integer_Value("-cg_iterations");
     omega=parse_args->Get_Integer_Value("-omega");
     cg_restart_iterations=parse_args->Get_Integer_Value("-cg_restart_iterations");
@@ -687,7 +726,7 @@ Parse_Options()
 //######################################################################
 // Write_Output_Files
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Write_Output_Files(const int frame) const
 {
     File_Utilities::Create_Directory(output_directory+"/"+std::to_string(frame));
@@ -705,14 +744,14 @@ Write_Output_Files(const int frame) const
 //######################################################################
 // Read_Output_Files
 //######################################################################
-template<class T,int d> void PC_Example<T,d>::
+template<class T,int d> void PF_Example<T,d>::
 Read_Output_Files(const int frame)
 {
 }
 //######################################################################
-template class Nova::PC_Example<float,2>;
-template class Nova::PC_Example<float,3>;
+template class Nova::PF_Example<float,2>;
+template class Nova::PF_Example<float,3>;
 #ifdef COMPILE_WITH_DOUBLE_SUPPORT
-template class Nova::PC_Example<double,2>;
-template class Nova::PC_Example<double,3>;
+template class Nova::PF_Example<double,2>;
+template class Nova::PF_Example<double,3>;
 #endif
