@@ -51,7 +51,8 @@ class Smoke_Example: public Example<T,d>
     Vector<T Struct_type::*,d> face_qc_channels;
     Vector<Vector<bool,2>,d> domain_walls;
 
-    Array<Implicit_Object<T,d>*> sources;
+    Array<Implicit_Object<T,d>*> velocity_sources;
+    Array<Implicit_Object<T,d>*> density_sources;
 
     Smoke_Example();
 

@@ -62,8 +62,7 @@ Advance_To_Target_Time(const T target_time)
     for(int substep=1;!done;substep++){
         Log::Scope scope("SUBSTEP","substep "+std::to_string(substep));
         T dt=Compute_Dt(time,target_time);
-        // if(example.explicit_diffusion) dt/=(T)100.;
-        dt/=(T)100.;
+        if(example.explicit_diffusion) dt/=(T)100.;
         Example<T,d>::Clamp_Time_Step_With_Target_Time(time,target_time,dt,done);
         Advance_One_Time_Step_Explicit_Part(dt,time);
         Advance_One_Time_Step_Implicit_Part(dt,time);

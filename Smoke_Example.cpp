@@ -290,7 +290,7 @@ template<class T,int d> void Smoke_Example<T,d>::
 Modify_Density_With_Sources()
 {
     for(int level=0;level<levels;++level)
-        Density_Modifier<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),density_channel,sources,level);
+        Density_Modifier<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),density_channel,density_sources,level);
 }
 //######################################################################
 // Add_Source
@@ -299,7 +299,7 @@ template<class T,int d> void Smoke_Example<T,d>::
 Add_Source(const T dt)
 {
     for(int level=0;level<levels;++level)
-        Source_Adder<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),density_channel,sources,source_rate,dt,level);
+        Source_Adder<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),density_channel,density_sources,source_rate,dt,level);
 }
 //######################################################################
 // Advect_Face_Velocities
@@ -337,7 +337,7 @@ Set_Neumann_Faces_Inside_Sources()
             const uint64_t face_active_mask=Topology_Helper::Face_Active_Mask(axis);
             const uint64_t face_valid_mask=Topology_Helper::Face_Valid_Mask(axis);
             const TV X=hierarchy->Lattice(level).Face(axis,face_index);
-            for(size_t i=0;i<sources.size();++i) if(sources(i)->Inside(X)){
+            for(size_t i=0;i<velocity_sources.size();++i) if(velocity_sources(i)->Inside(X)){
                 if(hierarchy->template Set<unsigned>(level,&Struct_type::flags).Is_Set(face_offset,face_valid_mask))
                     flags(face_offset)&=~face_active_mask;
                 break;}}}
@@ -352,7 +352,7 @@ Initialize_Velocity_Field()
     source_velocity.Append(TV::Axis_Vector(1)*bv);
     for(int level=0;level<levels;++level)
         if(uvf)Uniform_Velocity_Field_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,bv,level);
-        else Source_Velocity_Setup<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),sources,source_velocity,face_velocity_channels,level);
+        else Source_Velocity_Setup<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),velocity_sources,source_velocity,face_velocity_channels,level);
 }
 //######################################################################
 // Project
@@ -376,7 +376,7 @@ Project()
     source_velocity.Append(TV::Axis_Vector(1)*bv);
     // set boundary conditions
     for(int level=0;level<levels;++level){Boundary_Condition_Helper<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,pressure_channel,level);
-       if(uvf) Source_Velocity_Setup<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),sources,source_velocity,face_velocity_channels,level);}
+       if(!uvf) Source_Velocity_Setup<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),velocity_sources,source_velocity,face_velocity_channels,level);}
         
     // compute divergence
     Hierarchy_Projection::Compute_Divergence(*hierarchy,face_velocity_channels,divergence_channel);

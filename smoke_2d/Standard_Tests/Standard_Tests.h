@@ -30,7 +30,7 @@ class Standard_Tests: public Smoke_Example<T,d>
 
   public:
     using Base::output_directory; using Base::test_number;using Base::counts;using Base::levels;using Base::domain_walls;using Base::hierarchy;using Base::rasterizer;
-    using Base::cfl;    using Base::sources;    using Base::density_channel;
+    using Base::cfl;    using Base::velocity_sources;    using Base::density_sources;    using Base::density_channel;
     using Base::FICKS;  using Base::diff_coeff; using Base::Fc; using Base::tau; using Base::bv; using Base::source_rate;
     using Base::uvf;
     using Base::explicit_diffusion;
@@ -80,16 +80,20 @@ class Standard_Tests: public Smoke_Example<T,d>
 
                 for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                     const T_INDEX index=base_index+range_iterator.Index();
-                    if(flags(offset)&Cell_Type_Interior && sources(0)->Inside(hierarchy->Lattice(level).Center(index))) data(offset)=(T)0.;
+                    if(flags(offset)&Cell_Type_Interior && density_sources(0)->Inside(hierarchy->Lattice(level).Center(index))) data(offset)=(T)0.;
                     range_iterator.Next();}}}
     }
 //######################################################################
     void Initialize_Sources() override
     {
         const T cell_width=(T)4./counts(0);
-        TV min_corner=TV({2.-cell_width,2.-cell_width}),max_corner=TV({2.+cell_width,2.+cell_width});
-        Implicit_Object<T,d>* obj=new Box_Implicit_Object<T,d>(min_corner,max_corner);
-        sources.Append(obj);
+        TV density_min_corner=TV({2.-cell_width,2.-cell_width}),density_max_corner=TV({2.+cell_width,2.+cell_width});
+        Implicit_Object<T,d>* density_obj=new Box_Implicit_Object<T,d>(density_min_corner,density_max_corner);
+        density_sources.Append(density_obj);
+
+        TV velocity_min_corner=TV({2.-cell_width,0.}),velocity_max_corner=TV({2.+cell_width,2.*cell_width});
+        Implicit_Object<T,d>* velocity_obj=new Box_Implicit_Object<T,d>(velocity_min_corner,velocity_max_corner);
+        density_sources.Append(velocity_obj);
     }
 //######################################################################
 };
