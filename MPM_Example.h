@@ -144,6 +144,7 @@ class MPM_Example<T,2>: public Example<T,2>
   public:
     using Base::frame_title;using Base::output_directory;using Base::parse_args;using Base::first_frame;
 
+    T nbw;
     T explicit_force_rt=0.;
     int explicit_force_cnt=0;
     T apply_force_rt=0.;
@@ -280,6 +281,7 @@ class MPM_Example<T,3>: public Example<T,3>
   public:
     using Base::frame_title;using Base::output_directory;using Base::parse_args;using Base::first_frame;
 
+    T nbw;
     T explicit_force_rt=0.;
     int explicit_force_cnt=0;
     T apply_force_rt=0.;

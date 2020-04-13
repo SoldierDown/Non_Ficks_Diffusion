@@ -983,8 +983,8 @@ Update_Particle_Velocities_And_Positions(const T dt)
     average_abs_X_shift/=particle_number;
     Log::cout<<"average shift: "<<average_abs_X_shift<<std::endl;
     
-    const T three_cell_widths=(T)3.*mpm_grid.dX(0);
-    TV min_corner=TV(), max_corner=(T)2*average_abs_X_shift+TV(three_cell_widths);
+    const T several_cell_width=nbw*mpm_grid.dX(0);
+    TV min_corner=TV(), max_corner=(T)2*average_abs_X_shift+TV(several_cell_width);
     Range<T,3> shift_box(min_corner,max_corner);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
@@ -1196,6 +1196,7 @@ Register_Options()
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
     parse_args->Add_Double_Argument("-cfl",(T)0.1,"CFL number.");
+    parse_args->Add_Double_Argument("-nbw",(T)0.,"Narrow band width");
     parse_args->Add_Double_Argument("-min_dt",(T)1.e-6,"min time step.");
     parse_args->Add_Double_Argument("-max_dt",(T)1.e-3,"max time step.");
     parse_args->Add_Double_Argument("-diff_coeff",(T)1e-3,"diffusion coefficient.");
@@ -1220,6 +1221,7 @@ Register_Options()
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
     parse_args->Add_Double_Argument("-cfl",(T)0.1,"CFL number.");
+    parse_args->Add_Double_Argument("-nbw",(T)0.,"Narrow band width");
     parse_args->Add_Double_Argument("-min_dt",(T)1.e-6,"min time step.");
     parse_args->Add_Double_Argument("-max_dt",(T)1.e-3,"max time step.");
     parse_args->Add_Double_Argument("-diff_coeff",(T)1e-3,"diffusion coefficient.");
@@ -1259,6 +1261,7 @@ Parse_Options()
     omp_set_num_threads(threads);
     Base::test_number=parse_args->Get_Integer_Value("-test_number");
     cfl=parse_args->Get_Double_Value("-cfl");
+    nbw=parse_args->Get_Double_Value("-nbw");
     levels=parse_args->Get_Integer_Value("-levels");
     FICKS=parse_args->Get_Option_Value("-ficks");
     diff_coeff=parse_args->Get_Double_Value("-diff_coeff");
@@ -1285,6 +1288,7 @@ Parse_Options()
     omp_set_num_threads(threads);
     Base::test_number=parse_args->Get_Integer_Value("-test_number");
     cfl=parse_args->Get_Double_Value("-cfl");
+    nbw=parse_args->Get_Double_Value("-nbw");
     levels=parse_args->Get_Integer_Value("-levels");
     FICKS=parse_args->Get_Option_Value("-ficks");
     diff_coeff=parse_args->Get_Double_Value("-diff_coeff");
