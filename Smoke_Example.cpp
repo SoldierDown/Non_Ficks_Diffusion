@@ -28,7 +28,8 @@
 #include "Clamp_Helper.h"
 #include "Lap_Calculator.h"
 #include "Density_Backup_Helper.h"
-#include "Face_Qc_Updater.h"
+#include "Explicit_Face_Qc_Updater.h"
+#include "Implicit_Face_Qc_Updater.h"
 #include "Uniform_Grid_Helper/Uniform_Grid_Advection_Helper.h"
 #include "Uniform_Grid_Helper/Uniform_Grid_Averaging_Helper.h"
 #include "Density_Clamp_Helper.h"
@@ -199,11 +200,10 @@ Non_Ficks_Diffusion(const T dt)
     Log::cout<<"Non-Fick's Diffusion"<<std::endl;
     const Grid<T,d>& grid=hierarchy->Lattice(0);
 	const T dx2=Nova_Utilities::Sqr(grid.dX(0));        const T one_over_dx2=(T)1./dx2;
-    const T coeff1=dt*diff_coeff*(Fc*tau+dt)/(dt+tau);  const T coeff2=dt*tau/(dt+tau);
-    const T coeff3=dt*diff_coeff*Fc;                    const T coeff4=-dt;
-    const T coeff5=(tau-dt)/tau;                        const T coeff6=-diff_coeff*dt*(1-Fc)/tau;
     Log::cout<<"diff_coeff: "<<diff_coeff<<", fc: "<<Fc<<", tau: "<<tau<<", bv: "<<bv<<", sr: "<<source_rate<<std::endl;
     if(explicit_diffusion){
+        const T coeff3=dt*diff_coeff*Fc;                    const T coeff4=-dt;
+        const T coeff5=-dt/tau;                             const T coeff6=-diff_coeff*dt*(1-Fc)/tau;
         T Struct_type::* div_qc_channel                     = &Struct_type::ch8;
         for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qc_channel);
         // compute div(Qc) at time n
@@ -219,18 +219,30 @@ Non_Ficks_Diffusion(const T dt)
         
         // Advect face vector by axis
         Channel_Vector interpolated_face_velocity_channels;
-        interpolated_face_velocity_channels(0)              = &Struct_type::ch10;
-        interpolated_face_velocity_channels(1)              = &Struct_type::ch11;
-        if(d==3) interpolated_face_velocity_channels(2)     = &Struct_type::ch12; 
-        T Struct_type::* temp_channel                       = &Struct_type::ch13;  
+        interpolated_face_velocity_channels(0)              = &Struct_type::ch8;
+        interpolated_face_velocity_channels(1)              = &Struct_type::ch9;
+        if(d==3) interpolated_face_velocity_channels(2)     = &Struct_type::ch10; 
+        Channel_Vector face_qc_backup_channels;
+        face_qc_backup_channels(0)                          = &Struct_type::ch11;
+        face_qc_backup_channels(1)                          = &Struct_type::ch12;
+        if(d==3) face_qc_backup_channels(2)                 = &Struct_type::ch13; 
+        T Struct_type::* temp_channel                       = &Struct_type::ch14;  
         // Clear
-        for(int level=0;level<levels;++level) {for(int v=0;v<d;++v) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),interpolated_face_velocity_channels(v));
+        for(int level=0;level<levels;++level) {for(int v=0;v<d;++v) {
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),interpolated_face_velocity_channels(v));
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qc_backup_channels(v));}
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),temp_channel);} 
+        
+        for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis) 
+            SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qc_channels(axis),
+                                                face_qc_backup_channels(axis),Topology_Helper::Face_Active_Mask(axis));
         Uniform_Grid_Advection_Helper<Struct_type,T,d>::Uniform_Grid_Advect_Face_Vector(*hierarchy,face_qc_channels,face_velocity_channels,interpolated_face_velocity_channels,temp_channel,dt);
         // update Qc
         for(int level=0;level<levels;++level)
-            Face_Qc_Updater<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_qc_channels,density_backup_channel,coeff5,coeff6,level);}
+            Explicit_Face_Qc_Updater<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_qc_channels,face_qc_channels,density_backup_channel,coeff5,coeff6,level);}
     else{
+        const T coeff1=dt*diff_coeff*(Fc*tau+dt)/(dt+tau);  const T coeff2=dt*tau/(dt+tau);                    
+        const T coeff5=tau/(tau+dt);                        const T coeff6=-diff_coeff*dt*(1-Fc)/(tau+dt);        
         // compute div(Qc^n)
         T Struct_type::* div_qc_channel                 = &Struct_type::ch8;
         for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qc_channel);
@@ -251,7 +263,8 @@ Non_Ficks_Diffusion(const T dt)
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),z_channel);
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),b_channel);}
         Non_Ficks_CG_System<Struct_type,Multigrid_struct_type,T,d> cg_system(*hierarchy,mg_levels,coeff1,3,1,200);
-        for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_backup_channel,div_qc_channel,b_channel,coeff1*one_over_dx2,coeff2);
+        for(int level=0;level<levels;++level) Non_Ficks_RHS_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,div_qc_channel,b_channel,
+                                                                                    coeff1*one_over_dx2,coeff2);
         for(int level=0;level<levels;++level) SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_backup_channel,
                                                                                 density_channel,(unsigned)Cell_Type_Interior);
         CG_Vector<Struct_type,T,d> x_V(*hierarchy,density_channel),b_V(*hierarchy,b_channel),q_V(*hierarchy,q_channel),
@@ -270,17 +283,29 @@ Non_Ficks_Diffusion(const T dt)
 
         // Advect face vector by axis
         Channel_Vector interpolated_face_velocity_channels;
-        interpolated_face_velocity_channels(0)              = &Struct_type::ch9;
-        interpolated_face_velocity_channels(1)              = &Struct_type::ch10;
-        if(d==3) interpolated_face_velocity_channels(2)     = &Struct_type::ch11; 
-        T Struct_type::* temp_channel                       = &Struct_type::ch12;  
+        interpolated_face_velocity_channels(0)              = &Struct_type::ch8;
+        interpolated_face_velocity_channels(1)              = &Struct_type::ch9;
+        if(d==3) interpolated_face_velocity_channels(2)     = &Struct_type::ch10; 
+        Channel_Vector face_qc_backup_channels;
+        face_qc_backup_channels(0)                          = &Struct_type::ch11;
+        face_qc_backup_channels(1)                          = &Struct_type::ch12;
+        if(d==3) face_qc_backup_channels(2)                 = &Struct_type::ch13; 
+        T Struct_type::* temp_channel                       = &Struct_type::ch14;  
+
         // Clear
-        for(int level=0;level<levels;++level) {for(int v=0;v<d;++v) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),interpolated_face_velocity_channels(v));
+        for(int level=0;level<levels;++level) {for(int v=0;v<d;++v) {
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),interpolated_face_velocity_channels(v));
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qc_backup_channels(v));}
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),temp_channel);} 
+            
         Uniform_Grid_Advection_Helper<Struct_type,T,d>::Uniform_Grid_Advect_Face_Vector(*hierarchy,face_qc_channels,face_velocity_channels,interpolated_face_velocity_channels,temp_channel,dt);
+        // Back up face qc
+        for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis) 
+            SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qc_channels(axis),
+                                                face_qc_backup_channels(axis),Topology_Helper::Face_Active_Mask(axis));
         // update Qc
         for(int level=0;level<levels;++level)
-            Face_Qc_Updater<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_qc_channels,density_channel,coeff5,coeff6,level);
+            Implicit_Face_Qc_Updater<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_qc_channels,face_qc_backup_channels,density_channel,coeff5,coeff6,level);
     }
 }
 //######################################################################
