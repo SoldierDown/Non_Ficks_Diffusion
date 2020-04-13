@@ -19,7 +19,7 @@ Initialize()
     Base::Initialize();
 
     example.Log_Parameters();
-    example.Initialize_Sources();
+    example.Initialize_Sources(example.test_number);
 
     if(!example.restart) example.Initialize();
     else example.Read_Output_Files(example.restart_frame);
@@ -35,10 +35,9 @@ template<class T,int d> void Smoke_Driver<T,d>::
 Advance_One_Time_Step_Explicit_Part(const T dt,const T time)
 {
     // scalar advance
-    example.Add_Source(dt);
-    example.Backup_Density();
     example.Advect_Density(dt);
-    // example.Modify_Density_With_Sources();
+    if(example.const_density_source) example.Modify_Density_With_Sources();
+    else example.Add_Source(dt);
     example.Diffuse_Density(dt);
     example.Backup_Density();
     // convect
@@ -63,7 +62,6 @@ Advance_To_Target_Time(const T target_time)
         Log::Scope scope("SUBSTEP","substep "+std::to_string(substep));
         T dt=Compute_Dt(time,target_time);
         if(example.explicit_diffusion) dt/=(T)100.;
-        // dt/=(T)100.;
         Example<T,d>::Clamp_Time_Step_With_Target_Time(time,target_time,dt,done);
         Advance_One_Time_Step_Explicit_Part(dt,time);
         Advance_One_Time_Step_Implicit_Part(dt,time);

@@ -31,6 +31,10 @@ class Smoke_Example: public Example<T,d>
   public:
     using Base::frame_title;using Base::output_directory;using Base::parse_args;using Base::first_frame;
 
+    int test_number;
+    bool const_density_source;
+    T const_density_value;
+    bool separate_sources;
     bool FICKS;
     bool explicit_diffusion;
     bool uvf;
@@ -60,9 +64,9 @@ class Smoke_Example: public Example<T,d>
     {if(hierarchy!=nullptr) delete hierarchy;}
 
 //######################################################################
-    virtual void Initialize_Rasterizer()=0;
-    virtual void Initialize_Fluid_State()=0;
-    virtual void Initialize_Sources()=0;
+    virtual void Initialize_Rasterizer(const int test_number)=0;
+    virtual void Initialize_Fluid_State(const int test_number)=0;
+    virtual void Initialize_Sources(const int test_number)=0;
 //######################################################################
     void Initialize();
     void Initialize_SPGrid();

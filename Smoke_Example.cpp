@@ -63,7 +63,7 @@ template<class T,int d> void Smoke_Example<T,d>::
 Initialize()
 {
     Initialize_SPGrid();
-    Initialize_Fluid_State();
+    Initialize_Fluid_State(test_number);
 }
 //######################################################################
 // Initialize_SPGrid
@@ -72,7 +72,7 @@ template<class T,int d> void Smoke_Example<T,d>::
 Initialize_SPGrid()
 {
     Log::Scope scope("Initialize_SPGrid");
-    Initialize_Rasterizer();
+    Initialize_Rasterizer(test_number);
     for(Grid_Hierarchy_Iterator<d,Hierarchy_Rasterizer> iterator(hierarchy->Lattice(levels-1).Cell_Indices(),levels-1,*rasterizer);iterator.Valid();iterator.Next());
     Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_Ghost_Cells(*hierarchy);
     Grid_Hierarchy_Initializer<Struct_type,T,d>::Flag_Valid_Faces(*hierarchy);
@@ -453,6 +453,7 @@ Register_Options()
 
     parse_args->Add_Double_Argument("-cfl",(T).5,"CFL number.");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
+    parse_args->Add_Integer_Argument("-test_number",1,"Test number.");
     parse_args->Add_Integer_Argument("-mg_levels",1,"Number of levels in the Multigrid hierarchy.");
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
     if(d==2) parse_args->Add_Vector_2D_Argument("-size",Vector<double,2>(64.),"n","Grid resolution");
@@ -480,6 +481,7 @@ Parse_Options()
 
     cfl=(T)parse_args->Get_Double_Value("-cfl");
     levels=parse_args->Get_Integer_Value("-levels");
+    test_number=parse_args->Get_Integer_Value("-test_number");
     mg_levels=parse_args->Get_Integer_Value("-mg_levels");
     number_of_threads=parse_args->Get_Integer_Value("-threads");
     omp_set_num_threads(number_of_threads);
@@ -496,6 +498,13 @@ Parse_Options()
     cg_iterations=parse_args->Get_Integer_Value("-cg_iterations");
     cg_restart_iterations=parse_args->Get_Integer_Value("-cg_restart_iterations");
     cg_tolerance=(T)parse_args->Get_Double_Value("-cg_tolerance");
+    switch (test_number){
+    case 1:{const_density_source=false;const_density_value=(T)0.;uvf=false;}break;
+    case 2:{const_density_source=true;const_density_value=(T)1.;uvf=false;}break;
+    case 3:{const_density_source=false;const_density_value=(T)0.;uvf=false;}break;
+    case 4:{const_density_source=true;const_density_value=(T)1.;uvf=false;}break;
+    case 5:{const_density_source=false;const_density_value=(T)0.;uvf=true;}break;
+    case 6:{const_density_source=true;const_density_value=(T)1.;uvf=true;}break;}
 }
 //######################################################################
 // Write_Output_Files

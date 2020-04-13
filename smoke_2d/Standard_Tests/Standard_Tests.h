@@ -32,7 +32,7 @@ class Standard_Tests: public Smoke_Example<T,d>
     using Base::output_directory; using Base::test_number;using Base::counts;using Base::levels;using Base::domain_walls;using Base::hierarchy;using Base::rasterizer;
     using Base::cfl;    using Base::velocity_sources;    using Base::density_sources;    using Base::density_channel;
     using Base::FICKS;  using Base::diff_coeff; using Base::Fc; using Base::tau; using Base::bv; using Base::source_rate;
-    using Base::uvf;
+    using Base::uvf;    using Base::separate_sources; using Base::const_density_value;
     using Base::explicit_diffusion;
     /****************************
      * example explanation:
@@ -48,9 +48,10 @@ class Standard_Tests: public Smoke_Example<T,d>
     void Parse_Options() override
     {
         Base::Parse_Options();
-        output_directory=(explicit_diffusion?"Source_Smoke_":"Implicit_Source_Smoke_")+std::to_string(d)+"d_"+(FICKS?"F":"NF")+"_diff_"+std::to_string(diff_coeff)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau)+(uvf?"_Uniform":"")+"_bv_"+std::to_string(bv)+"_sr_"+std::to_string(source_rate)+"_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
-        for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=false;
-        // domain_walls(1)(1)=false; domain_walls(1)(0)=false;
+        output_directory=(explicit_diffusion?"Source_Smoke_":"Implicit_Source_Smoke_")+std::to_string(d)+"d_"+(FICKS?"F":"NF")+"_case_"+std::to_string(test_number)+"_diff_"+std::to_string(diff_coeff)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau)+(uvf?"_Uniform":"")+"_bv_"+std::to_string(bv)+"_sr_"+std::to_string(source_rate)+"_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
+        // output_directory="TEMP";
+        for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=true;
+        domain_walls(1)(1)=false; domain_walls(1)(0)=false;
         // for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=true;
         // domain_walls(1)(1)=false; domain_walls(1)(0)=false;
         TV min_corner,max_corner=TV(4.);
@@ -58,12 +59,12 @@ class Standard_Tests: public Smoke_Example<T,d>
         hierarchy=new Hierarchy(counts,Range<T,d>(min_corner,max_corner),levels);
     }
 //######################################################################
-    void Initialize_Rasterizer() override
+    void Initialize_Rasterizer(const int test_number) override
     {
         rasterizer=new Randomized_Rasterizer<Struct_type,T,d>(*hierarchy);
     }
 //######################################################################
-    void Initialize_Fluid_State() override
+    void Initialize_Fluid_State(const int test_number) override
     {
         // clear density channel
         for(int level=0;level<levels;++level)
@@ -80,24 +81,44 @@ class Standard_Tests: public Smoke_Example<T,d>
 
                 for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                     const T_INDEX index=base_index+range_iterator.Index();
-                    if(flags(offset)&Cell_Type_Interior && density_sources(0)->Inside(hierarchy->Lattice(level).Center(index))) data(offset)=(T)0.;
+                    if(flags(offset)&Cell_Type_Interior && density_sources(0)->Inside(hierarchy->Lattice(level).Center(index))) data(offset)=const_density_value;
                     range_iterator.Next();}}}
     }
 //######################################################################
-    void Initialize_Sources() override
+    void Initialize_Sources(const int test_number) override
     {
         const T cell_width=(T)4./counts(0);
-        TV density_min_corner=TV({(T)2.-cell_width,(T)2.-cell_width}),density_max_corner=TV({(T)2.+cell_width,(T)2.+cell_width});
-        Implicit_Object<T,d>* density_obj=new Box_Implicit_Object<T,d>(density_min_corner,density_max_corner);
-        // TV density_min_corner=TV({1.8,0.}),density_max_corner=TV({2.2,2.*cell_width});
-        // Implicit_Object<T,d>* density_obj=new Box_Implicit_Object<T,d>(density_min_corner,density_max_corner);
-        density_sources.Append(density_obj);
+        switch (test_number)
+        {
+        // test case 1: density&velocity source near the bottom 
+        case 1:
+        case 2:{
+            TV density_min_corner=TV({(T)1.8,(T)0.}),density_max_corner=TV({(T)2.2,(T)2.*cell_width});
+            Implicit_Object<T,d>* density_obj=new Box_Implicit_Object<T,d>(density_min_corner,density_max_corner);
+            density_sources.Append(density_obj);
 
-        TV velocity_min_corner=TV({(T)2.-cell_width,(T)2.-cell_width}),velocity_max_corner=TV({(T)2.+cell_width,(T)2.+cell_width});
-        Implicit_Object<T,d>* velocity_obj=new Box_Implicit_Object<T,d>(velocity_min_corner,velocity_max_corner);
-        // TV velocity_min_corner=TV({1.8,0.}),velocity_max_corner=TV({2.2,2.*cell_width});
-        // Implicit_Object<T,d>* velocity_obj=new Box_Implicit_Object<T,d>(velocity_min_corner,velocity_max_corner);
-        velocity_sources.Append(velocity_obj);
+            TV velocity_min_corner=TV({(T)1.8,(T)0.}),velocity_max_corner=TV({(T)2.2,(T)2.*cell_width});
+            Implicit_Object<T,d>* velocity_obj=new Box_Implicit_Object<T,d>(velocity_min_corner,velocity_max_corner);
+            velocity_sources.Append(velocity_obj);}break;
+        case 3:
+        case 4:{
+            TV density_min_corner=TV({(T)2.-cell_width,(T)2.-cell_width}),density_max_corner=TV({(T)2.+cell_width,(T)2.+cell_width});
+            Implicit_Object<T,d>* density_obj=new Box_Implicit_Object<T,d>(density_min_corner,density_max_corner);
+            density_sources.Append(density_obj);
+            TV velocity_min_corner=TV({(T)1.8,(T)0.}),velocity_max_corner=TV({(T)2.2,(T)2.*cell_width});
+            Implicit_Object<T,d>* velocity_obj=new Box_Implicit_Object<T,d>(velocity_min_corner,velocity_max_corner);
+            velocity_sources.Append(velocity_obj);
+        }break;
+        case 5:
+        case 6:{
+            TV density_min_corner=TV({(T)2.-cell_width,(T)2.-cell_width}),density_max_corner=TV({(T)2.+cell_width,(T)2.+cell_width});
+            Implicit_Object<T,d>* density_obj=new Box_Implicit_Object<T,d>(density_min_corner,density_max_corner);
+            density_sources.Append(density_obj);
+            TV velocity_min_corner=TV({(T)2.-cell_width,(T)2.-cell_width}),velocity_max_corner=TV({(T)2.+cell_width,(T)2.+cell_width});
+            Implicit_Object<T,d>* velocity_obj=new Box_Implicit_Object<T,d>(velocity_min_corner,velocity_max_corner);
+            velocity_sources.Append(velocity_obj);}break;}
+
+
     }
 //######################################################################
 };
