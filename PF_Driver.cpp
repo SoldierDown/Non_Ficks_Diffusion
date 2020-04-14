@@ -42,9 +42,9 @@ Advance_One_Time_Step_Explicit_Part(const T dt,const T time)
     if(example.FICKS){example.Update_Density(dt);
     example.Update_Temperature(dt);}
     else{example.Update_Density(dt);
-    example.Update_Face_Qs(dt);
+    example.Update_Face_Qsc(dt);
     example.Update_Temperature(dt);
-    example.Update_Face_Qt(dt);}
+    example.Update_Face_Qtc(dt);}
     example.Backup();
 
     // convect
@@ -69,8 +69,8 @@ Advance_To_Target_Time(const T target_time)
         Log::Scope scope("SUBSTEP","substep "+std::to_string(substep));
         T dt=Compute_Dt(time,target_time);
         // dt=std::max(min_dt,std::min(max_dt,dt));
-        if(example.explicit_diffusion) dt/=(T)10.;
-        dt=(T)1e-5;
+        // if(example.explicit_diffusion) dt/=(T)10.;
+        dt=(T)1e-4;
         Example<T,d>::Clamp_Time_Step_With_Target_Time(time,target_time,dt,done);
         
         Advance_One_Time_Step_Explicit_Part(dt,time);

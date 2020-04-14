@@ -39,9 +39,9 @@ class PF_Example: public Example<T,d>
     // for updating density
     T tau_s;
     // for updating face_qs_channels
-    T tau_1,SR,K;
+    T fc_1,tau_1,SR,K;
     // for updating face_qt_channels
-    T tau_2,k;
+    T fc_2,tau_2,k;
     // for updating m_channel
     T m_alpha,gamma,Teq;
     // for updating epsilon_channel
@@ -60,10 +60,10 @@ class PF_Example: public Example<T,d>
     T Struct_type::* T_backup_channel;
     T Struct_type::* epsilon_channel;
     
-    Channel_Vector face_qs_channels;
-    Channel_Vector face_qs_backup_channels;
-    Channel_Vector face_qt_channels;
-    Channel_Vector face_qt_backup_channels;
+    Channel_Vector face_qsc_channels;
+    Channel_Vector face_qsc_backup_channels;
+    Channel_Vector face_qtc_channels;
+    Channel_Vector face_qtc_backup_channels;
 
     Channel_Vector face_velocity_channels;
 
@@ -89,8 +89,8 @@ class PF_Example: public Example<T,d>
     void Advect_Temperature(const T dt);
 
     void Advect_Face_Vector_Field(const T dt);
-    void Advect_Face_Qs(const T dt);
-    void Advect_Face_Qt(const T dt);
+    void Advect_Face_Qsc(const T dt);
+    void Advect_Face_Qtc(const T dt);
 
     void Update_Density(const T dt);
     void Explicitly_Update_Density(const T dt);
@@ -101,11 +101,11 @@ class PF_Example: public Example<T,d>
     void Add_Random_Term_To_Density(const T dt);
     void Implicitly_Update_Density(const T dt);
 
-    void Update_Face_Qs(const T dt);
-    void Explicitly_Update_Face_Qs(const T dt);
-    void Add_Gradient_Term_To_Face_Qs(const T dt);
-    void Add_Linear_Term_To_Face_Qs(const T dt);
-    void Implicitly_Update_Face_Qs(const T dt);
+    void Update_Face_Qsc(const T dt);
+    void Explicitly_Update_Face_Qsc(const T dt);
+    void Add_Gradient_Term_To_Face_Qsc(const T dt);
+    void Add_Linear_Term_To_Face_Qsc(const T dt);
+    void Implicitly_Update_Face_Qsc(const T dt);
 
 
     void Update_Temperature(const T dt);
@@ -116,17 +116,17 @@ class PF_Example: public Example<T,d>
     void Add_dSdt_Term_To_Temperature(const T dt);
     void Implicitly_Update_Temperature(const T dt);
 
-    void Update_Face_Qt(const T dt);
-    void Explicitly_Update_Face_Qt(const T dt);
-    void Add_Gradient_Term_To_Face_Qt(const T dt);
-    void Add_Linear_Term_To_Face_Qt(const T dt);
-    void Implicitly_Update_Face_Qt(const T dt);
+    void Update_Face_Qtc(const T dt);
+    void Explicitly_Update_Face_Qtc(const T dt);
+    void Add_Gradient_Term_To_Face_Qtc(const T dt);
+    void Add_Linear_Term_To_Face_Qtc(const T dt);
+    void Implicitly_Update_Face_Qtc(const T dt);
 
     void Backup();
     void Backup_Density();
     void Backup_Temperature();
-    void Backup_Qs();
-    void Backup_Qt();
+    void Backup_Qsc();
+    void Backup_Qtc();
 
     void Modify_Density_With_Sources();
     void Add_Source(const T dt);

@@ -24,12 +24,12 @@ class K_Gradient_T_Helper
     using Topology_Helper           = Grid_Topology_Helper<Flag_array_mask>;
 
   public:
-    K_Gradient_T_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& face_qp_channels,
-                   T Struct_type::* T_channel,const T k,const T minus_dt_over_tau_2,const TV one_over_dx,const int level)
-    {Run(allocator,blocks,face_qp_channels,T_channel,k,minus_dt_over_tau_2,one_over_dx,level);}
+    K_Gradient_T_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& face_qs_channels,
+                   T Struct_type::* T_channel,const T coeff,const TV one_over_dx,const int level)
+    {Run(allocator,blocks,face_qs_channels,T_channel,coeff,one_over_dx,level);}
 
-    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& face_qp_channels,
-            T Struct_type::* T_channel,const T k,const T minus_dt_over_tau_2,const TV one_over_dx,const int level) const
+    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& face_qs_channels,
+            T Struct_type::* T_channel,const T coeff,const TV one_over_dx,const int level) const
     {
         auto T_data=allocator.template Get_Const_Array<Struct_type,T>(T_channel);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
@@ -39,9 +39,9 @@ class K_Gradient_T_Helper
         auto k_gradient_t_helper=[&](uint64_t offset)
         {
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)) for(int axis=0;axis<d;++axis){
-                auto face_qp_data=allocator.template Get_Array<Struct_type,T>(face_qp_channels(axis));
+                auto face_qp_data=allocator.template Get_Array<Struct_type,T>(face_qs_channels(axis));
                 if(flags(offset)&Topology_Helper::Face_Active_Mask(axis)){uint64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,negative_face_offsets(axis));
-                    face_qp_data(offset)+=minus_dt_over_tau_2*k*(T_data(offset)-T_data(neighbor_offset))*one_over_dx(axis);}}
+                    face_qp_data(offset)+=coeff*(T_data(offset)-T_data(neighbor_offset))*one_over_dx(axis);}}
         };
 
         SPGrid_Computations::Run_Parallel_Blocks(blocks,k_gradient_t_helper);

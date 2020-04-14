@@ -19,18 +19,18 @@ struct PC_Data
     T ch1;      // density_backup
     T ch2;      // T
     T ch3;      // T_backup
-    T ch4;      // X_Qp
-    T ch5;      // Y_Qp
-    T ch6;      // Z_Qp
-    T ch7;      // X_Qp backup
-    T ch8;      // Y_Qp backup
-    T ch9;      // Z_Qp backup
-    T ch10;     // X_Qt
-    T ch11;     // Y_Qt
-    T ch12;     // Z_Qt
-    T ch13;     // X_Qt_backup
-    T ch14;     // Y_Qt_backup
-    T ch15;     // Z_Qt_backup
+    T ch4;      // X_Qpc
+    T ch5;      // Y_Qpc
+    T ch6;      // Z_Qpc
+    T ch7;      // X_Qpc backup
+    T ch8;      // Y_Qpc backup
+    T ch9;      // Z_Qpc backup
+    T ch10;     // X_Qtc
+    T ch11;     // Y_Qtc
+    T ch12;     // Z_Qtc
+    T ch13;     // X_Qtc_backup
+    T ch14;     // Y_Qtc_backup
+    T ch15;     // Z_Qtc_backup
     T ch16;     // X_velocity
     T ch17;     // Y_velocity
     T ch18;     // Z_velocity
