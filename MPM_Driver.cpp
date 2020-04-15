@@ -62,6 +62,7 @@ Advance_To_Target_Time(const T target_time)
     bool done=false;
     for(int substep=1;!done;substep++){
         example.Populate_Simulated_Particles(); // add only valid particles to array
+        Log::cout<<"number of particles: "<<example.simulated_particles.size()<<std::endl;
         T max_v=example.Max_Particle_Velocity();
         Log::Scope scope("SUBSTEP","substep "+std::to_string(substep));
         T dt=std::max(min_dt,std::min(max_dt,cfl*dx_min/std::max(max_v,(T)1e-2)));
