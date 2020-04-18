@@ -1040,8 +1040,8 @@ Apply_Force(const T dt)
 {
     high_resolution_clock::time_point tb=high_resolution_clock::now();
     Apply_Explicit_Force(dt);
-    Grid_Based_Collision(true);
-    if(true){
+    Grid_Based_Collision(false);
+    if(false){
     Conjugate_Gradient<T> cg;
     Krylov_Solver<T>* solver=(Krylov_Solver<T>*)&cg;
     MPM_CG_System<MPM_struct_type,T,3> mpm_system(*mpm_hierarchy,simulated_particles,particles,particle_bins,x_intervals,barriers,(T)0.,dt,threads);
