@@ -30,8 +30,8 @@ class Standard_Tests: public PF_Example<T,d>
 
   public:
     using Base::output_directory; using Base::test_number;using Base::counts;using Base::levels;using Base::domain_walls;using Base::hierarchy;using Base::rasterizer;
-    using Base::cfl;    using Base::sources;    using Base::density_channel;
-    using Base::omega;  using Base::FICKS;
+    using Base::cfl;    using Base::density_sources; using Base::velocity_sources;    using Base::density_channel;
+    using Base::omega;  using Base::FICKS; using Base::const_density_value;
     using Base::explicit_diffusion;
     /****************************
      * example explanation:
@@ -76,7 +76,7 @@ class Standard_Tests: public PF_Example<T,d>
 
                 for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                     const T_INDEX index=base_index+range_iterator.Index();
-                    if(flags(offset)&Cell_Type_Interior && sources(0)->Inside(hierarchy->Lattice(level).Center(index))) data(offset)=(T)1.;
+                    if(flags(offset)&Cell_Type_Interior && density_sources(0)->Inside(hierarchy->Lattice(level).Center(index))) data(offset)=const_density_value;
                     range_iterator.Next();}}}
     }
 //######################################################################
@@ -85,7 +85,7 @@ class Standard_Tests: public PF_Example<T,d>
         const T radius=0.03*4;
         const TV center=TV(3.84);
         Implicit_Object<T,d>* obj=new Sphere_Implicit_Object<T,d>(center,radius);
-        sources.Append(obj);
+        density_sources.Append(obj);
     }
 //######################################################################
 };

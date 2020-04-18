@@ -37,14 +37,13 @@ Advance_One_Time_Step_Explicit_Part(const T dt,const T time)
     // scalar advance
     // example.Add_Source(dt);
     // example.Advect_Scalar_Field(dt);
-    // example.Advect_Face_Vector_Field(dt);
+    // if(!example.FICKS) example.Advect_Face_Vector_Field(dt);
 
-    if(example.FICKS){example.Update_Density(dt);
-    example.Update_Temperature(dt);}
-    else{example.Update_Density(dt);
-    example.Update_Face_Qsc(dt);
-    example.Update_Temperature(dt);
-    example.Update_Face_Qtc(dt);}
+    if(example.FICKS){Log::cout<<"Fick's"<<std::endl;
+    example.Update_Density(dt); example.Update_Temperature(dt);}
+    else{ Log::cout<<"Non-Fick's"<<std::endl;
+    example.Update_Density(dt);example.Update_Face_Qsc(dt);
+    example.Update_Temperature(dt);example.Update_Face_Qtc(dt);}
     example.Backup();
 
     // convect
@@ -70,7 +69,7 @@ Advance_To_Target_Time(const T target_time)
         T dt=Compute_Dt(time,target_time);
         // dt=std::max(min_dt,std::min(max_dt,dt));
         // if(example.explicit_diffusion) dt/=(T)10.;
-        dt=(T)1e-4;
+        dt=example.const_time_step;
         Example<T,d>::Clamp_Time_Step_With_Target_Time(time,target_time,dt,done);
         
         Advance_One_Time_Step_Explicit_Part(dt,time);

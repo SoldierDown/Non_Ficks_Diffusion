@@ -32,7 +32,6 @@ class Axis_Finite_Differential_Helper
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* cell_channel,T Struct_type::* result_channel,
             const T one_over_2dx,const int axis) const
     {
-        Log::Scope scope("Axis_Finite_Differential_Helper");
         uint64_t face_neighbor_offsets[number_of_faces_per_cell];
         Topology_Helper::Face_Neighbor_Offsets(face_neighbor_offsets);
         uint64_t axis_neighbor_offsets[2];

@@ -32,7 +32,6 @@ class Psi_Evaluation_Helper
     void Run(SPGrid::SPGrid_Allocator<Struct_type,2>& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
             Vector<T Struct_type::*,2>& dSdX_channels,T Struct_type::* psi_channel) const
     {
-        Log::Scope scope("Psi_Evaluation_Helper");
         auto dSdx_data=allocator.template Get_Const_Array<Struct_type,T>(dSdX_channels(0));
         auto dSdy_data=allocator.template Get_Const_Array<Struct_type,T>(dSdX_channels(1));
         auto psi_data=allocator.template Get_Array<Struct_type,T>(psi_channel);

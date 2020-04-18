@@ -30,8 +30,8 @@ class Standard_Tests: public PF_Example<T,d>
 
   public:
     using Base::output_directory; using Base::test_number;using Base::counts;using Base::levels;using Base::domain_walls;using Base::hierarchy;using Base::rasterizer;
-    using Base::cfl;    using Base::sources;    using Base::density_channel;
-    using Base::omega;  using Base::FICKS;
+    using Base::cfl;    using Base::density_sources; using Base::velocity_sources;    using Base::density_channel;
+    using Base::omega;  using Base::FICKS; using Base::const_density_value;
     using Base::explicit_diffusion;
     /****************************
      * example explanation:
@@ -48,8 +48,9 @@ class Standard_Tests: public PF_Example<T,d>
     {
         Base::Parse_Options();
         output_directory=(explicit_diffusion?(FICKS?"Phase_Field_F_":"Phase_Field_NF_"):(FICKS?"Implicit_Phase_Change_F_":"Implicit_Phase_Change_NF_"))+std::to_string(d)+"d_"+std::to_string(omega)+"branches_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
+        output_directory="QQQ";
         for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=false;
-        TV min_corner,max_corner=TV(7.68);
+        TV min_corner,max_corner=TV(4.);
         hierarchy=new Hierarchy(counts,Range<T,d>(min_corner,max_corner),levels);
     }
 //######################################################################
@@ -75,16 +76,16 @@ class Standard_Tests: public PF_Example<T,d>
 
                 for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                     const T_INDEX index=base_index+range_iterator.Index();
-                    if(flags(offset)&Cell_Type_Interior && sources(0)->Inside(hierarchy->Lattice(level).Center(index))) data(offset)=(T)1.;
+                    if(flags(offset)&Cell_Type_Interior && density_sources(0)->Inside(hierarchy->Lattice(level).Center(index))) data(offset)=const_density_value;
                     range_iterator.Next();}}}
     }
 //######################################################################
     void Initialize_Sources() override
     {
-        const T radius=.06;
-        const TV center=TV(3.84);
+        const T radius=.04;
+        const TV center=TV(2.);
         Implicit_Object<T,d>* obj=new Sphere_Implicit_Object<T,d>(center,radius);
-        sources.Append(obj);
+        density_sources.Append(obj);
     }
 //######################################################################
 };

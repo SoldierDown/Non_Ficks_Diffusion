@@ -32,9 +32,9 @@ class Smoke_Example: public Example<T,d>
     using Base::frame_title;using Base::output_directory;using Base::parse_args;using Base::first_frame;
 
     int test_number;
+    bool nd;
     bool const_density_source;
     T const_density_value;
-    bool separate_sources;
     bool FICKS;
     bool explicit_diffusion;
     bool uvf;

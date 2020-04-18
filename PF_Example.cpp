@@ -51,10 +51,8 @@ template<class T,int d> PF_Example<T,d>::
 PF_Example()
     :Base(),hierarchy(nullptr),rasterizer(nullptr)
 {
-    FICKS=true;
     random.Set_Seed(0);
-    explicit_diffusion=true;
-    // for updating density
+    // // for updating density
     tau_s=(T)3.e-4;
     // for updating face_qsc_channels
     SR=(T)0.;
@@ -568,21 +566,21 @@ Backup_Qtc()
 //######################################################################
 // Modify_Density_With_Sources
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
-Modify_Density_With_Sources()
-{
-    for(int level=0;level<levels;++level)
-        Density_Modifier<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),density_channel,sources,level);
-}
+// template<class T,int d> void PF_Example<T,d>::
+// Modify_Density_With_Sources()
+// {
+//     for(int level=0;level<levels;++level)
+//         Density_Modifier<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),density_channel,sources,level);
+// }
 //######################################################################
 // Add_Source
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
-Add_Source(const T dt)
-{
+// template<class T,int d> void PF_Example<T,d>::
+// Add_Source(const T dt)
+// {
     // for(int level=0;level<levels;++level)
     //     Source_Adder<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),density_channel,sources,source_rate,dt,level);
-}
+// }
 //######################################################################
 // Advect_Face_Velocities
 //######################################################################
@@ -599,31 +597,31 @@ Add_Source(const T dt)
 //######################################################################
 // Set_Neumann_Faces_Inside_Sources
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
-Set_Neumann_Faces_Inside_Sources()
-{
-    for(int level=0;level<levels;++level){
-        auto flags=hierarchy->Allocator(level).template Get_Array<Struct_type,unsigned>(&Struct_type::flags);
-        for(Grid_Iterator_Face<T,d> iterator(hierarchy->Lattice(level));iterator.Valid();iterator.Next()){
-            const int axis=iterator.Axis();const T_INDEX& face_index=iterator.Face_Index();
-            uint64_t face_offset=Flag_array_mask::Linear_Offset(face_index._data);
-            const uint64_t face_active_mask=Topology_Helper::Face_Active_Mask(axis);
-            const uint64_t face_valid_mask=Topology_Helper::Face_Valid_Mask(axis);
-            const TV X=hierarchy->Lattice(level).Face(axis,face_index);
-            for(size_t i=0;i<sources.size();++i) if(sources(i)->Inside(X)){
-                if(hierarchy->template Set<unsigned>(level,&Struct_type::flags).Is_Set(face_offset,face_valid_mask))
-                    flags(face_offset)&=~face_active_mask;
-                break;}}}
-}
+// template<class T,int d> void PF_Example<T,d>::
+// Set_Neumann_Faces_Inside_Sources()
+// {
+//     for(int level=0;level<levels;++level){
+//         auto flags=hierarchy->Allocator(level).template Get_Array<Struct_type,unsigned>(&Struct_type::flags);
+//         for(Grid_Iterator_Face<T,d> iterator(hierarchy->Lattice(level));iterator.Valid();iterator.Next()){
+//             const int axis=iterator.Axis();const T_INDEX& face_index=iterator.Face_Index();
+//             uint64_t face_offset=Flag_array_mask::Linear_Offset(face_index._data);
+//             const uint64_t face_active_mask=Topology_Helper::Face_Active_Mask(axis);
+//             const uint64_t face_valid_mask=Topology_Helper::Face_Valid_Mask(axis);
+//             const TV X=hierarchy->Lattice(level).Face(axis,face_index);
+//             for(size_t i=0;i<sources.size();++i) if(sources(i)->Inside(X)){
+//                 if(hierarchy->template Set<unsigned>(level,&Struct_type::flags).Is_Set(face_offset,face_valid_mask))
+//                     flags(face_offset)&=~face_active_mask;
+//                 break;}}}
+// }
 //######################################################################
 // Initialize_Velocity_Field
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
-Initialize_Velocity_Field()
-{
-    // for(int level=0;level<levels;++level)
-    //     Uniform_Velocity_Field_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,bv,level);
-}
+// template<class T,int d> void PF_Example<T,d>::
+// Initialize_Velocity_Field()
+// {
+//     for(int level=0;level<levels;++level)
+//         Uniform_Velocity_Field_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,bv,level);
+// }
 //######################################################################
 // Project
 //######################################################################
@@ -692,21 +690,38 @@ template<class T,int d> void PF_Example<T,d>::
 Register_Options()
 {
     Base::Register_Options();
+    // for phase field
+    parse_args->Add_Option_Argument("-ficks","Fick's diffusion");
+    parse_args->Add_Integer_Argument("-omega",6,"Number of branches.");
+    parse_args->Add_Double_Argument("-cdv",(T)1.,"Constant density value.");
+    parse_args->Add_Double_Argument("-taus",(T).0003,"tau s.");
+    parse_args->Add_Double_Argument("-tau1",(T).0001,"tau 1.");
+    parse_args->Add_Double_Argument("-fc1",(T)0.,"Fc 1.");
+    parse_args->Add_Double_Argument("-tau2",(T).0001,"tau 2.");
+    parse_args->Add_Double_Argument("-fc2",(T)0.,"Fc 2.");
+    parse_args->Add_Double_Argument("-Teq",(T)1.,"Teq.");
+    parse_args->Add_Double_Argument("-gamma",(T)10.,"gamma.");
+    parse_args->Add_Double_Argument("-delta",(T).01,"delta.");
+
+    parse_args->Add_Double_Argument("-k",(T)1.,"k.");
+    parse_args->Add_Double_Argument("-K",(T)2.,"K.");
+    parse_args->Add_Double_Argument("-ma",(T).9,"m_alpha.");
+    parse_args->Add_Double_Argument("-SR",(T)0.,"SR.");
+    parse_args->Add_Double_Argument("-bv",(T)1.,"background velocity");
+
+    parse_args->Add_Option_Argument("-ed","Explicit diffusion");
+    parse_args->Add_Option_Argument("-uvf","Uniform velocity field.");
 
     parse_args->Add_Double_Argument("-cfl",(T).5,"CFL number.");
-    parse_args->Add_Double_Argument("-tau1",(T)1.,"tau 1.");
-    parse_args->Add_Double_Argument("-fc1",(T)0.,"Fc 1.");
-    parse_args->Add_Double_Argument("-tau2",(T)1.,"tau 2.");
-    parse_args->Add_Double_Argument("-fc2",(T)0.,"Fc 2.");
-    parse_args->Add_Double_Argument("-K",(T)1.,"K.");
+    parse_args->Add_Double_Argument("-dt",(T)1.e-5,"Constant time step.");
+    parse_args->Add_Integer_Argument("-test_number",1,"Test number.");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
     parse_args->Add_Integer_Argument("-mg_levels",1,"Number of levels in the Multigrid hierarchy.");
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
-    if(d==2) parse_args->Add_Vector_2D_Argument("-size",Vector<double,2>(100.),"n","Grid resolution");
-    else if(d==3) parse_args->Add_Vector_3D_Argument("-size",Vector<double,3>(100.),"n","Grid resolution");
-    parse_args->Add_Option_Argument("-ed","Explicit diffusion");
-    parse_args->Add_Option_Argument("-ficks","Fick's diffusion");
-    parse_args->Add_Integer_Argument("-omega",4,"Number of branches.");
+    if(d==2) parse_args->Add_Vector_2D_Argument("-size",Vector<double,2>(256.),"n","Grid resolution");
+    else if(d==3) parse_args->Add_Vector_3D_Argument("-size",Vector<double,3>(256.),"n","Grid resolution");
+
+    
     // for CG
     parse_args->Add_Integer_Argument("-cg_iterations",100,"Number of CG iterations.");
     parse_args->Add_Integer_Argument("-cg_restart_iterations",40,"Number of CG restart iterations.");
@@ -719,20 +734,35 @@ template<class T,int d> void PF_Example<T,d>::
 Parse_Options()
 {
     Base::Parse_Options();
+
+    const_density_value=parse_args->Get_Double_Value("-cdv");
+    tau_s=parse_args->Get_Double_Value("-taus");
+    tau_1=parse_args->Get_Double_Value("-tau1");
+    fc_1=parse_args->Get_Double_Value("-fc1");
+    tau_2=parse_args->Get_Double_Value("-tau2");
+    fc_2=parse_args->Get_Double_Value("-fc2");
+    gamma=parse_args->Get_Double_Value("-gamma");
+    delta=parse_args->Get_Double_Value("-delta");
+    k=parse_args->Get_Double_Value("-k");
+    K=parse_args->Get_Double_Value("-K");
+    m_alpha=parse_args->Get_Double_Value("-ma");
+    bv=parse_args->Get_Double_Value("-bv");
+
+    omega=parse_args->Get_Integer_Value("-omega");
+    FICKS=parse_args->Get_Option_Value("-ficks");
+    explicit_diffusion=parse_args->Get_Option_Value("-ed");
+    uvf=parse_args->Get_Option_Value("-uvf");
+
+
     cfl=(T)parse_args->Get_Double_Value("-cfl");
-    tau_1=(T)parse_args->Get_Double_Value("-tau1");
-    tau_2=(T)parse_args->Get_Double_Value("-tau2");
-    K=(T)parse_args->Get_Double_Value("-K");
+    const_time_step=(T)parse_args->Get_Double_Value("-dt");
     levels=parse_args->Get_Integer_Value("-levels");
     mg_levels=parse_args->Get_Integer_Value("-mg_levels");
     number_of_threads=parse_args->Get_Integer_Value("-threads");
     omp_set_num_threads(number_of_threads);
     if(d==2){auto cell_counts_2d=parse_args->Get_Vector_2D_Value("-size");for(int v=0;v<d;++v) counts(v)=cell_counts_2d(v);}
     else{auto cell_counts_3d=parse_args->Get_Vector_3D_Value("-size");for(int v=0;v<d;++v) counts(v)=cell_counts_3d(v);}
-    explicit_diffusion=parse_args->Get_Option_Value("-ed");
-    FICKS=parse_args->Get_Option_Value("-ficks");
     cg_iterations=parse_args->Get_Integer_Value("-cg_iterations");
-    omega=parse_args->Get_Integer_Value("-omega");
     cg_restart_iterations=parse_args->Get_Integer_Value("-cg_restart_iterations");
     cg_tolerance=(T)parse_args->Get_Double_Value("-cg_tolerance");
     if(FICKS){fc_1=(T)1.; fc_2=(T)1.;}

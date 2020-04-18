@@ -33,6 +33,7 @@ class PF_Example: public Example<T,d>
     using Base::frame_title;using Base::output_directory;using Base::parse_args;using Base::first_frame;
 
     Random_Numbers<T> random;
+    bool uvf;
     bool FICKS;
     bool explicit_diffusion;
     // phase change paras
@@ -47,6 +48,9 @@ class PF_Example: public Example<T,d>
     // for updating epsilon_channel
     int omega;
     T delta;
+    int test_number;
+    T const_time_step;
+    T const_density_value;
     T bv;
     T_INDEX counts;
     int levels,mg_levels,cg_iterations,cg_restart_iterations;
@@ -69,7 +73,8 @@ class PF_Example: public Example<T,d>
 
     Vector<Vector<bool,2>,d> domain_walls;
     
-    Array<Implicit_Object<T,d>*> sources;
+    Array<Implicit_Object<T,d>*> velocity_sources;
+    Array<Implicit_Object<T,d>*> density_sources;
 
     PF_Example();
     ~PF_Example()
@@ -91,6 +96,9 @@ class PF_Example: public Example<T,d>
     void Advect_Face_Vector_Field(const T dt);
     void Advect_Face_Qsc(const T dt);
     void Advect_Face_Qtc(const T dt);
+
+    // void Advect_Face_Velocities(const T dt);
+    // void Project(const T dt);
 
     void Update_Density(const T dt);
     void Explicitly_Update_Density(const T dt);
@@ -128,12 +136,10 @@ class PF_Example: public Example<T,d>
     void Backup_Qsc();
     void Backup_Qtc();
 
-    void Modify_Density_With_Sources();
-    void Add_Source(const T dt);
-    // void Advect_Face_Velocities(const T dt);
-    void Set_Neumann_Faces_Inside_Sources();
-    void Initialize_Velocity_Field();
-    // void Project(const T dt);
+    // void Modify_Density_With_Sources();
+    // void Add_Source(const T dt);
+    // void Set_Neumann_Faces_Inside_Sources();
+    // void Initialize_Velocity_Field();
     void Register_Options() override;
     void Parse_Options() override;
     void Read_Output_Files(const int frame);

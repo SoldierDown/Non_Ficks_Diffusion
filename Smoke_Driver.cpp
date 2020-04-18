@@ -38,8 +38,7 @@ Advance_One_Time_Step_Explicit_Part(const T dt,const T time)
     example.Advect_Density(dt);
     if(example.const_density_source) example.Modify_Density_With_Sources();
     else example.Add_Source(dt);
-    example.Diffuse_Density(dt);
-    example.Backup_Density();
+    if(!example.nd) {example.Diffuse_Density(dt); example.Backup_Density();}
     // convect
     if(!example.uvf) example.Advect_Face_Velocities(dt);
 }

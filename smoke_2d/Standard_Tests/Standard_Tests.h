@@ -30,9 +30,10 @@ class Standard_Tests: public Smoke_Example<T,d>
 
   public:
     using Base::output_directory; using Base::test_number;using Base::counts;using Base::levels;using Base::domain_walls;using Base::hierarchy;using Base::rasterizer;
-    using Base::cfl;    using Base::velocity_sources;    using Base::density_sources;    using Base::density_channel;
-    using Base::FICKS;  using Base::diff_coeff; using Base::Fc; using Base::tau; using Base::bv; using Base::source_rate;
-    using Base::uvf;    using Base::separate_sources; using Base::const_density_value;
+    using Base::cfl;    using Base::velocity_sources;   using Base::density_sources;    using Base::density_channel;
+    using Base::nd;     using Base::FICKS;              using Base::diff_coeff;         using Base::Fc;             
+    using Base::tau;    using Base::bv;                 using Base::source_rate;
+    using Base::uvf;    using Base::const_density_value; using Base::const_density_source;
     using Base::explicit_diffusion;
     /****************************
      * example explanation:
@@ -48,8 +49,8 @@ class Standard_Tests: public Smoke_Example<T,d>
     void Parse_Options() override
     {
         Base::Parse_Options();
-        output_directory=(explicit_diffusion?"Source_Smoke_":"Implicit_Source_Smoke_")+std::to_string(d)+"d_"+(FICKS?"F":"NF")+"_case_"+std::to_string(test_number)+"_diff_"+std::to_string(diff_coeff)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau)+(uvf?"_Uniform":"")+"_bv_"+std::to_string(bv)+"_sr_"+std::to_string(source_rate)+"_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
-        // output_directory="TEMP";
+        if(nd) output_directory=(explicit_diffusion?"Source_Smoke_":"Implicit_Source_Smoke_")+std::to_string(d)+"d_"+"case_"+std::to_string(test_number)+(uvf?"_Uniform":"")+"_bv_"+std::to_string(bv)+(const_density_source?"":"_sr_"+std::to_string(source_rate))+"_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
+        else output_directory=(explicit_diffusion?"Source_Smoke_":"Implicit_Source_Smoke_")+std::to_string(d)+"d_"+(FICKS?"F":"NF")+"_case_"+std::to_string(test_number)+"_diff_"+std::to_string(diff_coeff)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau)+(uvf?"_Uniform":"")+"_bv_"+std::to_string(bv)+(const_density_source?"":"_sr_"+std::to_string(source_rate))+"_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
         for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=true;
         domain_walls(1)(1)=false; domain_walls(1)(0)=false;
         // for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=true;
@@ -110,7 +111,9 @@ class Standard_Tests: public Smoke_Example<T,d>
             velocity_sources.Append(velocity_obj);
         }break;
         case 5:
-        case 6:{
+        case 6:
+        case 7:
+        case 8:{
             TV density_min_corner=TV({(T)2.-cell_width,(T)2.-cell_width}),density_max_corner=TV({(T)2.+cell_width,(T)2.+cell_width});
             Implicit_Object<T,d>* density_obj=new Box_Implicit_Object<T,d>(density_min_corner,density_max_corner);
             density_sources.Append(density_obj);

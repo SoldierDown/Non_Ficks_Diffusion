@@ -464,6 +464,7 @@ Register_Options()
     parse_args->Add_Double_Argument("-sr",(T)1.,"Source rate");
     parse_args->Add_Double_Argument("-tau",(T)1.,"tau.");
     parse_args->Add_Option_Argument("-ficks","Fick's diffusion.");
+    parse_args->Add_Option_Argument("-nd","Turn off diffusion");
     parse_args->Add_Option_Argument("-ed","Explicit diffusion");
     parse_args->Add_Option_Argument("-uvf","Uniform velocity field");
     // for CG
@@ -494,17 +495,21 @@ Parse_Options()
     tau=parse_args->Get_Double_Value("-tau");
     FICKS=parse_args->Get_Option_Value("-ficks");
     uvf=parse_args->Get_Option_Value("-uvf");
+    nd=parse_args->Get_Option_Value("-nd");
     explicit_diffusion=parse_args->Get_Option_Value("-ed");
     cg_iterations=parse_args->Get_Integer_Value("-cg_iterations");
     cg_restart_iterations=parse_args->Get_Integer_Value("-cg_restart_iterations");
     cg_tolerance=(T)parse_args->Get_Double_Value("-cg_tolerance");
+    if(nd){diff_coeff=(T)0.;tau=(T)1.;Fc=(T)0.;}
     switch (test_number){
     case 1:{const_density_source=false;const_density_value=(T)0.;uvf=false;}break;
     case 2:{const_density_source=true;const_density_value=(T)1.;uvf=false;}break;
     case 3:{const_density_source=false;const_density_value=(T)0.;uvf=false;}break;
     case 4:{const_density_source=true;const_density_value=(T)1.;uvf=false;}break;
     case 5:{const_density_source=false;const_density_value=(T)0.;uvf=true;}break;
-    case 6:{const_density_source=true;const_density_value=(T)1.;uvf=true;}break;}
+    case 6:{const_density_source=true;const_density_value=(T)1.;uvf=true;}break;
+    case 7:{const_density_source=true;const_density_value=(T)1.;uvf=false;}break;
+    case 8:{const_density_source=true;const_density_value=(T)1.;uvf=false;}break;}
 }
 //######################################################################
 // Write_Output_Files
