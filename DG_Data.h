@@ -1,16 +1,16 @@
 //!#####################################################################
-//! \file PC_Data.h
+//! \file DG_Data.h
 //!#####################################################################
-// Class PC_Data
+// Class DG_Data
 //######################################################################
-#ifndef __PC_Data__
-#define __PC_Data__
+#ifndef __DG_Data__
+#define __DG_Data__
 
 #include <stdint.h>
 
 namespace Nova{
 template<class T,class T_FLAGS=uint32_t>
-struct PC_Data
+struct DG_Data
 {
     typedef T_FLAGS Flags_type;
 

@@ -1,5 +1,5 @@
 //!#####################################################################
-//! \file PF_Example.cpp
+//! \file SF_Example.cpp
 //!#####################################################################
 #include <nova/Dynamics/Hierarchy/Grid_Hierarchy_Initializer.h>
 #include <nova/Dynamics/Hierarchy/Grid_Hierarchy_Iterator.h>
@@ -18,7 +18,7 @@
 #include "Source_Adder.h"
 #include "Initialize_Dirichlet_Cells.h"
 #include "Poisson_Solver/Multigrid_Data.h"
-#include "PF_Example.h"
+#include "SF_Example.h"
 #include "Clamp_Helper.h"
 #include "Lap_Calculator.h"
 #include "Density_Backup_Helper.h"
@@ -27,14 +27,13 @@
 #include "Density_Clamp_Helper.h"
 #include "Flip_Helper.h"
 #include "Write_To_File_Helper.h"
-#include "M_Calculator.h"
+#include "SF_M_Calculator.h"
 #include "Face_Vector_Copy.h"
 #include "Density_Plus_Poly_Term_Helper.h"
 #include "Axis_Finite_Differential_Helper.h"
 #include "Psi_Evaluation_Helper.h"
 #include "Epsilon_Epsilon_Prime_dSdX_Helper.h"
-#include "Epsilon_Squared_Grad_S_Helper.h"
-#include "Epsilon_Squared_Lap_S_Helper.h"
+#include "SF_Epsilon_Squared_Grad_S_Helper.h"
 #include "Add_Constant.h"
 #include "K_Gradient_T_Helper.h"
 #include "Add_Random_Term.h"
@@ -47,8 +46,8 @@ extern int number_of_threads;
 //######################################################################
 // Constructor
 //######################################################################
-template<class T,int d> PF_Example<T,d>::
-PF_Example()
+template<class T,int d> SF_Example<T,d>::
+SF_Example()
     :Base(),hierarchy(nullptr),rasterizer(nullptr)
 {
     random.Set_Seed(0);
@@ -90,7 +89,7 @@ PF_Example()
 //######################################################################
 // Initialize
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Initialize()
 {
     Initialize_SPGrid();
@@ -99,7 +98,7 @@ Initialize()
 //######################################################################
 // Initialize_SPGrid
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Initialize_SPGrid()
 {
     Log::Scope scope("Initialize_SPGrid");
@@ -122,7 +121,7 @@ Initialize_SPGrid()
 //######################################################################
 // Limit_Dt
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Limit_Dt(T& dt,const T time)
 {
     T dt_convection=(T)0.;
@@ -140,7 +139,7 @@ Limit_Dt(T& dt,const T time)
 //######################################################################
 // Advect_Scalar_Field
 //######################################################################
-template    <class T,int d> void PF_Example<T,d>::
+template    <class T,int d> void SF_Example<T,d>::
 Advect_Scalar_Field(const T dt)
 {
     Advect_Density(dt);
@@ -149,7 +148,7 @@ Advect_Scalar_Field(const T dt)
 //######################################################################
 // Advect_Temperature
 //######################################################################
-template    <class T,int d> void PF_Example<T,d>::
+template    <class T,int d> void SF_Example<T,d>::
 Advect_Density(const T dt)
 {
     Channel_Vector cell_velocity_channels;
@@ -165,7 +164,7 @@ Advect_Density(const T dt)
 //######################################################################
 // Advect_Density
 //######################################################################
-template    <class T,int d> void PF_Example<T,d>::
+template    <class T,int d> void SF_Example<T,d>::
 Advect_Temperature(const T dt)
 {
     Channel_Vector cell_velocity_channels;
@@ -181,7 +180,7 @@ Advect_Temperature(const T dt)
 //######################################################################
 // Advect_Face_Vector_Field
 //######################################################################
-template    <class T,int d> void PF_Example<T,d>::
+template    <class T,int d> void SF_Example<T,d>::
 Advect_Face_Vector_Field(const T dt)
 {
     Advect_Face_Qsc(dt);
@@ -190,7 +189,7 @@ Advect_Face_Vector_Field(const T dt)
 //######################################################################
 // Advect_Face_Qsc
 //######################################################################
-template    <class T,int d> void PF_Example<T,d>::
+template    <class T,int d> void SF_Example<T,d>::
 Advect_Face_Qsc(const T dt)
 {
     // Advect face vector by axis
@@ -207,7 +206,7 @@ Advect_Face_Qsc(const T dt)
 //######################################################################
 // Advect_Face_Qtc
 //######################################################################
-template    <class T,int d> void PF_Example<T,d>::
+template    <class T,int d> void SF_Example<T,d>::
 Advect_Face_Qtc(const T dt)
 {
     // Advect face vector by axis
@@ -224,7 +223,7 @@ Advect_Face_Qtc(const T dt)
 //######################################################################
 // Update_Density
 //######################################################################
-template    <class T,int d> void PF_Example<T,d>::
+template    <class T,int d> void SF_Example<T,d>::
  Update_Density(const T dt)
 {
     if(explicit_diffusion) Explicitly_Update_Density(dt);
@@ -233,7 +232,7 @@ template    <class T,int d> void PF_Example<T,d>::
 //######################################################################
 // Explicitly_Update_Density
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Explicitly_Update_Density(const T dt)
 {
     Add_Differential_Term_To_Density(dt);
@@ -245,7 +244,7 @@ Explicitly_Update_Density(const T dt)
 //######################################################################
 // Add_Laplacian_Term_To_Density
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Add_Laplacian_Term_To_Density(const T dt)
 {
     using Hierarchy_Projection                          = Grid_Hierarchy_Projection<Struct_type,T,d>;
@@ -259,16 +258,16 @@ Add_Laplacian_Term_To_Density(const T dt)
     const T one_over_dx=hierarchy->Lattice(0).one_over_dX(0);
     for(int level=0;level<levels;++level){ SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),divergence_channel);
         for(int axis=0;axis<d;++axis) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),epsilon2_grad_s_channels(axis));
-        Epsilon_Squared_Grad_S_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),epsilon2_grad_s_channels,epsilon_channel,density_backup_channel,(T)1.,one_over_dx,level);
+        SF_Epsilon_Squared_Grad_S_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),epsilon2_grad_s_channels,epsilon_channel,density_backup_channel,(T)1.,one_over_dx,level);
         Hierarchy_Projection::Compute_Divergence(*hierarchy,epsilon2_grad_s_channels,divergence_channel); 
-	    Flip_Helper<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),divergence_channel,level);
+	    Flip_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),divergence_channel);
         SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),fc_1*dt_over_tau_s,divergence_channel,
                                                 density_channel,density_channel,Cell_Type_Interior);}
 }
 //######################################################################
 // Add_Divergence_Term_To_Density
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Add_Divergence_Term_To_Density(const T dt)
 {
     using Hierarchy_Projection              = Grid_Hierarchy_Projection<Struct_type,T,d>;
@@ -283,7 +282,7 @@ Add_Divergence_Term_To_Density(const T dt)
 //######################################################################
 // Add_Differential_Term_To_Density
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Add_Differential_Term_To_Density(const T dt)
 {
     epsilon_channel                 = &Struct_type::ch19;
@@ -319,19 +318,19 @@ Add_Differential_Term_To_Density(const T dt)
 //######################################################################
 // Add_Poly_Term_To_Density
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Add_Poly_Term_To_Density(const T dt)
 {
     T Struct_type::* m_channel                     = &Struct_type::ch20;
     for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),m_channel);
-    for(int level=0;level<levels;++level) M_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),m_channel,T_backup_channel,m_alpha);
+    for(int level=0;level<levels;++level) SF_M_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),m_channel,T_backup_channel,m_alpha,gamma,Teq);
     const T dt_over_tau_s=dt/tau_s;
     for(int level=0;level<levels;++level) Density_Plus_Poly_Term_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,density_backup_channel,m_channel,dt_over_tau_s);
 }
 //######################################################################
 // Add_Random_Term_To_Density
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Add_Random_Term_To_Density(const T dt)
 {
     const T alpha_dt_over_tau_s=(T).01*dt/tau_s;
@@ -341,14 +340,14 @@ Add_Random_Term_To_Density(const T dt)
 //######################################################################
 // Implicitly_Update_Density
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Implicitly_Update_Density(const T dt)
 {
 }
 //######################################################################
 // Update_Face_Qsc
 //######################################################################
-template    <class T,int d> void PF_Example<T,d>::
+template    <class T,int d> void SF_Example<T,d>::
 Update_Face_Qsc(const T dt)
 {
     if(explicit_diffusion) Explicitly_Update_Face_Qsc(dt);
@@ -357,7 +356,7 @@ Update_Face_Qsc(const T dt)
 //######################################################################
 // Explicitly_Update_Face_Qsc
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Explicitly_Update_Face_Qsc(const T dt)
 {
     Add_Linear_Term_To_Face_Qsc(dt);
@@ -366,7 +365,7 @@ Explicitly_Update_Face_Qsc(const T dt)
 //######################################################################
 // Add_Linear_Term_To_Face_Qsc
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Add_Linear_Term_To_Face_Qsc(const T dt)
 {
     const T minus_dt_over_tau_1=-dt/tau_1;
@@ -377,24 +376,24 @@ Add_Linear_Term_To_Face_Qsc(const T dt)
 //######################################################################
 // Add_Gradient_Term_To_Face_Qsc
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Add_Gradient_Term_To_Face_Qsc(const T dt)
 {
     const T minus_dt_over_tau_1=-dt/tau_1; const TV one_over_dx=hierarchy->Lattice(0).one_over_dX;
-    for(int level=0;level<levels;++level) Epsilon_Squared_Grad_S_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),
+    for(int level=0;level<levels;++level) SF_Epsilon_Squared_Grad_S_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),
                                                 face_qsc_channels,epsilon_channel,density_backup_channel,(1-fc_1)*minus_dt_over_tau_1,one_over_dx,level);
 }
 //######################################################################
 // Implicitly_Update_Face_Qsc
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Implicitly_Update_Face_Qsc(const T dt)
 {
 }
 //######################################################################
 // Update_Temperature
 //######################################################################
-template    <class T,int d> void PF_Example<T,d>::
+template    <class T,int d> void SF_Example<T,d>::
 Update_Temperature(const T dt)
 {
     if(explicit_diffusion) Explicitly_Update_Temperature(dt);
@@ -403,7 +402,7 @@ Update_Temperature(const T dt)
 //######################################################################
 // Explicitly_Update_Temperature
 //######################################################################
-template    <class T,int d> void PF_Example<T,d>::
+template    <class T,int d> void SF_Example<T,d>::
 Explicitly_Update_Temperature(const T dt)
 {
     Add_Constant_Term_To_Temperature(dt);
@@ -414,7 +413,7 @@ Explicitly_Update_Temperature(const T dt)
 //######################################################################
 // Add_Constant_Term_To_Temperature
 //######################################################################
-template    <class T,int d> void PF_Example<T,d>::
+template    <class T,int d> void SF_Example<T,d>::
 Add_Constant_Term_To_Temperature(const T dt)
 {
     for(int level=0;level<levels;++level) Add_Constant<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),T_channel,SR*dt);
@@ -422,7 +421,7 @@ Add_Constant_Term_To_Temperature(const T dt)
 //######################################################################
 // Add_dSdt_Term_To_Temperature
 //######################################################################
-template    <class T,int d> void PF_Example<T,d>::
+template    <class T,int d> void SF_Example<T,d>::
 Add_dSdt_Term_To_Temperature(const T dt)
 {
     T Struct_type::* temp_channel         = &Struct_type::ch20;
@@ -435,7 +434,7 @@ Add_dSdt_Term_To_Temperature(const T dt)
 //######################################################################
 // Add_Laplacian_Term_To_Temperature
 //######################################################################
-template    <class T,int d> void PF_Example<T,d>::
+template    <class T,int d> void SF_Example<T,d>::
 Add_Laplacian_Term_To_Temperature(const T dt)
 {
     T Struct_type::* lap_T_channel      = &Struct_type::ch20;
@@ -447,7 +446,7 @@ Add_Laplacian_Term_To_Temperature(const T dt)
 //######################################################################
 // Add_Divergence_Term_To_Temperature
 //######################################################################
-template    <class T,int d> void PF_Example<T,d>::
+template    <class T,int d> void SF_Example<T,d>::
 Add_Divergence_Term_To_Temperature(const T dt)
 {
     using Hierarchy_Projection              = Grid_Hierarchy_Projection<Struct_type,T,d>;
@@ -460,14 +459,14 @@ Add_Divergence_Term_To_Temperature(const T dt)
 //######################################################################
 // Implicitly_Update_Temperature
 //######################################################################
-template    <class T,int d> void PF_Example<T,d>::
+template    <class T,int d> void SF_Example<T,d>::
 Implicitly_Update_Temperature(const T dt)
 {
 }
 //######################################################################
 // Update_Face_Qtc
 //######################################################################
-template    <class T,int d> void PF_Example<T,d>::
+template    <class T,int d> void SF_Example<T,d>::
 Update_Face_Qtc(const T dt)
 {
     if(explicit_diffusion) Explicitly_Update_Face_Qtc(dt);
@@ -476,7 +475,7 @@ Update_Face_Qtc(const T dt)
 //######################################################################
 // Explicitly_Update_Face_Qtc
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Explicitly_Update_Face_Qtc(const T dt)
 {
     Add_Linear_Term_To_Face_Qtc(dt);
@@ -485,7 +484,7 @@ Explicitly_Update_Face_Qtc(const T dt)
 //######################################################################
 // Add_Linear_Term_To_Face_Qtc
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Add_Linear_Term_To_Face_Qtc(const T dt)
 {
     const T minus_dt_over_tau_2=-dt/tau_2;
@@ -496,7 +495,7 @@ Add_Linear_Term_To_Face_Qtc(const T dt)
 //######################################################################
 // Add_Gradient_Term_To_Face_Qtc
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Add_Gradient_Term_To_Face_Qtc(const T dt)
 {
     const T coeff=-dt*k*((T)1.-fc_2)/tau_2; const TV one_over_dx=hierarchy->Lattice(0).one_over_dX;
@@ -506,14 +505,14 @@ Add_Gradient_Term_To_Face_Qtc(const T dt)
 //######################################################################
 // Implicitly_Update_Face_Qtc
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Implicitly_Update_Face_Qtc(const T dt)
 {
 }
 //######################################################################
 // Backup
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Backup()
 {
     if(FICKS){Backup_Density();Backup_Temperature();}
@@ -522,7 +521,7 @@ Backup()
 //######################################################################
 // Backup_Density
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Backup_Density()
 {
     for(int level=0;level<levels;++level){
@@ -533,7 +532,7 @@ Backup_Density()
 //######################################################################
 // Backup_Temperature
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Backup_Temperature()
 {
     for(int level=0;level<levels;++level){
@@ -544,7 +543,7 @@ Backup_Temperature()
 //######################################################################
 // Backup_Qsc
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Backup_Qsc()
 {
     for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis) {
@@ -555,7 +554,7 @@ Backup_Qsc()
 //######################################################################
 // Backup_Qtc
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Backup_Qtc()
 {
     for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis) {
@@ -566,7 +565,7 @@ Backup_Qtc()
 //######################################################################
 // Modify_Density_With_Sources
 //######################################################################
-// template<class T,int d> void PF_Example<T,d>::
+// template<class T,int d> void SF_Example<T,d>::
 // Modify_Density_With_Sources()
 // {
 //     for(int level=0;level<levels;++level)
@@ -575,7 +574,7 @@ Backup_Qtc()
 //######################################################################
 // Add_Source
 //######################################################################
-// template<class T,int d> void PF_Example<T,d>::
+// template<class T,int d> void SF_Example<T,d>::
 // Add_Source(const T dt)
 // {
     // for(int level=0;level<levels;++level)
@@ -584,7 +583,7 @@ Backup_Qtc()
 //######################################################################
 // Advect_Face_Velocities
 //######################################################################
-// template<class T,int d> void PF_Example<T,d>::
+// template<class T,int d> void SF_Example<T,d>::
 // Advect_Face_Velocities(const T dt)
 // {
 //     Channel_Vector interpolated_face_velocity_channels;
@@ -597,7 +596,7 @@ Backup_Qtc()
 //######################################################################
 // Set_Neumann_Faces_Inside_Sources
 //######################################################################
-// template<class T,int d> void PF_Example<T,d>::
+// template<class T,int d> void SF_Example<T,d>::
 // Set_Neumann_Faces_Inside_Sources()
 // {
 //     for(int level=0;level<levels;++level){
@@ -616,7 +615,7 @@ Backup_Qtc()
 //######################################################################
 // Initialize_Velocity_Field
 //######################################################################
-// template<class T,int d> void PF_Example<T,d>::
+// template<class T,int d> void SF_Example<T,d>::
 // Initialize_Velocity_Field()
 // {
 //     for(int level=0;level<levels;++level)
@@ -625,7 +624,7 @@ Backup_Qtc()
 //######################################################################
 // Project
 //######################################################################
-// template<class T,int d> void PF_Example<T,d>::
+// template<class T,int d> void SF_Example<T,d>::
 // Project(const T dt)
 // {
 //     using Multigrid_struct_type             = Multigrid_Data<T>;
@@ -686,7 +685,7 @@ Backup_Qtc()
 //######################################################################
 // Register_Options
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Register_Options()
 {
     Base::Register_Options();
@@ -730,7 +729,7 @@ Register_Options()
 //######################################################################
 // Parse_Options
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Parse_Options()
 {
     Base::Parse_Options();
@@ -759,6 +758,7 @@ Parse_Options()
     levels=parse_args->Get_Integer_Value("-levels");
     mg_levels=parse_args->Get_Integer_Value("-mg_levels");
     number_of_threads=parse_args->Get_Integer_Value("-threads");
+    test_number=parse_args->Get_Integer_Value("-test_number");
     omp_set_num_threads(number_of_threads);
     if(d==2){auto cell_counts_2d=parse_args->Get_Vector_2D_Value("-size");for(int v=0;v<d;++v) counts(v)=cell_counts_2d(v);}
     else{auto cell_counts_3d=parse_args->Get_Vector_3D_Value("-size");for(int v=0;v<d;++v) counts(v)=cell_counts_3d(v);}
@@ -770,7 +770,7 @@ Parse_Options()
 //######################################################################
 // Write_Output_Files
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Write_Output_Files(const int frame) const
 {
     File_Utilities::Create_Directory(output_directory+"/"+std::to_string(frame));
@@ -788,14 +788,14 @@ Write_Output_Files(const int frame) const
 //######################################################################
 // Read_Output_Files
 //######################################################################
-template<class T,int d> void PF_Example<T,d>::
+template<class T,int d> void SF_Example<T,d>::
 Read_Output_Files(const int frame)
 {
 }
 //######################################################################
-template class Nova::PF_Example<float,2>;
-template class Nova::PF_Example<float,3>;
+template class Nova::SF_Example<float,2>;
+template class Nova::SF_Example<float,3>;
 #ifdef COMPILE_WITH_DOUBLE_SUPPORT
-template class Nova::PF_Example<double,2>;
-template class Nova::PF_Example<double,3>;
+template class Nova::SF_Example<double,2>;
+template class Nova::SF_Example<double,3>;
 #endif

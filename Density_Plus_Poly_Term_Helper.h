@@ -25,11 +25,11 @@ class Density_Plus_Poly_Term_Helper
 
   public:
     Density_Plus_Poly_Term_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-                                    T Struct_type::* density_channel,T Struct_type::* density_backup_channel,T Struct_type::* m_channel,const T dt_over_tau_p)
-    {Run(allocator,blocks,density_channel,density_backup_channel,m_channel,dt_over_tau_p);}
+                                    T Struct_type::* density_channel,T Struct_type::* density_backup_channel,T Struct_type::* m_channel,const T dt_over_taus)
+    {Run(allocator,blocks,density_channel,density_backup_channel,m_channel,dt_over_taus);}
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,                                    
-            T Struct_type::* density_channel,T Struct_type::* density_backup_channel,T Struct_type::* m_channel,const T dt_over_tau_p) const
+            T Struct_type::* density_channel,T Struct_type::* density_backup_channel,T Struct_type::* m_channel,const T dt_over_taus) const
     {
         auto density_data=allocator.template Get_Array<Struct_type,T>(density_channel);
         auto density_backup_data=allocator.template Get_Const_Array<Struct_type,T>(density_backup_channel);
@@ -40,7 +40,7 @@ class Density_Plus_Poly_Term_Helper
             const T m_alpha_over_pi=(T).9/pi;
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
                 if(flags(offset)&Cell_Type_Interior){ const T cell_density=density_backup_data(offset);
-                    density_data(offset)+=dt_over_tau_p*cell_density*((T)1.-cell_density)*(cell_density+m_data(offset)-(T).5);}
+                    density_data(offset)+=dt_over_taus*cell_density*((T)1.-cell_density)*(cell_density+m_data(offset)-(T).5);}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,density_plus_poly_term_helper);
     }

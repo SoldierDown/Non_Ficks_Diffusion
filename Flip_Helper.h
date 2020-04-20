@@ -23,19 +23,18 @@ class Flip_Helper
     using Topology_Helper           = Grid_Topology_Helper<Flag_array_mask>;
 
   public:
-    Flip_Helper(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* divergence_channel,const int level)
-    {Run(hierarchy,blocks,divergence_channel,level);}
+    Flip_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* channel)
+    {Run(allocator,blocks,channel);}
 
-    void Run(Hierarchy& hierarchy,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* divergence_channel,const int level) const
+    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* channel) const
     {
-        auto flags=hierarchy.Allocator(level).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        auto divergence=hierarchy.Allocator(level).template Get_Array<Struct_type,T>(divergence_channel);
+        auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
+        auto data=allocator.template Get_Array<Struct_type,T>(channel);
 
-        double one_over_dx=hierarchy.Lattice(0).one_over_dX(0);
         auto flip_helper=[&](uint64_t offset)
         {
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)) 
-                if(flags(offset) & (Cell_Type_Interior|Cell_Type_Ghost)) divergence(offset)=-divergence(offset);
+                if(flags(offset) & (Cell_Type_Interior|Cell_Type_Ghost)) data(offset)=-data(offset);
         };
 
         SPGrid_Computations::Run_Parallel_Blocks(blocks,flip_helper);

@@ -9,22 +9,22 @@
 #include <nova/Geometry/Implicit_Objects/Box_Implicit_Object.h>
 #include <nova/SPGrid/Tools/SPGrid_Clear.h>
 #include <nova/Tools/Utilities/Range_Iterator.h>
-#include "../../PF_Data.h"
-#include "../../PF_Example.h"
+#include "../../DG_Data.h"
+#include "../../DG_Example.h"
 #include "../../Rasterizers/Adaptive_Sphere_Rasterizer.h"
 #include "../../Rasterizers/Randomized_Rasterizer.h"
 #include "../../Sphere_Implicit_Object.h"
 
 namespace Nova{
 template<class T,int d>
-class Standard_Tests: public PF_Example<T,d>
+class Standard_Tests: public DG_Example<T,d>
 {
     using TV                        = Vector<T,d>;
     using T_INDEX                   = Vector<int,d>;
-    using Struct_type               = PC_Data<T>;
+    using Struct_type               = DG_Data<T>;
     using Hierarchy                 = Grid_Hierarchy<Struct_type,T,d>;
     using Flags_type                = typename Struct_type::Flags_type;
-    using Base                      = PF_Example<T,d>;
+    using Base                      = DG_Example<T,d>;
     using Allocator_type            = SPGrid::SPGrid_Allocator<Struct_type,d>;
     using Flag_array_mask           = typename Allocator_type::template Array_mask<unsigned>;
 
@@ -47,10 +47,10 @@ class Standard_Tests: public PF_Example<T,d>
     void Parse_Options() override
     {
         Base::Parse_Options();
-        output_directory=(explicit_diffusion?(FICKS?"Phase_Change_F_":"Phase_Change_NF_"):(FICKS?"Implicit_Phase_Change_F_":"Implicit_Phase_Change_NF_"))+std::to_string(d)+"d_"+std::to_string(omega)+"branches_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
-        output_directory="3Qt";
+        output_directory=(explicit_diffusion?(FICKS?"Dendrite_Growth_F_":"Dendrite_Growth_NF_"):(FICKS?"Implicit_Dendrite_Growth_F_":"Implicit_Dendrite_Growth_NF_"))+std::to_string(d)+"d_"+std::to_string(omega)+"branches_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
+        output_directory="QQQ";
         for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=false;
-        TV min_corner,max_corner=TV(7.68);
+        TV min_corner,max_corner=TV(4.);
         hierarchy=new Hierarchy(counts,Range<T,d>(min_corner,max_corner),levels);
     }
 //######################################################################
@@ -82,8 +82,8 @@ class Standard_Tests: public PF_Example<T,d>
 //######################################################################
     void Initialize_Sources() override
     {
-        const T radius=0.03*4;
-        const TV center=TV(3.84);
+        const T radius=.04;
+        const TV center=TV(2.);
         Implicit_Object<T,d>* obj=new Sphere_Implicit_Object<T,d>(center,radius);
         density_sources.Append(obj);
     }

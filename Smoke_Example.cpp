@@ -208,7 +208,7 @@ Non_Ficks_Diffusion(const T dt)
         for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qc_channel);
         // compute div(Qc) at time n
         Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qc_channels,div_qc_channel); 
-	    for(int level=0;level<levels;++level) Flip_Helper<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),div_qc_channel,level);
+	    for(int level=0;level<levels;++level) Flip_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qc_channel);
         
         T Struct_type::* lap_density_channel                = &Struct_type::ch9;
         for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),lap_density_channel);
@@ -247,7 +247,7 @@ Non_Ficks_Diffusion(const T dt)
         T Struct_type::* div_qc_channel                 = &Struct_type::ch8;
         for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qc_channel);
         Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qc_channels,div_qc_channel);
-        for(int level=0;level<levels;++level) Flip_Helper<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),div_qc_channel,level);
+        for(int level=0;level<levels;++level) Flip_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qc_channel);
         
         T Struct_type::* q_channel                      = &Struct_type::ch9;
         T Struct_type::* r_channel                      = &Struct_type::ch10;

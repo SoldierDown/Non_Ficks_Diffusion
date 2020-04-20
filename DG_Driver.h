@@ -1,17 +1,17 @@
 //!#####################################################################
-//! \file PF_Driver.h
+//! \file DG_Driver.h
 //!#####################################################################
-// Class PF_Driver
+// Class DG_Driver
 //######################################################################
-#ifndef __PF_Driver__
-#define __PF_Driver__
+#ifndef __DG_Driver__
+#define __DG_Driver__
 
 #include <nova/Tools/Utilities/Driver.h>
-#include "PF_Example.h"
+#include "DG_Example.h"
 
 namespace Nova{
 template<class T,int d>
-class PF_Driver: public Driver<T,d>
+class DG_Driver: public Driver<T,d>
 {
     using TV                = Vector<T,d>;
     using Base              = Driver<T,d>;
@@ -20,10 +20,10 @@ class PF_Driver: public Driver<T,d>
     using Base::Compute_Dt;using Base::Write_Output_Files;
 
   public:
-    PF_Example<T,d>& example;
+    DG_Example<T,d>& example;
 
-    PF_Driver(PF_Example<T,d>& example_input);
-    ~PF_Driver() {}
+    DG_Driver(DG_Example<T,d>& example_input);
+    ~DG_Driver() {}
 
 //######################################################################
     void Initialize() override;

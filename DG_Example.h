@@ -1,27 +1,27 @@
 //!#####################################################################
-//! \file PF_Example.h
+//! \file DG_Example.h
 //!#####################################################################
-// Class PF_Example
+// Class DG_Example
 //######################################################################
-#ifndef __PF_Example__
-#define __PF_Example__
+#ifndef __DG_Example__
+#define __DG_Example__
 
 #include <nova/Dynamics/Hierarchy/Grid_Hierarchy.h>
 #include <nova/Dynamics/Hierarchy/Grid_Topology_Helper.h>
 #include <nova/Dynamics/Hierarchy/Rasterizers/Hierarchical_Rasterizer.h>
 #include <nova/Geometry/Implicit_Objects/Implicit_Object.h>
 #include <nova/Tools/Utilities/Example.h>
-#include "PF_Data.h"
+#include "DG_Data.h"
 #include <nova/Tools/Random_Numbers/Random_Numbers.h>
 
 namespace Nova{
 template<class T,int d>
-class PF_Example: public Example<T,d>
+class DG_Example: public Example<T,d>
 {
     using TV                        = Vector<T,d>;
     using Base                      = Example<T,d>;
     using T_INDEX                   = Vector<int,d>;
-    using Struct_type               = PC_Data<T>;
+    using Struct_type               = DG_Data<T>;
     using Channel_Vector            = Vector<T Struct_type::*,d>;
     using Hierarchy                 = Grid_Hierarchy<Struct_type,T,d>;
     using Hierarchy_Rasterizer      = Hierarchical_Rasterizer<Struct_type,T,d>;
@@ -47,6 +47,7 @@ class PF_Example: public Example<T,d>
     T m_alpha,gamma,Teq;
     // for updating epsilon_channel
     int omega;
+    T epsilon;
     T delta;
     int test_number;
     T const_time_step;
@@ -62,7 +63,6 @@ class PF_Example: public Example<T,d>
     T Struct_type::* density_backup_channel;
     T Struct_type::* T_channel;
     T Struct_type::* T_backup_channel;
-    T Struct_type::* epsilon_channel;
     
     Channel_Vector face_qsc_channels;
     Channel_Vector face_qsc_backup_channels;
@@ -76,8 +76,8 @@ class PF_Example: public Example<T,d>
     Array<Implicit_Object<T,d>*> velocity_sources;
     Array<Implicit_Object<T,d>*> density_sources;
 
-    PF_Example();
-    ~PF_Example()
+    DG_Example();
+    ~DG_Example()
     {if(hierarchy!=nullptr) delete hierarchy;}
 
 //######################################################################
@@ -104,7 +104,6 @@ class PF_Example: public Example<T,d>
     void Explicitly_Update_Density(const T dt);
     void Add_Laplacian_Term_To_Density(const T dt);
     void Add_Divergence_Term_To_Density(const T dt);
-    void Add_Differential_Term_To_Density(const T dt);
     void Add_Poly_Term_To_Density(const T dt);
     void Add_Random_Term_To_Density(const T dt);
     void Implicitly_Update_Density(const T dt);

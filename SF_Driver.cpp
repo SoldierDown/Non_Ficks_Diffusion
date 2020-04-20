@@ -1,20 +1,20 @@
 //!#####################################################################
-//! \file PF_Driver.cpp
+//! \file SF_Driver.cpp
 //!#####################################################################
-#include "PF_Driver.h"
+#include "SF_Driver.h"
 using namespace Nova;
 //######################################################################
 // Constructor
 //######################################################################
-template<class T,int d> PF_Driver<T,d>::
-PF_Driver(PF_Example<T,d>& example_input)
+template<class T,int d> SF_Driver<T,d>::
+SF_Driver(SF_Example<T,d>& example_input)
     :Base(example_input),example(example_input)
 {
 }
 //######################################################################
 // Initialize
 //######################################################################
-template<class T,int d> void PF_Driver<T,d>::
+template<class T,int d> void SF_Driver<T,d>::
 Initialize()
 {
     Base::Initialize();
@@ -31,7 +31,7 @@ Initialize()
 //######################################################################
 // Advance_One_Time_Step_Explicit_Part
 //######################################################################
-template<class T,int d> void PF_Driver<T,d>::
+template<class T,int d> void SF_Driver<T,d>::
 Advance_One_Time_Step_Explicit_Part(const T dt,const T time)
 {
     // scalar advance
@@ -52,7 +52,7 @@ Advance_One_Time_Step_Explicit_Part(const T dt,const T time)
 //######################################################################
 // Advance_One_Time_Step_Implicit_Part
 //######################################################################
-template<class T,int d> void PF_Driver<T,d>::
+template<class T,int d> void SF_Driver<T,d>::
 Advance_One_Time_Step_Implicit_Part(const T dt,const T time)
 {
     // example.Project(dt);
@@ -60,7 +60,7 @@ Advance_One_Time_Step_Implicit_Part(const T dt,const T time)
 //######################################################################
 // Advance_To_Target_Time
 //######################################################################
-template<class T,int d> void PF_Driver<T,d>::
+template<class T,int d> void SF_Driver<T,d>::
 Advance_To_Target_Time(const T target_time)
 {
     bool done=false;
@@ -81,7 +81,7 @@ Advance_To_Target_Time(const T target_time)
 //######################################################################
 // Simulate_To_Frame
 //######################################################################
-template<class T,int d> void PF_Driver<T,d>::
+template<class T,int d> void SF_Driver<T,d>::
 Simulate_To_Frame(const int target_frame)
 {
     example.frame_title="Frame "+std::to_string(example.current_frame);
@@ -97,9 +97,9 @@ Simulate_To_Frame(const int target_frame)
         *(example.output)<<"TIME = "<<time<<std::endl;}
 }
 //######################################################################
-template class Nova::PF_Driver<float,2>;
-template class Nova::PF_Driver<float,3>;
+template class Nova::SF_Driver<float,2>;
+template class Nova::SF_Driver<float,3>;
 #ifdef COMPILE_WITH_DOUBLE_SUPPORT
-template class Nova::PF_Driver<double,2>;
-template class Nova::PF_Driver<double,3>;
+template class Nova::SF_Driver<double,2>;
+template class Nova::SF_Driver<double,3>;
 #endif
