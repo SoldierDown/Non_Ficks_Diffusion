@@ -551,7 +551,7 @@ Update_Constitutive_Model_State()
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i); 
         T_Particle &particle=particles(id);    
-        particle.constitutive_model.Precompute();}
+        if(!particle.eos) particle.constitutive_model.Precompute();}
 }
 //######################################################################
 // Update_Constitutive_Model_State
@@ -563,7 +563,7 @@ Update_Constitutive_Model_State()
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i); 
         T_Particle &particle=particles(id);    
-        particle.constitutive_model.Precompute();}
+        if(!particle.eos) particle.constitutive_model.Precompute();}
 }
 //######################################################################
 // Update_Particle_Velocities_And_Positions
@@ -592,7 +592,8 @@ Update_Particle_Velocities_And_Positions(const T dt)
                 V_pic+=weight*V_grid; 
                 V_flip+=weight*delta_V_grid;
                 grad_Vp+=T_Mat::Outer_Product(V_grid,iterator.Weight_Gradient());}}
-            p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
+            if(p.eos) p.density/=(T)1.+dt*grad_Vp.Trace();
+            else p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
             p.V=V_flip*flip+V_pic*((T)1.-flip);
             p.X+=V_pic*dt;
         if(!cell_domain.Inside(p.X)){
@@ -638,7 +639,8 @@ Update_Particle_Velocities_And_Positions(const T dt)
                 V_pic+=weight*V_grid; 
                 V_flip+=weight*delta_V_grid;
                 grad_Vp+=T_Mat::Outer_Product(V_grid,iterator.Weight_Gradient());}}
-            p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
+            if(p.eos) p.density/=(T)1.+dt*grad_Vp.Trace();
+            else p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
             p.V=V_flip*flip+V_pic*((T)1.-flip);
             p.X+=V_pic*dt;
         if(!cell_domain.Inside(p.X)){
@@ -727,14 +729,17 @@ Apply_Explicit_Force(const T dt)
         for(int tid_collect=0;tid_collect<threads;++tid_collect){
             const Array<int>& index=particle_bins(tid_process,tid_collect);
             for(int i=0;i<index.size();++i){
-                T_Particle& p=particles(index(i));T_INDEX& closest_cell=p.closest_cell;
-                T_Mat P=p.constitutive_model.P(),F=p.constitutive_model.Fe;T V0=p.volume;
-                T_Mat V0_P_FT=P.Times_Transpose(F)*V0;                    
+                T_Particle& p=particles(index(i)); T_INDEX& closest_cell=p.closest_cell;
+                T eos_coefficient=(T)0.; T V0=p.volume; T_Mat P,F,V0_P_FT;
+                if(p.eos) eos_coefficient=V0/p.density*p.bulk_modulus*pow(p.density,p.gamma-(T)1.);
+                else{ P=p.constitutive_model.P(),F=p.constitutive_model.Fe;
+                V0_P_FT=P.Times_Transpose(F)*V0;}
                 const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_cell(0),thread_x_interval.max_corner-closest_cell(0));  
                 for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){
                     auto data=iterator.Current_Cell()._data;         
                     TV body_force=gravity*p.mass*iterator.Weight(); TV inner_force=V0_P_FT*iterator.Weight_Gradient();
-                    f0(data)-=inner_force(0); f1(data)-=inner_force(1);
+                    if(p.eos) {f0(data)+=eos_coefficient*iterator.Weight_Gradient()(0); f1(data)+=eos_coefficient*iterator.Weight_Gradient()(1);;}
+                    else {f0(data)-=inner_force(0); f1(data)-=inner_force(1);}
                     f0(data)+=body_force(0); f1(data)+=body_force(1);}}}}
     for(int level=0;level<levels;++level) Explicit_Force_Helper<Struct_type,T,2>(hierarchy->Allocator(level),hierarchy->Blocks(level),f_channels,velocity_channels,velocity_star_channels,dt);
     high_resolution_clock::time_point te=high_resolution_clock::now();
@@ -761,14 +766,17 @@ Apply_Explicit_Force(const T dt)
         for(int tid_collect=0;tid_collect<threads;++tid_collect){
             const Array<int>& index=particle_bins(tid_process,tid_collect);
             for(int i=0;i<index.size();++i){
-                T_Particle& p=particles(index(i));T_INDEX& closest_cell=p.closest_cell;
-                T_Mat P=p.constitutive_model.P(),F=p.constitutive_model.Fe;T V0=p.volume;
-                T_Mat V0_P_FT=P.Times_Transpose(F)*V0;                    
+                T_Particle& p=particles(index(i)); T_INDEX& closest_cell=p.closest_cell;
+                T eos_coefficient=(T)0.; T V0=p.volume; T_Mat P,F,V0_P_FT;
+                if(p.eos) eos_coefficient=V0/p.density*p.bulk_modulus*pow(p.density,p.gamma-(T)1.);
+                else{ P=p.constitutive_model.P(),F=p.constitutive_model.Fe;
+                V0_P_FT=P.Times_Transpose(F)*V0;}
                 const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_cell(0),thread_x_interval.max_corner-closest_cell(0));  
                 for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){
-                    auto data=iterator.Current_Cell()._data;         
-                    TV body_force=gravity*p.mass*iterator.Weight(); TV inner_force=V0_P_FT*iterator.Weight_Gradient();
-                    f0(data)-=inner_force(0); f1(data)-=inner_force(1); f2(data)-=inner_force(2); 
+                    auto data=iterator.Current_Cell()._data;    TV weight_gradient=iterator.Weight_Gradient();
+                    TV body_force=gravity*p.mass*iterator.Weight(); TV inner_force=V0_P_FT*weight_gradient;
+                    if(p.eos) {f0(data)+=eos_coefficient*weight_gradient(0); f1(data)+=eos_coefficient*weight_gradient(1);f2(data)+=eos_coefficient*weight_gradient(2);}
+                    else {f0(data)-=inner_force(0); f1(data)-=inner_force(1);f2(data)-=inner_force(2); }
                     f0(data)+=body_force(0); f1(data)+=body_force(1); f2(data)+=body_force(2);}}}}
     for(int level=0;level<levels;++level) Explicit_Force_Helper<Struct_type,T,3>(hierarchy->Allocator(level),hierarchy->Blocks(level),f_channels,velocity_channels,velocity_star_channels,dt);
     high_resolution_clock::time_point te=high_resolution_clock::now();

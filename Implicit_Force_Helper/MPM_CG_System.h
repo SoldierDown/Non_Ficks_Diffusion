@@ -98,14 +98,20 @@ class MPM_CG_System: public Krylov_System_Base<T>
 #pragma omp parallel for
         for(int i=0;i<simulated_particles.size();++i){
             high_resolution_clock::time_point tb = high_resolution_clock::now();    
-            int id=simulated_particles(i); T_Particle& p=particles(id); T_Mat& tmp_mat=p.scp; tmp_mat=T_Mat();
-            for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){          
-                auto data=iterator.Current_Cell()._data;
-                TV v_vec({v0(data),v1(data)});
-                tmp_mat+=Matrix<T,d>::Outer_Product(iterator.Weight_Gradient(),v_vec);}
-            Matrix<T,d> F=p.constitutive_model.Fe;
-            tmp_mat=F.Times_Transpose(p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F)));
-            tmp_mat*=p.volume;
+            int id=simulated_particles(i); T_Particle& p=particles(id); 
+            if(p.eos){T_Mat& tmp_eos_mat=p.eos_scp; tmp_eos_mat=T_Mat();
+                for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
+                    auto data=iterator.Current_Cell()._data; TV v_vec({v0(data),v1(data)});
+                    tmp_eos_mat+=iterator.Weight_Gradient().Dot_Product(v_vec);}
+                T coefficient=p.volume*p.bulk_modulus*p.gamma*pow(p.density,p.gamma-1);
+                tmp_eos_mat*=coefficient;}
+            else{T_Mat& tmp_mat=p.scp; tmp_mat=T_Mat();
+                for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){          
+                    auto data=iterator.Current_Cell()._data; TV v_vec({v0(data),v1(data)});
+                    tmp_mat+=Matrix<T,d>::Outer_Product(iterator.Weight_Gradient(),v_vec);}
+                Matrix<T,d> F=p.constitutive_model.Fe;
+                tmp_mat=F.Times_Transpose(p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F)));
+                tmp_mat*=p.volume;}
             if(false){ high_resolution_clock::time_point te = high_resolution_clock::now();
     	    duration<double> dur = duration_cast<duration<double>>(te-tb);
     	    Log::cout<<"single particle: "<<dur.count()<<std::endl;}
@@ -129,10 +135,12 @@ class MPM_CG_System: public Krylov_System_Base<T>
                 for(int i=0;i<index.size();++i){
                     T_Particle& p=particles(index(i));T_INDEX& closest_cell=p.closest_cell;
                     const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_cell(0),thread_x_interval.max_corner-closest_cell(0));
-            for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){ 
-                auto data=iterator.Current_Cell()._data;
-                TV tmp_vec=p.scp.Transpose_Times(iterator.Weight_Gradient()); 
-                f0(data)+=tmp_vec(0); f1(data)+=tmp_vec(1);}}}}
+                    if(p.eos){for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){ 
+                        auto data=iterator.Current_Cell()._data; TV tmp_vec=p.eos_scp*iterator.Weight_Gradient(); 
+                        f0(data)+=tmp_vec(0); f1(data)+=tmp_vec(1);}}
+                    else{for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){ 
+                        auto data=iterator.Current_Cell()._data; TV tmp_vec=p.scp.Transpose_Times(iterator.Weight_Gradient()); 
+                        f0(data)+=tmp_vec(0); f1(data)+=tmp_vec(1);}}}}}
 
         if (print_running_time){high_resolution_clock::time_point te3 = high_resolution_clock::now();
 	    duration<double> dur3 = duration_cast<duration<double>>(te3-tb3);
@@ -157,14 +165,20 @@ class MPM_CG_System: public Krylov_System_Base<T>
 #pragma omp parallel for
         for(int i=0;i<simulated_particles.size();++i){
             high_resolution_clock::time_point tb = high_resolution_clock::now();    
-            int id=simulated_particles(i); T_Particle& p=particles(id); T_Mat& tmp_mat=p.scp; tmp_mat=T_Mat();
-            for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){          
-                auto data=iterator.Current_Cell()._data;
-                TV v_vec({v0(data),v1(data),v2(data)});
-                tmp_mat+=T_Mat::Outer_Product(iterator.Weight_Gradient(),v_vec);}
-            Matrix<T,d> F=p.constitutive_model.Fe;
-            tmp_mat=F.Times_Transpose(p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F)));
-            tmp_mat*=p.volume;
+            int id=simulated_particles(i); T_Particle& p=particles(id);
+            if(p.eos){T_Mat& tmp_eos_mat=p.eos_scp; tmp_eos_mat=T_Mat();
+                for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
+                    auto data=iterator.Current_Cell()._data; TV v_vec({v0(data),v1(data),v2(data)});
+                    tmp_eos_mat+=iterator.Weight_Gradient().Dot_Product(v_vec);}
+                T coefficient=p.volume*p.bulk_modulus*p.gamma*pow(p.density,p.gamma-1);
+                tmp_eos_mat*=coefficient;}
+            else{T_Mat& tmp_mat=p.scp; tmp_mat=T_Mat();
+                for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){          
+                    auto data=iterator.Current_Cell()._data; TV v_vec({v0(data),v1(data),v2(data)});
+                    tmp_mat+=Matrix<T,d>::Outer_Product(iterator.Weight_Gradient(),v_vec);}
+                Matrix<T,d> F=p.constitutive_model.Fe;
+                tmp_mat=F.Times_Transpose(p.constitutive_model.Times_dP_dF(tmp_mat.Transpose_Times(F)));
+                tmp_mat*=p.volume;}
             if(false){ high_resolution_clock::time_point te = high_resolution_clock::now();
     	    duration<double> dur = duration_cast<duration<double>>(te-tb);
     	    Log::cout<<"single particle: "<<dur.count()<<std::endl;}
@@ -188,10 +202,12 @@ class MPM_CG_System: public Krylov_System_Base<T>
                 for(int i=0;i<index.size();++i){
                     T_Particle& p=particles(index(i));T_INDEX& closest_cell=p.closest_cell;
                     const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_cell(0),thread_x_interval.max_corner-closest_cell(0));
-            for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){ 
-                auto data=iterator.Current_Cell()._data;
-                TV tmp_vec=p.scp.Transpose_Times(iterator.Weight_Gradient()); 
-                f0(data)+=tmp_vec(0); f1(data)+=tmp_vec(1);f2(data)+=tmp_vec(2);}}}}
+                    if(p.eos){for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){ 
+                        auto data=iterator.Current_Cell()._data; TV tmp_vec=p.eos_scp*iterator.Weight_Gradient(); 
+                        f0(data)+=tmp_vec(0); f1(data)+=tmp_vec(1); f2(data)+=tmp_vec(2);}}
+                    else{for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){ 
+                        auto data=iterator.Current_Cell()._data; TV tmp_vec=p.scp.Transpose_Times(iterator.Weight_Gradient()); 
+                        f0(data)+=tmp_vec(0); f1(data)+=tmp_vec(1); f2(data)+=tmp_vec(2);}}}}}
 
         if (print_running_time){high_resolution_clock::time_point te3 = high_resolution_clock::now();
 	    duration<double> dur3 = duration_cast<duration<double>>(te3-tb3);
