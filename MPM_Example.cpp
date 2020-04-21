@@ -177,6 +177,7 @@ Initialize()
 {
     Initialize_Particles(Base::test_number);
     Populate_Simulated_Particles();
+    waiting_particles=simulated_particles;
     Initialize_SPGrid();
     particle_bins.Resize(threads,threads);
     Log::cout<<"barrier size: "<<barriers.size()<<std::endl;
@@ -189,6 +190,7 @@ Initialize()
 {
     Initialize_Particles(Base::test_number);
     Populate_Simulated_Particles();
+    waiting_particles=simulated_particles;
     Initialize_SPGrid();
     particle_bins.Resize(threads,threads);
     Log::cout<<"barrier size: "<<barriers.size()<<std::endl;
@@ -1151,34 +1153,36 @@ Grid_Based_Collision(const bool detect_collision)
     if(detect_collision) for(int level=0;level<levels;++level) Grid_Based_Collision_Helper<MPM_struct_type,T,3>(mpm_hierarchy->Lattice(level),mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),velocity_star_channels,barriers);
 }
 //######################################################################
-// Estimate_Particle_Volumes
+// Process_Waiting_Particles
 //######################################################################
 template<class T> void MPM_Example<T,2>::
-Estimate_Particle_Volumes()
+Process_Waiting_Particles()
 {   
     auto mass=mpm_hierarchy->Channel(0,mass_channel); const Grid<T,2>& mpm_grid=mpm_hierarchy->Lattice(0); const T one_over_volume_per_cell=mpm_grid.one_over_dX.Product();
 #pragma omp parallel for
-    for(unsigned i=0;i<simulated_particles.size();++i){const int id=simulated_particles(i); T_Particle& p=particles(id);     
+    for(unsigned i=0;i<waiting_particles.size();++i){const int id=waiting_particles(i); T_Particle& p=particles(id);     
         T particle_density=(T)0.;
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             particle_density+=iterator.Weight()*mass(iterator.Current_Cell()._data);}
         particle_density*=one_over_volume_per_cell;
         p.volume=p.mass/particle_density;}
+    waiting_particles.Clear();
 }
 //######################################################################
-// Estimate_Particle_Volumes
+// Process_Waiting_Particles
 //######################################################################
 template<class T> void MPM_Example<T,3>::
-Estimate_Particle_Volumes()
+Process_Waiting_Particles()
 {   
     auto mass=mpm_hierarchy->Channel(0,mass_channel); const Grid<T,3>& mpm_grid=mpm_hierarchy->Lattice(0); const T one_over_volume_per_cell=mpm_grid.one_over_dX.Product();
 #pragma omp parallel for
-    for(unsigned i=0;i<simulated_particles.size();++i){const int id=simulated_particles(i); T_Particle& p=particles(id);     
+    for(unsigned i=0;i<waiting_particles.size();++i){const int id=waiting_particles(i); T_Particle& p=particles(id);     
         T particle_density=(T)0.;
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             particle_density+=iterator.Weight()*mass(iterator.Current_Cell()._data);}
         particle_density*=one_over_volume_per_cell;
         p.volume=p.mass/particle_density;}
+    waiting_particles.Clear();
 }
 //######################################################################
 // Register_Options

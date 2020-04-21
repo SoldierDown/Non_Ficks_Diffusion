@@ -163,6 +163,7 @@ class MPM_Example<T,2>: public Example<T,2>
     Range<T,2> bbox;
     Array<T_Particle> particles;
     Array<T_Barrier> barriers;
+    Array<int> waiting_particles;
     Array<int> simulated_particles;
     Array<int> invalid_particles;
     Array<int> valid_grid_indices;
@@ -236,7 +237,7 @@ class MPM_Example<T,2>: public Example<T,2>
     void Grid_Based_Collision(const bool detect_collision);
     void Update_Constitutive_Model_State();
     void Update_Particle_Velocities_And_Positions(const T dt);
-    void Estimate_Particle_Volumes();
+    void Process_Waiting_Particles();
     void Ficks_Diffusion(T dt);
     void Non_Ficks_Diffusion(T dt);
     void Apply_Force(const T dt);
@@ -300,6 +301,7 @@ class MPM_Example<T,3>: public Example<T,3>
     Range<T,3> bbox;
     Array<T_Particle> particles;
     Array<T_Barrier> barriers;
+    Array<int> waiting_particles;
     Array<int> simulated_particles;
     Array<int> invalid_particles;
     Array<int> valid_grid_indices;
@@ -372,7 +374,7 @@ class MPM_Example<T,3>: public Example<T,3>
     void Grid_Based_Collision(const bool detect_collision);
     void Update_Constitutive_Model_State();
     void Update_Particle_Velocities_And_Positions(const T dt);
-    void Estimate_Particle_Volumes();
+    void Process_Waiting_Particles();
     void Ficks_Diffusion(T dt);
     void Non_Ficks_Diffusion(T dt);
     void Apply_Force(const T dt);
