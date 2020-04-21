@@ -38,6 +38,14 @@ public:
     MPM_Constitutive_Model<T,d> constitutive_model;
     Matrix<T,d> scp;
 
+    // EOS fluid particle
+    Matrix<T,d> eos_scp;
+    bool eos;
+    T density;
+    T bulk_modulus;
+    T gamma;
+
+
     MPM_Particle()
     {Initialize();}
 
@@ -51,6 +59,13 @@ public:
         mass=(T)0.;
         volume=(T)0.;
         scp=Matrix<T,d>();
+        
+        // EOS fluid particle
+        eos_scp=Matrix<T,d>();
+        eos=false;
+        density=1;
+        bulk_modulus=(T)1e7;
+        gamma=(T)7;
     }
 
     T Weight(T_INDEX index)

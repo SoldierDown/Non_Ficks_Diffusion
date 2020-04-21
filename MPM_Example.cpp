@@ -50,7 +50,7 @@ template<class T> MPM_Example<T,2>::
 MPM_Example()
     :Base(),mpm_hierarchy(nullptr),diff_hierarchy(nullptr)
 {
-    gravity=TV::Axis_Vector(1)*(T)0.;
+    gravity=TV::Axis_Vector(1)*(T)-2.;
     flip=(T).9;
     explicit_diffusion=false;
 
@@ -101,7 +101,7 @@ MPM_Example()
 	mg_levels=2;
 	cg_max_iterations=10000;
 	cg_restart_iterations=50;
-    gravity=TV::Axis_Vector(1)*(T)0.;
+    gravity=TV::Axis_Vector(1)*(T)-2.;
     flip=(T).9;
     explicit_diffusion=false;
      
@@ -859,7 +859,7 @@ Update_Constitutive_Model_State()
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i); 
         T_Particle &particle=particles(id);    
-        particle.constitutive_model.Precompute();}
+        if(!particle.eos) particle.constitutive_model.Precompute();}
 }
 //######################################################################
 // Update_Constitutive_Model_State
@@ -871,7 +871,7 @@ Update_Constitutive_Model_State()
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i); 
         T_Particle &particle=particles(id);    
-        particle.constitutive_model.Precompute();}
+        if(!particle.eos) particle.constitutive_model.Precompute();}
 }
 //######################################################################
 // Update_Particle_Velocities_And_Positions
@@ -888,6 +888,7 @@ Update_Particle_Velocities_And_Positions(const T dt)
     T velocity_sum=(T)0.;
     int particle_counter=0;
     const Grid<T,2>& mpm_grid=mpm_hierarchy->Lattice(0);
+    Range<T,2> cell_domain(mpm_grid.domain.min_corner+(T).5*mpm_grid.dX,mpm_grid.domain.max_corner-(T).5*mpm_grid.dX);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i); 
@@ -901,7 +902,8 @@ Update_Particle_Velocities_And_Positions(const T dt)
                 V_pic+=weight*V_grid; 
                 V_flip+=weight*delta_V_grid;
                 grad_Vp+=T_Mat::Outer_Product(V_grid,iterator.Weight_Gradient());}}
-            p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
+            if(p.eos) p.density/=(T)1.+dt*grad_Vp.Trace();
+            else p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
             p.V=V_flip*flip+V_pic*((T)1.-flip);
             p.X+=V_pic*dt;
             T vp_norm=V_pic.Norm();
@@ -910,7 +912,7 @@ Update_Particle_Velocities_And_Positions(const T dt)
             const T J=p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
             p.mass_fluid=p.volume*J*p.volume_fraction_0*p.saturation;
             p.mass=p.mass_solid+p.mass_fluid;
-            if(!mpm_grid.domain.Inside(p.X)){
+            if(!cell_domain.Inside(p.X)){
                 remove_indices(omp_get_thread_num()).Append(i);
                 p.valid=false;}}}
     Log::cout<<"average velocity: "<<average_velocity<<std::endl;
@@ -937,11 +939,10 @@ Update_Particle_Velocities_And_Positions(const T dt)
     Array<Array<int> > remove_indices(threads);
     auto vs0=mpm_hierarchy->Channel(0,velocity_star_channels(0));   auto vs1=mpm_hierarchy->Channel(0,velocity_star_channels(1)); auto vs2=mpm_hierarchy->Channel(0,velocity_star_channels(2)); 
     auto v0=mpm_hierarchy->Channel(0,velocity_channels(0));         auto v1=mpm_hierarchy->Channel(0,velocity_channels(1)); auto v2=mpm_hierarchy->Channel(0,velocity_channels(2));
-
     Apply_Force(dt);
-
     Array<TV> X_location_sum(threads);
     const Grid<T,3>& mpm_grid=mpm_hierarchy->Lattice(0);
+    Range<T,3> cell_domain(mpm_grid.domain.min_corner+(T).5*mpm_grid.dX,mpm_grid.domain.max_corner-(T).5*mpm_grid.dX);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int thread_id=omp_get_thread_num(); const int id=simulated_particles(i);
@@ -953,13 +954,14 @@ Update_Particle_Velocities_And_Positions(const T dt)
                 V_pic+=weight*V_grid; 
                 V_flip+=weight*delta_V_grid;
                 grad_Vp+=T_Mat::Outer_Product(V_grid,iterator.Weight_Gradient());}}
-            p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
+            if(p.eos) p.density/=(T)1.+dt*grad_Vp.Trace();
+            else p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
             p.V=V_flip*flip+V_pic*((T)1.-flip); p.X+=V_pic*dt;
             X_location_sum(thread_id)+=p.X;
             const T J=p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
             p.mass_fluid=p.volume*J*p.volume_fraction_0*p.saturation;
             p.mass=p.mass_solid+p.mass_fluid;
-        if(!mpm_grid.domain.Inside(p.X)){
+        if(!cell_domain.Inside(p.X)){
             // remove_indices(omp_get_thread_num()).Append(i);
             p.valid=false;}}
 
@@ -983,14 +985,14 @@ Update_Particle_Velocities_And_Positions(const T dt)
     average_abs_X_shift/=particle_number;
     Log::cout<<"average shift: "<<average_abs_X_shift<<std::endl;
     
-    const T several_cell_width=nbw*mpm_grid.dX(0);
-    TV min_corner=TV(), max_corner=(T)2*average_abs_X_shift+TV(several_cell_width);
-    Range<T,3> shift_box(min_corner,max_corner);
-#pragma omp parallel for
-    for(unsigned i=0;i<simulated_particles.size();++i){
-        const int id=simulated_particles(i);
-        T_Particle &p=particles(id);
-        if(!shift_box.Inside((p.X-average_X_location).Abs())) p.valid=false;}
+//     const T several_cell_width=nbw*mpm_grid.dX(0);
+//     TV min_corner=TV(), max_corner=(T)2*average_abs_X_shift+TV(several_cell_width);
+//     Range<T,3> shift_box(min_corner,max_corner);
+// #pragma omp parallel for
+//     for(unsigned i=0;i<simulated_particles.size();++i){
+//         const int id=simulated_particles(i);
+//         T_Particle &p=particles(id);
+//         if(!shift_box.Inside((p.X-average_X_location).Abs())) p.valid=false;}
 
     // get rid of flying away particles
     // for(int i=1;i<remove_indices.size();++i)
@@ -1040,8 +1042,8 @@ Apply_Force(const T dt)
 {
     high_resolution_clock::time_point tb=high_resolution_clock::now();
     Apply_Explicit_Force(dt);
-    Grid_Based_Collision(false);
-    if(false){
+    Grid_Based_Collision(true);
+    if(true){
     Conjugate_Gradient<T> cg;
     Krylov_Solver<T>* solver=(Krylov_Solver<T>*)&cg;
     MPM_CG_System<MPM_struct_type,T,3> mpm_system(*mpm_hierarchy,simulated_particles,particles,particle_bins,x_intervals,barriers,(T)0.,dt,threads);
@@ -1072,26 +1074,24 @@ Apply_Explicit_Force(const T dt)
 #pragma omp parallel for
     for(int tid_process=0;tid_process<threads;++tid_process){
         const Interval<int>& thread_x_interval=x_intervals(tid_process);
-        // T& rt=thread_rt(tid_process);
-        // int& cnt=thread_cnt(tid_process);
         for(int tid_collect=0;tid_collect<threads;++tid_collect){
             const Array<int>& index=particle_bins(tid_process,tid_collect);
             for(int i=0;i<index.size();++i){
                 T_Particle& p=particles(index(i));T_INDEX& closest_cell=p.closest_cell;
-                T_Mat P=p.constitutive_model.P(),F=p.constitutive_model.Fe;T V0=p.volume;
-                T_Mat I=T_Mat::Identity_Matrix();
+                T_Mat P,F,I,V0_P_FT; T eos_coefficient=(T)0.; T V0=p.volume;
+                if(p.eos) eos_coefficient=V0/p.density*p.bulk_modulus*pow(p.density,p.gamma-(T)1.);
+                else{ P=p.constitutive_model.P();F=p.constitutive_model.Fe;I=T_Mat::Identity_Matrix();
                 const T saturation=p.saturation; const T eta=p.constitutive_model.eta*saturation; const T k_p=(T)1e4;
                 const T mu=p.constitutive_model.mu; const T lambda=p.constitutive_model.lambda; 
                 const T J=p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
-                T_Mat extra_sigma=eta*k_p*saturation*I*J;
-                T_Mat V0_P_FT=(P.Times_Transpose(F)-extra_sigma)*V0;                    
+                T_Mat extra_sigma=eta*k_p*saturation*I*J; V0_P_FT=(P.Times_Transpose(F)-extra_sigma)*V0;}
                 const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_cell(0),thread_x_interval.max_corner-closest_cell(0));  
                 for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){
-                    auto data=iterator.Current_Cell()._data;         
-                    TV body_force=gravity*p.mass*iterator.Weight(); TV inner_force=V0_P_FT*iterator.Weight_Gradient();
-                    f0(data)-=inner_force(0); f1(data)-=inner_force(1);
+                    auto data=iterator.Current_Cell()._data;    TV weight_gradient=iterator.Weight_Gradient();
+                    TV body_force=gravity*p.mass*iterator.Weight(); TV inner_force=V0_P_FT*weight_gradient;
+                    if(p.eos) {f0(data)+=eos_coefficient*weight_gradient(0); f1(data)+=eos_coefficient*weight_gradient(1);}
+                    else {f0(data)-=inner_force(0); f1(data)-=inner_force(1);}
                     f0(data)+=body_force(0); f1(data)+=body_force(1);}}}}
-
     for(int level=0;level<levels;++level) Explicit_Force_Helper<MPM_struct_type,T,2>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),f_channels,velocity_channels,velocity_star_channels,dt);
     high_resolution_clock::time_point te=high_resolution_clock::now();
 	duration<double> dur=duration_cast<duration<double>>(te-tb);
@@ -1107,7 +1107,6 @@ Apply_Explicit_Force(const T dt)
     high_resolution_clock::time_point tb=high_resolution_clock::now();
     const Grid<T,3>& mpm_grid=mpm_hierarchy->Lattice(0);
     auto f0=mpm_hierarchy->Channel(0,f_channels(0)); auto f1=mpm_hierarchy->Channel(0,f_channels(1)); auto f2=mpm_hierarchy->Channel(0,f_channels(2));
-    Array<T> thread_rt(threads); Array<int> thread_cnt(threads);
 #pragma omp parallel for
     for(int tid_process=0;tid_process<threads;++tid_process){
         const Interval<int>& thread_x_interval=x_intervals(tid_process);
@@ -1115,22 +1114,20 @@ Apply_Explicit_Force(const T dt)
             const Array<int>& index=particle_bins(tid_process,tid_collect);
             for(int i=0;i<index.size();++i){
                 T_Particle& p=particles(index(i));T_INDEX& closest_cell=p.closest_cell;
-                T_Mat P=p.constitutive_model.P(),F=p.constitutive_model.Fe;T V0=p.volume;
-                T_Mat I=T_Mat::Identity_Matrix();
+                T_Mat P,F,I,V0_P_FT; T eos_coefficient=(T)0.; T V0=p.volume;
+                if(p.eos) eos_coefficient=V0/p.density*p.bulk_modulus*pow(p.density,p.gamma-(T)1.);
+                else{ P=p.constitutive_model.P();F=p.constitutive_model.Fe;I=T_Mat::Identity_Matrix();
                 const T saturation=p.saturation; const T eta=p.constitutive_model.eta*saturation; const T k_p=(T)1e4;
                 const T mu=p.constitutive_model.mu; const T lambda=p.constitutive_model.lambda; 
                 const T J=p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
-                // Log::cout<<"s: "<<p.saturation<<", eta: "<<eta<<", J: "<<J<<", mu: "<<mu<<", lambda: "<<lambda<<std::endl;
-                T_Mat extra_sigma=eta*k_p*saturation*I*J;
-                T_Mat V0_P_FT=(P.Times_Transpose(F)-extra_sigma)*V0;                    
+                T_Mat extra_sigma=eta*k_p*saturation*I*J; V0_P_FT=(P.Times_Transpose(F)-extra_sigma)*V0;}
                 const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_cell(0),thread_x_interval.max_corner-closest_cell(0));  
                 for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){
-                    auto data=iterator.Current_Cell()._data;         
-                    TV body_force=gravity*p.mass*iterator.Weight(); TV inner_force=V0_P_FT*iterator.Weight_Gradient();
-                    f0(data)-=inner_force(0); f1(data)-=inner_force(1); f2(data)-=inner_force(2);
-                    f0(data)+=body_force(0); f1(data)+=body_force(1); f2(data)+=body_force(2); 
-                }}}}
-
+                    auto data=iterator.Current_Cell()._data;    TV weight_gradient=iterator.Weight_Gradient();
+                    TV body_force=gravity*p.mass*iterator.Weight(); TV inner_force=V0_P_FT*weight_gradient;
+                    if(p.eos) {f0(data)+=eos_coefficient*weight_gradient(0); f1(data)+=eos_coefficient*weight_gradient(1); f2(data)+=eos_coefficient*weight_gradient(2);}
+                    else {f0(data)-=inner_force(0); f1(data)-=inner_force(1); f2(data)-=inner_force(2);}
+                    f0(data)+=body_force(0); f1(data)+=body_force(1); f2(data)+=body_force(2);}}}}
     for(int level=0;level<levels;++level) Explicit_Force_Helper<MPM_struct_type,T,3>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),f_channels,velocity_channels,velocity_star_channels,dt);
     high_resolution_clock::time_point te=high_resolution_clock::now();
 	duration<double> dur=duration_cast<duration<double>>(te-tb);
