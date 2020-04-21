@@ -139,6 +139,7 @@ Initialize()
 {
     Initialize_Particles(Base::test_number);
     Populate_Simulated_Particles();
+    waiting_particles=simulated_particles;
     Initialize_SPGrid();
     particle_bins.Resize(threads,threads);
     Log::cout<<"barrier size: "<<barriers.size()<<std::endl;
@@ -151,6 +152,7 @@ Initialize()
 {
     Initialize_Particles(Base::test_number);
     Populate_Simulated_Particles();
+    waiting_particles=simulated_particles;
     Initialize_SPGrid();
     particle_bins.Resize(threads,threads);
     Log::cout<<"barrier size: "<<barriers.size()<<std::endl;
@@ -801,36 +803,38 @@ Grid_Based_Collision(const bool detect_collision)
     if(detect_collision) for(int level=0;level<levels;++level) Grid_Based_Collision_Helper<Struct_type,T,3>(hierarchy->Lattice(level),hierarchy->Allocator(level),hierarchy->Blocks(level),velocity_star_channels,barriers);
 }
 //######################################################################
-// Estimate_Particle_Volumes
+// Process_Waiting_Particles
 //######################################################################
 template<class T> void MPM_Example<T,2>::
-Estimate_Particle_Volumes()
+Process_Waiting_Particles()
 {   
     auto mass=hierarchy->Channel(0,mass_channel);
     const Grid<T,2>& grid=hierarchy->Lattice(0); const T one_over_volume_per_cell=(T)1./grid.dX.Product();
 #pragma omp parallel for
-    for(unsigned i=0;i<simulated_particles.size();++i){const int id=simulated_particles(i); T_Particle& p=particles(id);     
+    for(unsigned i=0;i<waiting_particles.size();++i){const int id=waiting_particles(i); T_Particle& p=particles(id);     
         T particle_density=(T)0.;
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             particle_density+=iterator.Weight()*mass(iterator.Current_Cell()._data);}
         particle_density*=one_over_volume_per_cell;
         p.volume=p.mass/particle_density;} 
+    waiting_particles.Clear();
 }
 //######################################################################
-// Estimate_Particle_Volumes
+// Process_Waiting_Particles
 //######################################################################
 template<class T> void MPM_Example<T,3>::
-Estimate_Particle_Volumes()
+Process_Waiting_Particles()
 {   
     auto mass=hierarchy->Channel(0,mass_channel);
     const Grid<T,3>& grid=hierarchy->Lattice(0); const T one_over_volume_per_cell=(T)1./grid.dX.Product();
 #pragma omp parallel for
-    for(unsigned i=0;i<simulated_particles.size();++i){const int id=simulated_particles(i); T_Particle& p=particles(id);     
+    for(unsigned i=0;i<waiting_particles.size();++i){const int id=waiting_particles(i); T_Particle& p=particles(id);     
         T particle_density=(T)0.;
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             particle_density+=iterator.Weight()*mass(iterator.Current_Cell()._data);}
         particle_density*=one_over_volume_per_cell;
         p.volume=p.mass/particle_density;} 
+    waiting_particles.Clear();
 }
 //######################################################################
 // Register_Options
@@ -926,6 +930,31 @@ Parse_Options()
     cfl=parse_args->Get_Double_Value("-cfl");
     levels=parse_args->Get_Integer_Value("-levels");
     auto cell_counts_3d=parse_args->Get_Vector_3D_Value("-size");for(int v=0;v<3;++v) counts(v)=cell_counts_3d(v);
+}
+//######################################################################
+// Allocate_Particle
+//######################################################################
+template<class T> int MPM_Example<T,2>::
+Allocate_Particle(bool add_to_simulation)
+{
+    // int p=0;
+    // if(invalid_particles.m){
+    //     p=invalid_particles.Pop();
+    //     particles(p).Initialize();}
+    // else p=particles.Append(T_PARTICLE());
+    // if(add_to_simulation){
+    //     simulated_particles.Append(p);
+    //     waiting_particles.Append(p);}
+    // else particles(p).valid=false;
+    // return p;
+}
+//######################################################################
+// Allocate_Particle
+//######################################################################
+template<class T> int MPM_Example<T,3>::
+Allocate_Particle(bool add_to_simulation)
+{
+    
 }
 //######################################################################
 // Write_Output_Files

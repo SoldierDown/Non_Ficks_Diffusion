@@ -25,7 +25,7 @@ Initialize()
         example.Group_Particles();
         example.Rasterize_Voxels();
         example.Rasterize();
-        example.Estimate_Particle_Volumes();
+        example.Process_Waiting_Particles();
     }
     else example.Read_Output_Files(example.restart_frame);
 }
@@ -108,6 +108,7 @@ Advance_Step(const T dt)
     example.Group_Particles();
     example.Rasterize_Voxels();
     example.Rasterize();
+    example.Process_Waiting_Particles();
     example.Update_Constitutive_Model_State();
     example.Update_Particle_Velocities_And_Positions(dt);
 }

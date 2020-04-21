@@ -161,6 +161,7 @@ class MPM_Example<T,2>: public Example<T,2>
     Range<T,2> bbox;
     Array<T_Particle> particles;
     Array<T_Barrier> barriers;
+    Array<int> waiting_particles;
     Array<int> simulated_particles;
     Array<int> invalid_particles;
     Array<int> valid_grid_indices;
@@ -195,6 +196,7 @@ class MPM_Example<T,2>: public Example<T,2>
 //######################################################################
     void Initialize_SPGrid();
     void Initialize();
+    int  Allocate_Particle(bool add_to_simulation=true);
     void Reset_Grid_Based_Variables();
     void Reset_Solver_Channels();
     void Populate_Simulated_Particles();
@@ -203,7 +205,7 @@ class MPM_Example<T,2>: public Example<T,2>
     void Rasterize();
     void Update_Constitutive_Model_State();
     void Update_Particle_Velocities_And_Positions(const T dt);
-    void Estimate_Particle_Volumes();
+    void Process_Waiting_Particles();
     void Apply_Force(const T dt);
     void Apply_Explicit_Force(const T dt);
     void Grid_Based_Collision(const bool detect_collision);
@@ -265,6 +267,7 @@ class MPM_Example<T,3>: public Example<T,3>
     Range<T,3> bbox;
     Array<T_Particle> particles;
     Array<T_Barrier> barriers;
+    Array<int> waiting_particles;
     Array<int> simulated_particles;
     Array<int> invalid_particles;
     Array<int> valid_grid_indices;
@@ -299,6 +302,7 @@ class MPM_Example<T,3>: public Example<T,3>
 //######################################################################
     void Initialize_SPGrid();
     void Initialize();
+    int  Allocate_Particle(bool add_to_simulation=true);
     void Reset_Grid_Based_Variables();
     void Reset_Solver_Channels();
     void Populate_Simulated_Particles();
@@ -307,7 +311,7 @@ class MPM_Example<T,3>: public Example<T,3>
     void Rasterize();
     void Update_Constitutive_Model_State();
     void Update_Particle_Velocities_And_Positions(const T dt);
-    void Estimate_Particle_Volumes();
+    void Process_Waiting_Particles();
     void Apply_Force(const T dt);
     void Apply_Explicit_Force(const T dt);
     void Grid_Based_Collision(const bool detect_collision);
