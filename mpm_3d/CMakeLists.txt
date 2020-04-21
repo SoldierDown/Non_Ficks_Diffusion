@@ -1,5 +1,5 @@
 if(ENABLE_NON_FICKS_DIFFUSION)
-  add_executable(nfd_2d
+  add_executable(mpm_3d
     main.cpp
     ../MPM_Driver.cpp
     ../MPM_Example.cpp
@@ -12,7 +12,7 @@ if(ENABLE_NON_FICKS_DIFFUSION)
       set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
   endif()
 
-  target_link_libraries(nfd_2d
+  target_link_libraries(mpm_3d
     PRIVATE
     nova::dynamics
     nova::geometry
@@ -22,5 +22,5 @@ if(ENABLE_NON_FICKS_DIFFUSION)
   
   file(RELATIVE_PATH REL ${PROJECT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
   
-  install(TARGETS nfd_2d RUNTIME DESTINATION ${REL})
+  install(TARGETS mpm_3d RUNTIME DESTINATION ${REL})
 endif()

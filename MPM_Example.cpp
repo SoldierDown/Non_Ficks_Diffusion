@@ -291,6 +291,8 @@ Rasterize_Voxels()
     using Cell_Iterator             = Grid_Iterator_Cell<T,3>;
     using Hierarchy_Initializer     = Grid_Hierarchy_Initializer<Struct_type,T,3>;
     const Grid<T,3>& grid=hierarchy->Lattice(0);
+    T_INDEX min_corner=grid.Clamp_To_Cell(bbox.min_corner);
+    T_INDEX max_corner=grid.Clamp_To_Cell(bbox.min_corner)-1;
     Range<int,3> bounding_grid_cells(grid.Clamp_To_Cell(bbox.min_corner),grid.Clamp_To_Cell(bbox.max_corner));
     for(Cell_Iterator iterator(grid,bounding_grid_cells);iterator.Valid();iterator.Next())
         hierarchy->Activate_Cell(0,iterator.Cell_Index(),Cell_Type_Dirichlet);
@@ -571,10 +573,12 @@ Update_Particle_Velocities_And_Positions(const T dt)
 {
     high_resolution_clock::time_point tb=high_resolution_clock::now();
     Array<Array<int> > remove_indices(threads);
+
     auto vs0=hierarchy->Channel(0,velocity_star_channels(0));   auto vs1=hierarchy->Channel(0,velocity_star_channels(1));
     auto v0=hierarchy->Channel(0,velocity_channels(0));         auto v1=hierarchy->Channel(0,velocity_channels(1));
     Apply_Force(dt);
     const Grid<T,2>& grid=hierarchy->Lattice(0);
+    Range<T,2> cell_domain(grid.domain.min_corner+(T).5*grid.dX,grid.domain.max_corner-(T).5*grid.dX);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i); 
@@ -591,7 +595,7 @@ Update_Particle_Velocities_And_Positions(const T dt)
             p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
             p.V=V_flip*flip+V_pic*((T)1.-flip);
             p.X+=V_pic*dt;
-        if(!grid.domain.Inside(p.X)){
+        if(!cell_domain.Inside(p.X)){
             remove_indices(omp_get_thread_num()).Append(i);
             p.valid=false;}}
 
@@ -620,6 +624,7 @@ Update_Particle_Velocities_And_Positions(const T dt)
     auto v0=hierarchy->Channel(0,velocity_channels(0));         auto v1=hierarchy->Channel(0,velocity_channels(1)); auto v2=hierarchy->Channel(0,velocity_channels(2));         
     Apply_Force(dt);
     const Grid<T,3>& grid=hierarchy->Lattice(0);
+    Range<T,3> cell_domain(grid.domain.min_corner+(T).5*grid.dX,grid.domain.max_corner-(T).5*grid.dX);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
         const int id=simulated_particles(i); 
@@ -636,7 +641,7 @@ Update_Particle_Velocities_And_Positions(const T dt)
             p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
             p.V=V_flip*flip+V_pic*((T)1.-flip);
             p.X+=V_pic*dt;
-        if(!grid.domain.Inside(p.X)){
+        if(!cell_domain.Inside(p.X)){
             remove_indices(omp_get_thread_num()).Append(i);
             p.valid=false;}}
 

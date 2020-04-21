@@ -29,7 +29,7 @@ class Flag_Setup_Helper
         auto flag_setup_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(mass(offset)>(T)0.) {flags(offset)|=Cell_Type_Interior; flags(offset)&=~Cell_Type_Dirichlet;} 
+                if(mass(offset)>(T)0.) {flags(offset)|=Cell_Type_Interior; } 
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,flag_setup_helper);
     }

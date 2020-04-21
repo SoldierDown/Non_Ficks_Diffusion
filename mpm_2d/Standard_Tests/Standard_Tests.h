@@ -40,7 +40,7 @@ class Standard_Tests: public MPM_Example<T,d>
     void Parse_Options() override
     {
         Base::Parse_Options();
-        output_directory="nfd_2d_"+std::to_string(test_number);
+        output_directory="mpm_2d_"+std::to_string(test_number);
 
         domain.min_corner=TV();domain.max_corner=TV(1);
     }
@@ -198,7 +198,7 @@ class Standard_Tests: public MPM_Example<T,d>
             // barriers.Append(left_wall);
             // T_Barrier right_wall(0.,TV({-1.,0.}),TV({.9,0.}));
             // barriers.Append(right_wall);
-
+            
             {
                 const T mass_density=(T)2.;
                 const int number_of_particles=2000;
