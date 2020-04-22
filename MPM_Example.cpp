@@ -648,24 +648,7 @@ Ficks_Diffusion(T dt)
     cg.restart_iterations=cg_restart_iterations;
     const T tolerance=std::max((T)1e-6*b_norm,(T)1e-6);
     cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_max_iterations);
-
-    // Diffusion_CG_System<Diff_struct_type,T,2> ficks_diffusion_system(*diff_hierarchy,FICKS);
-    // ficks_diffusion_system.a=a;
-    // ficks_diffusion_system.twod_a_plus_one=four_a_plus_one;
-    // ficks_diffusion_system.use_preconditioner=false;
-    // Conjugate_Gradient<T> cg;
-    // Krylov_Solver<T>* solver_fd=(Krylov_Solver<T>*)&cg;
-    // reset solver channels
-    // Reset_Solver_Channels();
-    // set up rhs
-    // for(int level=0;level<levels;++level) Ficks_RHS_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,diff_rhs_channel,a);
-    // Diffusion_CG_Vector<Diff_struct_type,T,2> saturation_fd(*diff_hierarchy,saturation_channel),rhs_fd(*diff_hierarchy,diff_rhs_channel),solver_q_fd(*diff_hierarchy,diff_q_channel),
-                                                // solver_s_fd(*diff_hierarchy,diff_s_channel),solver_r_fd(*diff_hierarchy,diff_r_channel),solver_k_fd(*diff_hierarchy,diff_z_channel),solver_z_fd(*diff_hierarchy,diff_z_channel);         
-    
-    // solver_fd->Solve(ficks_diffusion_system,saturation_fd,rhs_fd,solver_q_fd,solver_s_fd,solver_r_fd,solver_k_fd,solver_z_fd,solver_tolerance,0,solver_iterations);
-    // Clamp saturation
     for(int level=0;level<levels;++level) Clamp_Heler<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel);}
-
 
     for(int level=0;level<levels;++level) Lap_Calculator<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,lap_saturation_channel,one_over_dx2);        
     auto lap_saturation=diff_hierarchy->Channel(0,lap_saturation_channel);
@@ -1009,6 +992,108 @@ Update_Particle_Velocities_And_Positions(const T dt)
 	duration<double> dur=duration_cast<duration<double>>(te-tb);
     update_x_v_cnt++;
     update_x_v_rt+=dur.count();
+}
+//######################################################################
+// Allocate_Particle
+//######################################################################
+template<class T> int MPM_Example<T,2>::
+Allocate_Particle(bool add_to_simulation)
+{
+    int id=0;
+    if(invalid_particles.size()){
+        invalid_particles.Pop_Back();
+        id=invalid_particles.size();
+        particles(id).Initialize();}
+    else {T_Particle p;
+        id=particles.size();
+        particles.Append(p);}
+    if(add_to_simulation){
+        simulated_particles.Append(id);
+        waiting_particles.Append(id);}
+    else particles(id).valid=false;
+    return id;
+}
+//######################################################################
+// Allocate_Particle
+//######################################################################
+template<class T> int MPM_Example<T,3>::
+Allocate_Particle(bool add_to_simulation)
+{
+    int id=0;
+    if(invalid_particles.size()){
+        invalid_particles.Pop_Back();
+        id=invalid_particles.size();
+        particles(id).Initialize();}
+    else {T_Particle p;
+        id=particles.size();
+        particles.Append(p);}
+    if(add_to_simulation){
+        simulated_particles.Append(id);
+        waiting_particles.Append(id);}
+    else particles(id).valid=false;
+    return id;
+}
+//######################################################################
+// Add_Fluid_Source
+//######################################################################
+template<class T> void MPM_Example<T,2>::
+Add_Fluid_Source()
+{
+    const int number_fluid_particles=10;
+    const T area_per_particle=5e-4;
+    const T mass_density=(T)2.;
+    for(int i=0;i<number_fluid_particles;++i){
+        int id=Allocate_Particle();
+        T_Particle& p=particles(id);
+        p.valid=true; 
+        p.X=random.Get_Uniform_Vector(fluid_source);
+        p.V=TV::Axis_Vector(1)*(T)-1.;
+        p.mass=mass_density*area_per_particle;
+        p.mass_fluid=p.mass;
+        p.mass_solid=(T)0.;
+        p.volume=(T)0.;
+        p.scp=Matrix<T,2>();
+        p.eos_scp=Matrix<T,2>();
+        // EOS fluid particle
+        p.eos=true;
+        p.density=1;
+        p.bulk_modulus=(T)1.;
+        p.gamma=(T)7;
+        p.constitutive_model.eta=(T)0.;
+        p.saturation=(T)1.;
+        p.volume_fraction_0=(T)1.;
+    }
+}
+//######################################################################
+// Add_Fluid_Source
+//######################################################################
+template<class T> void MPM_Example<T,3>::
+Add_Fluid_Source()
+{
+    const int number_fluid_particles=10;
+    const T area_per_particle=fluid_source.Area()/number_fluid_particles;
+    const T mass_density=(T)2.;
+    for(int i=0;i<number_fluid_particles;++i){
+        int id=Allocate_Particle();
+        T_Particle& p=particles(id);
+        p.valid=true; 
+        p.X=random.Get_Uniform_Vector(fluid_source);
+        p.V=TV::Axis_Vector(1)*(T)-1.;
+        p.mass=mass_density*area_per_particle;
+        p.mass_fluid=p.mass;
+        p.mass_solid=(T)0.;
+        p.volume=(T)0.;
+        p.scp=Matrix<T,3>();
+        p.eos_scp=Matrix<T,3>();
+        // EOS fluid particle
+        p.eos=true;
+        p.density=1;
+        p.bulk_modulus=(T)1.;
+        p.gamma=(T)7;
+        p.constitutive_model.eta=(T)0.;
+        p.saturation=(T)1.;
+        p.volume_fraction_0=(T)1.;
+    }
 }
 //######################################################################
 // Apply_Force

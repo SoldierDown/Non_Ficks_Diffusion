@@ -20,6 +20,8 @@ class MPM_Particle
 public:
     bool valid;
     TV X,V;
+    TV color;
+    
     T_INDEX closest_cell;
     T mass,volume;
     Mat weights;
