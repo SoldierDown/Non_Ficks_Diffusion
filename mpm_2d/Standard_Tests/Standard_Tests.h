@@ -25,7 +25,7 @@ class Standard_Tests: public MPM_Example<T,d>
 
   public:
     using Base::output_directory;using Base::test_number;using Base::particles;using Base::parse_args;using Base::counts;using Base::domain;
-    using Base::barriers;
+    using Base::barriers;using Base::fluid_source;
     /****************************
      * example explanation:
      *
@@ -282,6 +282,46 @@ class Standard_Tests: public MPM_Example<T,d>
             }
             
         }break;
+        // example 20: fluid source
+        case 20:{
+            Random_Numbers<T> random;
+            random.Set_Seed(0);
+            
+            fluid_source.min_corner=TV({.45,.45});
+            fluid_source.max_corner=TV({.55,.55});
+
+            T_Barrier ground(0.,TV({0.,1.}),TV({0.,.1}));
+            barriers.Append(ground);
+            T_Barrier ceiling(0.,TV({0.,-1.}),TV({0.,.9}));
+            Base::barriers.Append(ceiling);
+            T_Barrier left_wall(0.,TV({1.,0.}),TV({.1,0.}));
+            barriers.Append(left_wall);
+            T_Barrier right_wall(0.,TV({-1.,0.}),TV({.9,0.}));
+            barriers.Append(right_wall);            
+            // {
+            //     const T mass_density=(T)2.;
+            //     const int number_of_particles=2000;
+            //     const Sphere<T,d> ball(TV({.5,.5}),.1);
+            //     const T block_area=ball.Size();
+            //     const T area_per_particle=block_area/number_of_particles;
+            //     std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
+            //     const T E=(T)40.,nu=(T).2;
+            //     for(int i=0;i<number_of_particles;++i){
+            //         T_Particle p;
+            //         p.X=random.Get_Vector_In_Sphere(ball)+ball.center;
+            //         p.V(0)=(T)0.;
+            //         p.V(1)=(T)-1.;
+            //         p.mass=mass_density*area_per_particle;
+            //         p.eos=true;
+            //         p.bulk_modulus=(T)1.;
+            //         p.constitutive_model.Compute_Lame_Parameters(E,nu);
+            //         p.constitutive_model.plastic=false;
+            //         particles.Append(p);
+            //     }  
+            // }
+            
+        }break;
+
         default:
             break;
         }

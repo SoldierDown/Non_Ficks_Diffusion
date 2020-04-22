@@ -35,6 +35,7 @@ template<class T> MPM_Example<T,2>::
 MPM_Example()
     :Base(),hierarchy(nullptr)
 {
+    random.Set_Seed(0);
     solver_tolerance=(T)1e-7;
     solver_iterations=10000;
 
@@ -73,6 +74,7 @@ template<class T> MPM_Example<T,3>::
 MPM_Example()
     :Base(),hierarchy(nullptr)
 {
+    random.Set_Seed(0);
     solver_tolerance=(T)1e-7;
     solver_iterations=10000;
 
@@ -937,16 +939,19 @@ Parse_Options()
 template<class T> int MPM_Example<T,2>::
 Allocate_Particle(bool add_to_simulation)
 {
-    // int p=0;
-    // if(invalid_particles.m){
-    //     p=invalid_particles.Pop();
-    //     particles(p).Initialize();}
-    // else p=particles.Append(T_PARTICLE());
-    // if(add_to_simulation){
-    //     simulated_particles.Append(p);
-    //     waiting_particles.Append(p);}
-    // else particles(p).valid=false;
-    // return p;
+    int id=0;
+    if(invalid_particles.size()){
+        invalid_particles.Pop_Back();
+        id=invalid_particles.size();
+        particles(id).Initialize();}
+    else {T_Particle p;
+        id=particles.size();
+        particles.Append(p);}
+    if(add_to_simulation){
+        simulated_particles.Append(id);
+        waiting_particles.Append(id);}
+    else particles(id).valid=false;
+    return id;
 }
 //######################################################################
 // Allocate_Particle
@@ -954,7 +959,71 @@ Allocate_Particle(bool add_to_simulation)
 template<class T> int MPM_Example<T,3>::
 Allocate_Particle(bool add_to_simulation)
 {
-    
+    int id=0;
+    if(invalid_particles.size()){
+        invalid_particles.Pop_Back();
+        id=invalid_particles.size();
+        particles(id).Initialize();}
+    else {T_Particle p;
+        id=particles.size();
+        particles.Append(p);}
+    if(add_to_simulation){
+        simulated_particles.Append(id);
+        waiting_particles.Append(id);}
+    else particles(id).valid=false;
+    return id;
+}
+//######################################################################
+// Add_Fluid_Source
+//######################################################################
+template<class T> void MPM_Example<T,2>::
+Add_Fluid_Source()
+{
+    const int number_fluid_particles=10;
+    const T area_per_particle=5e-4;
+    const T mass_density=(T)2.;
+    for(int i=0;i<number_fluid_particles;++i){
+        int id=Allocate_Particle();
+        T_Particle& p=particles(id);
+        p.valid=true; 
+        p.X=random.Get_Uniform_Vector(fluid_source);
+        p.V=TV::Axis_Vector(1)*(T)-1.;
+        p.mass=mass_density*area_per_particle;
+        p.volume=(T)0.;
+        p.scp=Matrix<T,2>();
+        p.eos_scp=Matrix<T,2>();
+        // EOS fluid particle
+        p.eos=true;
+        p.density=1;
+        p.bulk_modulus=(T)1.;
+        p.gamma=(T)7;
+    }
+}
+//######################################################################
+// Add_Fluid_Source
+//######################################################################
+template<class T> void MPM_Example<T,3>::
+Add_Fluid_Source()
+{
+    const int number_fluid_particles=10;
+    const T area_per_particle=fluid_source.Area()/number_fluid_particles;
+    const T mass_density=(T)2.;
+    for(int i=0;i<number_fluid_particles;++i){
+        int id=Allocate_Particle();
+        T_Particle& p=particles(id);
+        p.valid=true; 
+        p.X=random.Get_Uniform_Vector(fluid_source);
+        p.V=TV::Axis_Vector(1)*(T)-1.;
+        p.mass=mass_density*area_per_particle;
+        p.volume=(T)0.;
+        p.scp=Matrix<T,3>();
+        p.eos_scp=Matrix<T,3>();
+        // EOS fluid particle
+        p.eos=true;
+        p.density=1;
+        p.bulk_modulus=(T)1.;
+        p.gamma=(T)7;
+    }
 }
 //######################################################################
 // Write_Output_Files

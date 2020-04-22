@@ -179,6 +179,8 @@ class MPM_Example<T,2>: public Example<T,2>
     Channel_Vector velocity_star_channels;
     Channel_Vector f_channels;
 
+    Range<T,2> fluid_source;
+    Random_Numbers<T> random;
     // Krylov solver channels
     Channel_Vector rhs_channels;
     Channel_Vector q_channels;
@@ -196,6 +198,7 @@ class MPM_Example<T,2>: public Example<T,2>
 //######################################################################
     void Initialize_SPGrid();
     void Initialize();
+    void Add_Fluid_Source();
     int  Allocate_Particle(bool add_to_simulation=true);
     void Reset_Grid_Based_Variables();
     void Reset_Solver_Channels();
@@ -285,6 +288,8 @@ class MPM_Example<T,3>: public Example<T,3>
     Channel_Vector velocity_star_channels;
     Channel_Vector f_channels;
 
+    Range<T,3> fluid_source;
+    Random_Numbers<T> random;
     // Krylov solver channels
     Channel_Vector rhs_channels;
     Channel_Vector q_channels;
@@ -302,6 +307,7 @@ class MPM_Example<T,3>: public Example<T,3>
 //######################################################################
     void Initialize_SPGrid();
     void Initialize();
+    void Add_Fluid_Source();
     int  Allocate_Particle(bool add_to_simulation=true);
     void Reset_Grid_Based_Variables();
     void Reset_Solver_Channels();
