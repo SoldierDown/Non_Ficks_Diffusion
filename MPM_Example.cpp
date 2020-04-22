@@ -543,10 +543,13 @@ template<class T> void MPM_Example<T,2>::
 Rasterize()
 {
     high_resolution_clock::time_point tb=high_resolution_clock::now();
+    T Diff_struct_type::*   diff_mass_solid_channel         =&Diff_struct_type::ch10;
+    for(int level=0;level<levels;++level) Clear<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),diff_mass_solid_channel);
     const T cell_volume=mpm_hierarchy->Lattice(0).dX.Product();
-    for(int level=0;level<levels;++level) Grid_Saturation_Initialization_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel,cell_volume);     
+    // for(int level=0;level<levels;++level) Grid_Saturation_Initialization_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel,cell_volume);     
     const T fluid_density=(T)1.;
     auto mass=mpm_hierarchy->Channel(0,mass_channel);       
+    auto diff_mass_solid=diff_hierarchy->Channel(0,diff_mass_solid_channel);        
     auto v0=mpm_hierarchy->Channel(0,velocity_channels(0)); auto v1=mpm_hierarchy->Channel(0,velocity_channels(1));
     auto div_Qc=diff_hierarchy->Channel(0,div_Qc_channel); auto volume=diff_hierarchy->Channel(0,volume_channel);
     auto saturation=diff_hierarchy->Channel(0,saturation_channel); auto void_mass_fluid=diff_hierarchy->Channel(0,void_mass_fluid_channel);
@@ -560,13 +563,13 @@ Rasterize()
                 const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_cell(0),thread_x_interval.max_corner-closest_cell(0));
                 for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){
                     TV V=p.V; T p_mass=p.mass; T weight=iterator.Weight(); auto data=iterator.Current_Cell()._data; const T Vft=p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant()*p.volume_fraction_0;
-                    mass(data)+=weight*p_mass; v0(data)+=weight*(p_mass*V(0)); v1(data)+=weight*(p_mass*V(1));
-                    saturation(data)+=weight*p.mass_fluid; void_mass_fluid(data)+=weight*fluid_density*Vft;
+                    mass(data)+=weight*p_mass;  diff_mass_solid(data)=(T)1.;
+                    v0(data)+=weight*(p_mass*V(0)); v1(data)+=weight*(p_mass*V(1)); saturation(data)+=weight*p.mass_fluid; 
+                    if(p.eos) void_mass_fluid(data)+=weight*p_mass; else void_mass_fluid(data)+=weight*fluid_density*Vft;
                     if(!FICKS&&!explicit_diffusion){div_Qc(data)+=weight*p.div_Qc*p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant(); volume(data)+=weight*p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();}}}}}
-
     // set flags
-    for(int level=0;level<levels;++level) Flag_Setup_Helper<MPM_struct_type,T,2>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level));     
-    for(int level=0;level<levels;++level) Flag_Setup_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level));     
+    for(int level=0;level<levels;++level) Flag_Setup_Helper<MPM_struct_type,T,2>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),mass_channel);     
+    for(int level=0;level<levels;++level) Flag_Setup_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),diff_mass_solid_channel);     
     // normalize weights for velocity (to conserve momentum)
     for(int level=0;level<levels;++level) Velocity_Normalization_Helper<MPM_struct_type,T,2>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),velocity_channels);     
     // "normalize" saturation and set up surroundings
@@ -574,6 +577,7 @@ Rasterize()
     // clamp saturation
     for(int level=0;level<levels;++level) Clamp_Heler<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel);     
     if(!FICKS&&!explicit_diffusion) for(int level=0;level<levels;++level) Div_Qc_Normalization_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),div_Qc_channel,volume_channel);  
+    
     high_resolution_clock::time_point te=high_resolution_clock::now();
 	duration<double> dur=duration_cast<duration<double>>(te-tb);
     ras_cnt++;
@@ -586,10 +590,13 @@ template<class T> void MPM_Example<T,3>::
 Rasterize()
 {
     high_resolution_clock::time_point tb=high_resolution_clock::now();
+    T Diff_struct_type::*   diff_mass_solid_channel         =&Diff_struct_type::ch10;
+    for(int level=0;level<levels;++level) Clear<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),diff_mass_solid_channel);
     const T cell_volume=mpm_hierarchy->Lattice(0).dX.Product();
-    for(int level=0;level<levels;++level) Grid_Saturation_Initialization_Helper<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel,cell_volume);     
+    // for(int level=0;level<levels;++level) Grid_Saturation_Initialization_Helper<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel,cell_volume);     
     const T fluid_density=(T)1.;
     auto mass=mpm_hierarchy->Channel(0,mass_channel);       
+    auto diff_mass_solid=diff_hierarchy->Channel(0,diff_mass_solid_channel);        
     auto v0=mpm_hierarchy->Channel(0,velocity_channels(0)); auto v1=mpm_hierarchy->Channel(0,velocity_channels(1)); auto v2=mpm_hierarchy->Channel(0,velocity_channels(2)); 
     auto div_Qc=diff_hierarchy->Channel(0,div_Qc_channel); auto volume=diff_hierarchy->Channel(0,volume_channel);
     auto saturation=diff_hierarchy->Channel(0,saturation_channel); auto void_mass_fluid=diff_hierarchy->Channel(0,void_mass_fluid_channel);
@@ -603,12 +610,13 @@ Rasterize()
                 const Interval<int> relative_interval=Interval<int>(thread_x_interval.min_corner-closest_cell(0),thread_x_interval.max_corner-closest_cell(0));
                 for(T_Cropped_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),relative_interval,p);iterator.Valid();iterator.Next()){
                     TV V=p.V; T p_mass=p.mass; T weight=iterator.Weight(); auto data=iterator.Current_Cell()._data; const T Vft=p.volume*p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant()*p.volume_fraction_0;
-                    mass(data)+=weight*p_mass; v0(data)+=weight*(p_mass*V(0)); v1(data)+=weight*(p_mass*V(1)); v2(data)+=weight*(p_mass*V(2));
-                    saturation(data)+=weight*p.mass_fluid; void_mass_fluid(data)+=weight*fluid_density*Vft;
+                    mass(data)+=weight*p_mass;  diff_mass_solid(data)=(T)1.; 
+                    v0(data)+=weight*(p_mass*V(0)); v1(data)+=weight*(p_mass*V(1)); v2(data)+=weight*(p_mass*V(2)); saturation(data)+=weight*p.mass_fluid; 
+                    if(p.eos) void_mass_fluid(data)+=weight*p_mass; else void_mass_fluid(data)+=weight*fluid_density*Vft;
                     if(!FICKS&&!explicit_diffusion){div_Qc(data)+=weight*p.div_Qc*p.volume; volume(data)+=weight*p.volume;}}}}}
     // set flags
-    for(int level=0;level<levels;++level) Flag_Setup_Helper<MPM_struct_type,T,3>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level));     
-    for(int level=0;level<levels;++level) Flag_Setup_Helper<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level));     
+    for(int level=0;level<levels;++level) Flag_Setup_Helper<MPM_struct_type,T,3>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),mass_channel);     
+    for(int level=0;level<levels;++level) Flag_Setup_Helper<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),diff_mass_solid_channel);     
     // normalize weights for velocity (to conserve momentum)
     for(int level=0;level<levels;++level) Velocity_Normalization_Helper<MPM_struct_type,T,3>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),velocity_channels);     
     // "normalize" saturation and set up surroundings
@@ -654,7 +662,9 @@ Ficks_Diffusion(T dt)
     auto lap_saturation=diff_hierarchy->Channel(0,lap_saturation_channel);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
-        const int id=simulated_particles(i); T_Particle &p=particles(id); T_INDEX closest_cell=p.closest_cell;
+        const int id=simulated_particles(i); T_Particle &p=particles(id); 
+        if(p.eos) p.saturation=(T)1.;
+        else{T_INDEX closest_cell=p.closest_cell;
         T p_lap_saturation=(T)0.;
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             T_INDEX current_cell=iterator.Current_Cell();
@@ -662,7 +672,7 @@ Ficks_Diffusion(T dt)
                 T weight=iterator.Weight();
                 if(weight>(T)0.) p_lap_saturation+=weight*lap_saturation(current_cell._data);}}
             p.saturation+=dt*diff_coeff*p_lap_saturation;
-            p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);}
+            p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);}}
     Log::cout<<"Fick's Diffusion finished"<<std::endl;
 }
 //######################################################################
@@ -699,7 +709,9 @@ Ficks_Diffusion(T dt)
     auto lap_saturation=diff_hierarchy->Channel(0,lap_saturation_channel);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
-        const int id=simulated_particles(i); T_Particle &p=particles(id); T_INDEX closest_cell=p.closest_cell;
+        const int id=simulated_particles(i); T_Particle &p=particles(id); 
+        if(p.eos) p.saturation=(T)1.;
+        else{T_INDEX closest_cell=p.closest_cell;
         T p_lap_saturation=(T)0.;
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             T_INDEX current_cell=iterator.Current_Cell();
@@ -707,7 +719,7 @@ Ficks_Diffusion(T dt)
                 T weight=iterator.Weight();
                 if(weight>(T)0.) p_lap_saturation+=weight*lap_saturation(current_cell._data);}}
             p.saturation+=dt*diff_coeff*p_lap_saturation;
-            p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);}
+            p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);}}
     Log::cout<<"Fick's Diffusion finished"<<std::endl;
 }
 //######################################################################
@@ -727,17 +739,15 @@ Non_Ficks_Diffusion(T dt)
     auto lap_saturation=diff_hierarchy->Channel(0,lap_saturation_channel);
 #pragma omp parallel for
         for(unsigned i=0;i<simulated_particles.size();++i){
-            const int id=simulated_particles(i); 
-            T_Particle &p=particles(id);
-            T_INDEX& closest_cell=p.closest_cell; 
-            T p_lap_saturation=(T)0.;
+            const int id=simulated_particles(i); T_Particle &p=particles(id);
+            if(p.eos) p.saturation=(T)1.;
+            else{T_INDEX& closest_cell=p.closest_cell; T p_lap_saturation=(T)0.;
             for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
                 T_INDEX current_cell=iterator.Current_Cell();
                 if(diff_grid.Cell_Indices().Inside(current_cell))p_lap_saturation+=iterator.Weight()*lap_saturation(current_cell._data);}
                 p.div_Qc=(tau-dt)/tau*p.div_Qc-dt/tau*diff_coeff*((T)1.-Fc)*p_lap_saturation;
                 p.saturation+=dt*(diff_coeff*Fc*p_lap_saturation-p.div_Qc);
-                p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);}}
-
+                p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);}}}
     else{
 	Non_Ficks_CG_System<Diff_struct_type,Multigrid_struct_type,T,2> cg_system(*diff_hierarchy,mg_levels,coeff1,3,1,200);
 	Reset_Solver_Channels();
@@ -761,16 +771,15 @@ Non_Ficks_Diffusion(T dt)
     auto lap_saturation=diff_hierarchy->Channel(0,lap_saturation_channel);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
-        const int id=simulated_particles(i); 
-        T_Particle &p=particles(id);
-        T_INDEX closest_cell=p.closest_cell; 
-        T p_lap_saturation=(T)0.;
+        const int id=simulated_particles(i); T_Particle &p=particles(id);
+        if(p.eos) p.saturation=(T)1.;
+        else{T_INDEX closest_cell=p.closest_cell; T p_lap_saturation=(T)0.;
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             T_INDEX current_cell=iterator.Current_Cell();
             if(diff_grid.Cell_Indices().Inside(current_cell)) p_lap_saturation+=iterator.Weight()*lap_saturation(current_cell._data);}
             p.saturation+=coeff1/one_over_dx2*p_lap_saturation-coeff2*p.div_Qc;
             p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);
-            p.div_Qc=-coeff3*p_lap_saturation+coeff4*p.div_Qc;}}
+            p.div_Qc=-coeff3*p_lap_saturation+coeff4*p.div_Qc;}}}
 }
 //######################################################################
 // Non_Ficks_Diffusion
@@ -790,16 +799,15 @@ Non_Ficks_Diffusion(T dt)
     auto lap_saturation=diff_hierarchy->Channel(0,lap_saturation_channel);
 #pragma omp parallel for
         for(unsigned i=0;i<simulated_particles.size();++i){
-            const int id=simulated_particles(i); 
-            T_Particle &p=particles(id);
-            T_INDEX& closest_cell=p.closest_cell; 
-            T p_lap_saturation=(T)0.;
+            const int id=simulated_particles(i); T_Particle &p=particles(id);
+            if(p.eos) p.saturation=(T)1.;
+            else{T_INDEX& closest_cell=p.closest_cell; T p_lap_saturation=(T)0.;
             for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
                 T_INDEX current_cell=iterator.Current_Cell();
                 if(diff_grid.Cell_Indices().Inside(current_cell))p_lap_saturation+=iterator.Weight()*lap_saturation(current_cell._data);}
                 p.div_Qc=(tau-dt)/tau*p.div_Qc-dt/tau*diff_coeff*((T)1.-Fc)*p_lap_saturation;
                 p.saturation+=dt*(diff_coeff*Fc*p_lap_saturation-p.div_Qc);
-                p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);}}
+                p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);}}}
     else{
 	Non_Ficks_CG_System<Diff_struct_type,Multigrid_struct_type,T,3> cg_system(*diff_hierarchy,mg_levels,coeff1,3,1,200);
 	Reset_Solver_Channels();
@@ -823,16 +831,15 @@ Non_Ficks_Diffusion(T dt)
     auto lap_saturation=diff_hierarchy->Channel(0,lap_saturation_channel);
 #pragma omp parallel for
     for(unsigned i=0;i<simulated_particles.size();++i){
-        const int id=simulated_particles(i); 
-        T_Particle &p=particles(id);
-        T_INDEX closest_cell=p.closest_cell; 
-        T p_lap_saturation=(T)0.;
+        const int id=simulated_particles(i); T_Particle &p=particles(id);
+        if(p.eos) p.saturation=(T)1.;
+        else{T_INDEX closest_cell=p.closest_cell; T p_lap_saturation=(T)0.;
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             T_INDEX current_cell=iterator.Current_Cell();
             if(diff_grid.Cell_Indices().Inside(current_cell)) p_lap_saturation+=iterator.Weight()*lap_saturation(current_cell._data);}
             p.saturation+=coeff1*p_lap_saturation-coeff2*p.div_Qc;
             p.saturation=Nova_Utilities::Clamp(p.saturation,(T)0.,(T)1.);
-            p.div_Qc=-coeff3*p_lap_saturation+coeff4*p.div_Qc;}}
+            p.div_Qc=-coeff3*p_lap_saturation+coeff4*p.div_Qc;}}}
 }
 //######################################################################
 // Update_Constitutive_Model_State
@@ -869,9 +876,6 @@ Update_Particle_Velocities_And_Positions(const T dt)
     auto vs0=mpm_hierarchy->Channel(0,velocity_star_channels(0));   auto vs1=mpm_hierarchy->Channel(0,velocity_star_channels(1));
     auto v0=mpm_hierarchy->Channel(0,velocity_channels(0));         auto v1=mpm_hierarchy->Channel(0,velocity_channels(1));
     Apply_Force(dt);
-    T average_velocity=(T)10.;
-    T velocity_sum=(T)0.;
-    int particle_counter=0;
     const Grid<T,2>& mpm_grid=mpm_hierarchy->Lattice(0);
     Range<T,2> cell_domain(mpm_grid.domain.min_corner+(T).5*mpm_grid.dX,mpm_grid.domain.max_corner-(T).5*mpm_grid.dX);
 #pragma omp parallel for
@@ -890,17 +894,13 @@ Update_Particle_Velocities_And_Positions(const T dt)
             if(p.eos) p.density/=(T)1.+dt*grad_Vp.Trace();
             else p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
             p.V=V_flip*flip+V_pic*((T)1.-flip);
-            p.X+=V_pic*dt;
-            T vp_norm=V_pic.Norm();
-            if(vp_norm>10.*average_velocity) {remove_indices(omp_get_thread_num()).Append(i);p.valid=false;}
-            else{particle_counter+=1; velocity_sum+=vp_norm; average_velocity=velocity_sum/particle_counter;
-            const T J=p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
-            p.mass_fluid=p.volume*J*p.volume_fraction_0*p.saturation;
-            p.mass=p.mass_solid+p.mass_fluid;
+            p.X+=V_pic*dt;            
+            if(p.eos) p.mass_fluid=p.mass;
+            else {const T J=p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
+            p.mass_fluid=p.volume*J*p.volume_fraction_0*p.saturation; p.mass=p.mass_solid+p.mass_fluid;}
             if(!cell_domain.Inside(p.X)){
                 remove_indices(omp_get_thread_num()).Append(i);
-                p.valid=false;}}}
-    Log::cout<<"average velocity: "<<average_velocity<<std::endl;
+                p.valid=false;}}
     for(int i=1;i<remove_indices.size();++i)
             remove_indices(0).Append_Elements(remove_indices(i));
         Array<int>::Sort(remove_indices(0));
@@ -943,32 +943,32 @@ Update_Particle_Velocities_And_Positions(const T dt)
             else p.constitutive_model.Fe+=dt*grad_Vp*p.constitutive_model.Fe;
             p.V=V_flip*flip+V_pic*((T)1.-flip); p.X+=V_pic*dt;
             X_location_sum(thread_id)+=p.X;
-            const T J=p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
-            p.mass_fluid=p.volume*J*p.volume_fraction_0*p.saturation;
-            p.mass=p.mass_solid+p.mass_fluid;
+            if(p.eos) p.mass_fluid=p.mass;
+            else {const T J=p.constitutive_model.Fe.Determinant()*p.constitutive_model.Fp.Determinant();
+            p.mass_fluid=p.volume*J*p.volume_fraction_0*p.saturation; p.mass=p.mass_solid+p.mass_fluid;}
         if(!cell_domain.Inside(p.X)){
-            // remove_indices(omp_get_thread_num()).Append(i);
+            remove_indices(omp_get_thread_num()).Append(i);
             p.valid=false;}}
 
     // calculate center of the hydrogel and average velocity norm;
-    const int particle_number=simulated_particles.size();
-    TV average_X_location=TV(); 
-    for(int i=0;i<threads;++i) average_X_location+=X_location_sum(i);
-    average_X_location/=particle_number;
-    Log::cout<<"average location: "<<average_X_location<<std::endl;
-    // calculate abs axis shift sum
-    Array<TV> abs_X_shift_sum(threads);
-#pragma omp parallel for
-    for(unsigned i=0;i<simulated_particles.size();++i){
-        const int thread_id=omp_get_thread_num(); const int id=simulated_particles(i);
-        T_Particle &p=particles(id); TV X=p.X;
-        abs_X_shift_sum(thread_id)+=(X-average_X_location).Abs();}
+//     const int particle_number=simulated_particles.size();
+//     TV average_X_location=TV(); 
+//     for(int i=0;i<threads;++i) average_X_location+=X_location_sum(i);
+//     average_X_location/=particle_number;
+//     Log::cout<<"average location: "<<average_X_location<<std::endl;
+//     // calculate abs axis shift sum
+//     Array<TV> abs_X_shift_sum(threads);
+// #pragma omp parallel for
+//     for(unsigned i=0;i<simulated_particles.size();++i){
+//         const int thread_id=omp_get_thread_num(); const int id=simulated_particles(i);
+//         T_Particle &p=particles(id); TV X=p.X;
+//         abs_X_shift_sum(thread_id)+=(X-average_X_location).Abs();}
 
     // calculate average abs axis shift
-    TV average_abs_X_shift=TV(); 
-    for(int i=0;i<threads;++i) average_abs_X_shift+=abs_X_shift_sum(i);
-    average_abs_X_shift/=particle_number;
-    Log::cout<<"average shift: "<<average_abs_X_shift<<std::endl;
+    // TV average_abs_X_shift=TV(); 
+    // for(int i=0;i<threads;++i) average_abs_X_shift+=abs_X_shift_sum(i);
+    // average_abs_X_shift/=particle_number;
+    // Log::cout<<"average shift: "<<average_abs_X_shift<<std::endl;
     
 //     const T several_cell_width=nbw*mpm_grid.dX(0);
 //     TV min_corner=TV(), max_corner=(T)2*average_abs_X_shift+TV(several_cell_width);
@@ -980,13 +980,13 @@ Update_Particle_Velocities_And_Positions(const T dt)
 //         if(!shift_box.Inside((p.X-average_X_location).Abs())) p.valid=false;}
 
     // get rid of flying away particles
-    // for(int i=1;i<remove_indices.size();++i)
-    //         remove_indices(0).Append_Elements(remove_indices(i));
-    //     Array<int>::Sort(remove_indices(0));
-    //     for(int i=remove_indices(0).size()-1;i>=0;i--){
-    //         int k=remove_indices(0)(i);
-    //         invalid_particles.Append(simulated_particles(k));
-    //         simulated_particles.Remove_Index(k);}
+    for(int i=1;i<remove_indices.size();++i)
+            remove_indices(0).Append_Elements(remove_indices(i));
+        Array<int>::Sort(remove_indices(0));
+        for(int i=remove_indices(0).size()-1;i>=0;i--){
+            int k=remove_indices(0)(i);
+            invalid_particles.Append(simulated_particles(k));
+            simulated_particles.Remove_Index(k);}
 
     high_resolution_clock::time_point te=high_resolution_clock::now();
 	duration<double> dur=duration_cast<duration<double>>(te-tb);
@@ -1001,8 +1001,8 @@ Allocate_Particle(bool add_to_simulation)
 {
     int id=0;
     if(invalid_particles.size()){
+        id=invalid_particles(invalid_particles.size()-1);
         invalid_particles.Pop_Back();
-        id=invalid_particles.size();
         particles(id).Initialize();}
     else {T_Particle p;
         id=particles.size();
@@ -1021,8 +1021,8 @@ Allocate_Particle(bool add_to_simulation)
 {
     int id=0;
     if(invalid_particles.size()){
+        id=invalid_particles(invalid_particles.size()-1);
         invalid_particles.Pop_Back();
-        id=invalid_particles.size();
         particles(id).Initialize();}
     else {T_Particle p;
         id=particles.size();
@@ -1039,7 +1039,7 @@ Allocate_Particle(bool add_to_simulation)
 template<class T> void MPM_Example<T,2>::
 Add_Fluid_Source()
 {
-    const int number_fluid_particles=10;
+    const int number_fluid_particles=1;
     const T area_per_particle=5e-4;
     const T mass_density=(T)2.;
     for(int i=0;i<number_fluid_particles;++i){
@@ -1059,7 +1059,6 @@ Add_Fluid_Source()
         p.density=1;
         p.bulk_modulus=(T)1.;
         p.gamma=(T)7;
-        p.constitutive_model.eta=(T)0.;
         p.saturation=(T)1.;
         p.volume_fraction_0=(T)1.;
     }
@@ -1070,7 +1069,7 @@ Add_Fluid_Source()
 template<class T> void MPM_Example<T,3>::
 Add_Fluid_Source()
 {
-    const int number_fluid_particles=10;
+    const int number_fluid_particles=1;
     const T area_per_particle=fluid_source.Area()/number_fluid_particles;
     const T mass_density=(T)2.;
     for(int i=0;i<number_fluid_particles;++i){
@@ -1090,7 +1089,6 @@ Add_Fluid_Source()
         p.density=1;
         p.bulk_modulus=(T)1.;
         p.gamma=(T)7;
-        p.constitutive_model.eta=(T)0.;
         p.saturation=(T)1.;
         p.volume_fraction_0=(T)1.;
     }
@@ -1246,11 +1244,12 @@ Process_Waiting_Particles()
     auto mass=mpm_hierarchy->Channel(0,mass_channel); const Grid<T,2>& mpm_grid=mpm_hierarchy->Lattice(0); const T one_over_volume_per_cell=mpm_grid.one_over_dX.Product();
 #pragma omp parallel for
     for(unsigned i=0;i<waiting_particles.size();++i){const int id=waiting_particles(i); T_Particle& p=particles(id);     
-        T particle_density=(T)0.;
+        if(!p.volume){T particle_density=(T)0.;
         for(T_Influence_Iterator iterator(T_INDEX(-1),T_INDEX(1),p);iterator.Valid();iterator.Next()){
             particle_density+=iterator.Weight()*mass(iterator.Current_Cell()._data);}
         particle_density*=one_over_volume_per_cell;
         p.volume=p.mass/particle_density;}
+    }
     waiting_particles.Clear();
 }
 //######################################################################

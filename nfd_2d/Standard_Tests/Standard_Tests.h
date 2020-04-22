@@ -297,13 +297,13 @@ class Standard_Tests: public MPM_Example<T,d>
             
         }break;
 
-        // example 20: fluid source
+        // example 21: hydrogel w. pouring water
         case 21:{
             Random_Numbers<T> random;
             random.Set_Seed(0);
             
-            fluid_source.min_corner=TV({4.5,4.5});
-            fluid_source.max_corner=TV({5.5,5.5});
+            fluid_source.min_corner=TV({4.75,4.75});
+            fluid_source.max_corner=TV({5.25,5.25});
 
             T_Barrier ground(0.,TV({0.,1.}),TV({0.,1}));
             barriers.Append(ground);
@@ -317,20 +317,20 @@ class Standard_Tests: public MPM_Example<T,d>
                 const T solid_density=(T)10.;
                 const T fluid_density=(T)1.;
                 const int number_of_particles=2000;
-                const Range<T,d> block(TV({4.5,1.}),TV({5.5,2.}));
+                const Range<T,d> block(TV({4.,1.}),TV({6.,3.}));
                 const T block_area=block.Area();
                 const T area_per_particle=block_area/number_of_particles;
                 std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
-                const T E=(T)40.,nu=(T).4;
                 for(int i=0;i<number_of_particles;++i){
                     T_Particle p;
+                    p.eos=false;
                     p.X=random.Get_Uniform_Vector(block);
                     p.V=TV();
                     p.constitutive_model.Compute_Lame_Parameters(E,nu);
-                    p.constitutive_model.eta=(T)0.01;
+                    p.constitutive_model.eta=eta;
                     p.constitutive_model.plastic=false;
                     p.saturation=(T)0.;
-                    p.volume_fraction_0=(T)0.;
+                    p.volume_fraction_0=(T).7;
                     p.mass_solid=solid_density*area_per_particle*((T)1.-p.volume_fraction_0);
                     p.mass_fluid=fluid_density*p.saturation*area_per_particle*p.volume_fraction_0;
                     p.mass=p.mass_solid+p.mass_fluid;
@@ -339,9 +339,74 @@ class Standard_Tests: public MPM_Example<T,d>
             }
             
         }break;
-
-        // example 20: standard test
+        // example 22: hydrogel falling
         case 22:{
+            Random_Numbers<T> random;
+            random.Set_Seed(0);
+            
+            fluid_source.min_corner=TV({4.75,4.75});
+            fluid_source.max_corner=TV({5.25,5.25});
+
+            T_Barrier ground(0.,TV({0.,1.}),TV({0.,1}));
+            barriers.Append(ground);
+            T_Barrier ceiling(0.,TV({0.,-1.}),TV({0.,10}));
+            Base::barriers.Append(ceiling);
+            T_Barrier left_wall(0.,TV({1.,0.}),TV({1,0.}));
+            barriers.Append(left_wall);
+            T_Barrier right_wall(0.,TV({-1.,0.}),TV({10,0.}));
+            barriers.Append(right_wall);            
+            {
+                const T solid_density=(T)10.;
+                const T fluid_density=(T)1.;
+                const int number_of_particles=20000;
+                const Range<T,d> block(TV({4.5,4.5}),TV({5.5,5.5}));
+                const T block_area=block.Area();
+                const T area_per_particle=block_area/number_of_particles;
+                std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
+                for(int i=0;i<number_of_particles;++i){
+                    T_Particle p;
+                    p.eos=false;
+                    p.X=random.Get_Uniform_Vector(block);
+                    p.V=TV();
+                    p.constitutive_model.Compute_Lame_Parameters(E,nu);
+                    p.constitutive_model.eta=(T)0.01;
+                    p.constitutive_model.plastic=false;
+                    p.saturation=(T)0.;
+                    p.volume_fraction_0=(T).7;
+                    p.mass_solid=solid_density*area_per_particle*((T)1.-p.volume_fraction_0);
+                    p.mass_fluid=fluid_density*p.saturation*area_per_particle*p.volume_fraction_0;
+                    p.mass=p.mass_solid+p.mass_fluid;
+                    particles.Append(p);
+                }  
+            }
+            {
+                const T solid_density=(T)10.;
+                const T fluid_density=(T)1.;
+                const int number_of_particles=20000;
+                const Range<T,d> block(TV({4.,1.}),TV({6.,3.}));
+                const T block_area=block.Area();
+                const T area_per_particle=block_area/number_of_particles;
+                std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
+                for(int i=0;i<number_of_particles;++i){
+                    T_Particle p;
+                    p.eos=false;
+                    p.X=random.Get_Uniform_Vector(block);
+                    p.V=TV();
+                    p.constitutive_model.Compute_Lame_Parameters(E,nu);
+                    p.constitutive_model.eta=(T)0.01;
+                    p.constitutive_model.plastic=false;
+                    p.saturation=(T)0.;
+                    p.volume_fraction_0=(T).7;
+                    p.mass_solid=solid_density*area_per_particle*((T)1.-p.volume_fraction_0);
+                    p.mass_fluid=fluid_density*p.saturation*area_per_particle*p.volume_fraction_0;
+                    p.mass=p.mass_solid+p.mass_fluid;
+                    particles.Append(p);
+                }  
+            }
+            
+        }break;
+        // example 20: standard test
+        case 23:{
             Random_Numbers<T> random;
             random.Set_Seed(0);
             // T_Barrier wall(0.,TV({1.,0.}),.1);
@@ -366,7 +431,7 @@ class Standard_Tests: public MPM_Example<T,d>
                     p.constitutive_model.eta=(T)0.01;
                     p.constitutive_model.plastic=false;
                     p.saturation=(T)0.;
-                    p.volume_fraction_0=(T)0.;
+                    p.volume_fraction_0=(T)0.7;
                     p.mass_solid=solid_density*area_per_particle*((T)1.-p.volume_fraction_0);
                     p.mass_fluid=fluid_density*p.saturation*area_per_particle*p.volume_fraction_0;
                     p.mass=p.mass_solid+p.mass_fluid;
@@ -375,7 +440,7 @@ class Standard_Tests: public MPM_Example<T,d>
             }
             
         }break;
-        case 23:{
+        case 24:{
             Random_Numbers<T> random;
             random.Set_Seed(0);
             {

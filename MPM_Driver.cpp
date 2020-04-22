@@ -112,8 +112,8 @@ Advance_Step(const T dt)
     example.Rasterize_Voxels();
     example.Rasterize();
     example.Process_Waiting_Particles();
-    // if(example.FICKS) example.Ficks_Diffusion(dt);
-    // else example.Non_Ficks_Diffusion(dt);
+    if(example.FICKS) example.Ficks_Diffusion(dt);
+    else example.Non_Ficks_Diffusion(dt);
     example.Update_Constitutive_Model_State();
     example.Update_Particle_Velocities_And_Positions(dt);
 }

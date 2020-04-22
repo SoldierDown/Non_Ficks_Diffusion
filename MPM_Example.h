@@ -13,7 +13,7 @@
 #include <nova/Tools/Utilities/Utilities.h>
 #include <nova/Tools/Arrays/Array.h>
 #include "MPM_Data.h"
-#include "Poisson_Data.h"
+#include "Diff_Data.h"
 #include "MPM_Particle.h"
 #include "MPM_Plane_Barrier.h"
 #include "./Tools/Matrix_MXN.h"
@@ -128,7 +128,7 @@ class MPM_Example<T,2>: public Example<T,2>
     using T_Particle                    = MPM_Particle<T,2>;
     using T_Barrier                     = MPM_Plane_Barrier<T,2>;
     using MPM_struct_type               = MPM_Data<T>;
-    using Diff_struct_type              = Poisson_Data<T>;
+    using Diff_struct_type              = Diff_Data<T>;
     using MPM_flags_type                = typename MPM_struct_type::Flags_type;
     using Diff_flags_type               = typename Diff_struct_type::Flags_type;
     using MPM_allocator_type            = SPGrid::SPGrid_Allocator<MPM_struct_type,2>;
@@ -271,7 +271,7 @@ class MPM_Example<T,3>: public Example<T,3>
     using T_Particle                    = MPM_Particle<T,3>;
     using T_Barrier                     = MPM_Plane_Barrier<T,3>;
     using MPM_struct_type               = MPM_Data<T>;
-    using Diff_struct_type              = Poisson_Data<T>;
+    using Diff_struct_type              = Diff_Data<T>;
     using MPM_flags_type                = typename MPM_struct_type::Flags_type;
     using Diff_flags_type               = typename Diff_struct_type::Flags_type;
     using MPM_allocator_type            = SPGrid::SPGrid_Allocator<MPM_struct_type,3>;

@@ -1,16 +1,16 @@
 //!#####################################################################
-//! \file Poisson_Data.h
+//! \file Diff_Data.h
 //!#####################################################################
-// Class Poisson_Data
+// Class Diff_Data
 //######################################################################
-#ifndef __Poisson_Data__
-#define __Poisson_Data__
+#ifndef __Diff_Data__
+#define __Diff_Data__
 
 #include <stdint.h>
 
 namespace Nova{
 template<class T,class T_FLAGS=uint32_t>
-struct Poisson_Data
+struct Diff_Data
 {
     typedef T_FLAGS Flags_type;
 

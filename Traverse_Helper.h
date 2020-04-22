@@ -30,7 +30,8 @@ class Traverse_Helper
         auto traverse_helper=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                if(flags(offset)&Cell_Type_Interior) if(abs(c(offset))>(T)1e-10)  Log::cout<<"NOT ZERO: "<<c(offset)<<std::endl;
+                if(flags(offset)&(Cell_Type_Interior|Cell_Type_Dirichlet)) if(c(offset)>(T)1e-10) 
+                    Log::cout<<"NOT ZERO: "<<c(offset)<<std::endl;
             }
         };
         for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
