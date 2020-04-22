@@ -339,8 +339,50 @@ class Standard_Tests: public MPM_Example<T,d>
             }
             
         }break;
-        // example 22: hydrogel falling
+        // example 22: hydrogel w. pouring water
         case 22:{
+            Random_Numbers<T> random;
+            random.Set_Seed(0);
+            
+            fluid_source.min_corner=TV({2.5,4.75});
+            fluid_source.max_corner=TV({3.,5.25});
+
+            T_Barrier ground(0.,TV({0.,1.}),TV({0.,1}));
+            barriers.Append(ground);
+            T_Barrier ceiling(0.,TV({0.,-1.}),TV({0.,10}));
+            Base::barriers.Append(ceiling);
+            T_Barrier left_wall(0.,TV({1.,0.}),TV({1,0.}));
+            barriers.Append(left_wall);
+            T_Barrier right_wall(0.,TV({-1.,0.}),TV({10,0.}));
+            barriers.Append(right_wall);            
+            {
+                const T solid_density=(T)10.;
+                const T fluid_density=(T)1.;
+                const int number_of_particles=2000;
+                const Range<T,d> block(TV({4.,1.}),TV({6.,3.}));
+                const T block_area=block.Area();
+                const T area_per_particle=block_area/number_of_particles;
+                std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
+                for(int i=0;i<number_of_particles;++i){
+                    T_Particle p;
+                    p.eos=false;
+                    p.X=random.Get_Uniform_Vector(block);
+                    p.V=TV();
+                    p.constitutive_model.Compute_Lame_Parameters(E,nu);
+                    p.constitutive_model.eta=eta;
+                    p.constitutive_model.plastic=false;
+                    p.saturation=(T)0.;
+                    p.volume_fraction_0=(T).7;
+                    p.mass_solid=solid_density*area_per_particle*((T)1.-p.volume_fraction_0);
+                    p.mass_fluid=fluid_density*p.saturation*area_per_particle*p.volume_fraction_0;
+                    p.mass=p.mass_solid+p.mass_fluid;
+                    particles.Append(p);
+                }  
+            }
+            
+        }break;
+        // example 23: hydrogel falling
+        case 23:{
             Random_Numbers<T> random;
             random.Set_Seed(0);
             
@@ -405,8 +447,8 @@ class Standard_Tests: public MPM_Example<T,d>
             }
             
         }break;
-        // example 20: standard test
-        case 23:{
+        // example 24: standard test
+        case 24:{
             Random_Numbers<T> random;
             random.Set_Seed(0);
             // T_Barrier wall(0.,TV({1.,0.}),.1);
@@ -440,7 +482,7 @@ class Standard_Tests: public MPM_Example<T,d>
             }
             
         }break;
-        case 24:{
+        case 25:{
             Random_Numbers<T> random;
             random.Set_Seed(0);
             {
