@@ -941,8 +941,8 @@ Allocate_Particle(bool add_to_simulation)
 {
     int id=0;
     if(invalid_particles.size()){
+        id=invalid_particles(invalid_particles.size()-1);
         invalid_particles.Pop_Back();
-        id=invalid_particles.size();
         particles(id).Initialize();}
     else {T_Particle p;
         id=particles.size();
@@ -961,8 +961,8 @@ Allocate_Particle(bool add_to_simulation)
 {
     int id=0;
     if(invalid_particles.size()){
+        id=invalid_particles(invalid_particles.size()-1);
         invalid_particles.Pop_Back();
-        id=invalid_particles.size();
         particles(id).Initialize();}
     else {T_Particle p;
         id=particles.size();
