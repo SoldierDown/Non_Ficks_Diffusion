@@ -106,7 +106,7 @@ Advance_Step(const T dt)
 {
     example.Initialize_SPGrid();
     example.Reset_Grid_Based_Variables();
-    example.Add_Fluid_Source();
+    // example.Add_Fluid_Source(dt);
     example.Update_Particle_Weights();
     example.Group_Particles();
     example.Rasterize_Voxels();

@@ -1037,7 +1037,7 @@ Allocate_Particle(bool add_to_simulation)
 // Add_Fluid_Source
 //######################################################################
 template<class T> void MPM_Example<T,2>::
-Add_Fluid_Source()
+Add_Fluid_Source(const T dt)
 {
     const int number_fluid_particles=1;
     const T area_per_particle=5e-4;
@@ -1067,7 +1067,7 @@ Add_Fluid_Source()
 // Add_Fluid_Source
 //######################################################################
 template<class T> void MPM_Example<T,3>::
-Add_Fluid_Source()
+Add_Fluid_Source(const T dt)
 {
     const int number_fluid_particles=1;
     const T area_per_particle=fluid_source.Area()/number_fluid_particles;

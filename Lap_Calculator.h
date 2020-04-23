@@ -41,7 +41,7 @@ class Lap_Calculator
                 if(flags(offset)&Cell_Type_Interior){
                     for(int face=0;face<Topology_Helper::number_of_faces_per_cell;++face){
                         int64_t neighbor_offset=Flag_array_mask::Packed_Add(offset,face_neighbor_offsets[face]);
-                        if(flags(neighbor_offset)&(Cell_Type_Interior|Cell_Type_Dirichlet|Cell_Type_Ghost)) lap(offset)+=one_over_dx2*(data(neighbor_offset)-data(offset));}}}
+                        if(flags(neighbor_offset)&(Cell_Type_Interior|Cell_Type_Dirichlet)) lap(offset)+=one_over_dx2*(data(neighbor_offset)-data(offset));}}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,lap_calculator);
 

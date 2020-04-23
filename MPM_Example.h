@@ -231,7 +231,7 @@ class MPM_Example<T,2>: public Example<T,2>
 //######################################################################
     void Initialize_SPGrid();
     void Initialize();
-    void Add_Fluid_Source();
+    void Add_Fluid_Source(const T dt);
     int  Allocate_Particle(bool add_to_simulation=true);
     void Reset_Grid_Based_Variables();
     void Reset_Solver_Channels();
@@ -373,7 +373,7 @@ class MPM_Example<T,3>: public Example<T,3>
 //######################################################################
     void Initialize_SPGrid();
     void Initialize();
-    void Add_Fluid_Source();
+    void Add_Fluid_Source(const T dt);
     int  Allocate_Particle(bool add_to_simulation=true);
     void Reset_Grid_Based_Variables();
     void Reset_Solver_Channels();

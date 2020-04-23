@@ -347,9 +347,9 @@ class Standard_Tests: public MPM_Example<T,d>
             fluid_source.min_corner=TV({2.5,4.75});
             fluid_source.max_corner=TV({3.,5.25});
 
-            T_Barrier ground(0.,TV({0.,1.}),TV({0.,1}));
+            T_Barrier ground(0.,TV({0.,1.}),TV({0.,1.}));
             barriers.Append(ground);
-            T_Barrier ceiling(0.,TV({0.,-1.}),TV({0.,10}));
+            T_Barrier ceiling(0.,TV({0.,-1.}),TV({0.,10.}));
             Base::barriers.Append(ceiling);
             T_Barrier left_wall(0.,TV({1.,0.}),TV({1,0.}));
             barriers.Append(left_wall);
@@ -358,7 +358,7 @@ class Standard_Tests: public MPM_Example<T,d>
             {
                 const T solid_density=(T)10.;
                 const T fluid_density=(T)1.;
-                const int number_of_particles=2000;
+                const int number_of_particles=10000;
                 const Range<T,d> block(TV({4.,1.}),TV({6.,3.}));
                 const T block_area=block.Area();
                 const T area_per_particle=block_area/number_of_particles;
@@ -396,11 +396,13 @@ class Standard_Tests: public MPM_Example<T,d>
             T_Barrier left_wall(0.,TV({1.,0.}),TV({1,0.}));
             barriers.Append(left_wall);
             T_Barrier right_wall(0.,TV({-1.,0.}),TV({10,0.}));
-            barriers.Append(right_wall);            
+            barriers.Append(right_wall);           
+
+            // hydrogel  
             {
                 const T solid_density=(T)10.;
                 const T fluid_density=(T)1.;
-                const int number_of_particles=20000;
+                const int number_of_particles=2000;
                 const Range<T,d> block(TV({4.5,4.5}),TV({5.5,5.5}));
                 const T block_area=block.Area();
                 const T area_per_particle=block_area/number_of_particles;
@@ -409,7 +411,7 @@ class Standard_Tests: public MPM_Example<T,d>
                     T_Particle p;
                     p.eos=false;
                     p.X=random.Get_Uniform_Vector(block);
-                    p.V=TV();
+                    p.V=TV({0.,-5.});
                     p.constitutive_model.Compute_Lame_Parameters(E,nu);
                     p.constitutive_model.eta=(T)0.01;
                     p.constitutive_model.plastic=false;
@@ -421,27 +423,34 @@ class Standard_Tests: public MPM_Example<T,d>
                     particles.Append(p);
                 }  
             }
+
+            // fluid
             {
                 const T solid_density=(T)10.;
                 const T fluid_density=(T)1.;
                 const int number_of_particles=20000;
-                const Range<T,d> block(TV({4.,1.}),TV({6.,3.}));
+                const Range<T,d> block(TV({1.,1.}),TV({10.,3.}));
                 const T block_area=block.Area();
                 const T area_per_particle=block_area/number_of_particles;
                 std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
                 for(int i=0;i<number_of_particles;++i){
                     T_Particle p;
-                    p.eos=false;
+                    p.valid=true; 
                     p.X=random.Get_Uniform_Vector(block);
                     p.V=TV();
-                    p.constitutive_model.Compute_Lame_Parameters(E,nu);
-                    p.constitutive_model.eta=(T)0.01;
-                    p.constitutive_model.plastic=false;
-                    p.saturation=(T)0.;
-                    p.volume_fraction_0=(T).7;
-                    p.mass_solid=solid_density*area_per_particle*((T)1.-p.volume_fraction_0);
-                    p.mass_fluid=fluid_density*p.saturation*area_per_particle*p.volume_fraction_0;
-                    p.mass=p.mass_solid+p.mass_fluid;
+                    p.mass=fluid_density*area_per_particle;
+                    p.mass_fluid=p.mass;
+                    p.mass_solid=(T)0.;
+                    p.volume=(T)0.;
+                    p.scp=Matrix<T,2>();
+                    p.eos_scp=Matrix<T,2>();
+                    // EOS fluid particle
+                    p.eos=true;
+                    p.density=1;
+                    p.bulk_modulus=(T)1.;
+                    p.gamma=(T)7;
+                    p.saturation=(T)1.;
+                    p.volume_fraction_0=(T)1.;
                     particles.Append(p);
                 }  
             }
