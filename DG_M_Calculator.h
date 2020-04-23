@@ -24,21 +24,24 @@ class DG_M_Calculator
     using Topology_Helper       = Grid_Topology_Helper<Flag_array_mask>;
 
   public:
-    DG_M_Calculator(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* m_channel,T Struct_type::* sigma_channel,
+    DG_M_Calculator(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
+                    T Struct_type::* m_channel,T Struct_type::* sigma_channel,T Struct_type::* T_channel,
                     const T m_alpha,const T gamma)
-    {Run(allocator,blocks,m_channel,sigma_channel,m_alpha,gamma);}
+    {Run(allocator,blocks,m_channel,sigma_channel,T_channel,m_alpha,gamma);}
 
-    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* m_channel,T Struct_type::* sigma_channel,
+    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
+            T Struct_type::* m_channel,T Struct_type::* sigma_channel,T Struct_type::* T_channel,
             const T m_alpha,const T gamma) const
     {
         auto m_data=allocator.template Get_Array<Struct_type,T>(m_channel);
         auto sigma_data=allocator.template Get_Const_Array<Struct_type,T>(sigma_channel);
+        auto T_data=allocator.template Get_Const_Array<Struct_type,T>(T_channel);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto dg_m_calculator=[&](uint64_t offset)
         {
             const T minus_m_alpha_over_pi=-m_alpha/pi;
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Cell_Type_Interior)  m_data(offset)=minus_m_alpha_over_pi*atan(gamma*sigma_data(offset));
+                if(flags(offset)&Cell_Type_Interior)  m_data(offset)=minus_m_alpha_over_pi*atan(gamma*sigma_data(offset)*T_data(offset));
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,dg_m_calculator);
     }

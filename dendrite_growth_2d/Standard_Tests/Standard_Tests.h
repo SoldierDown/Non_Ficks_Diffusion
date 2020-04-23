@@ -50,7 +50,7 @@ class Standard_Tests: public DG_Example<T,d>
         output_directory=(explicit_diffusion?(FICKS?"Dendrite_Growth_F_":"Dendrite_Growth_NF_"):(FICKS?"Implicit_Dendrite_Growth_F_":"Implicit_Dendrite_Growth_NF_"))+std::to_string(d)+"d_"+std::to_string(omega)+"branches_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
         output_directory="QQQ";
         for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=false;
-        TV min_corner,max_corner=TV(4.);
+        TV min_corner,max_corner=TV(6.);
         hierarchy=new Hierarchy(counts,Range<T,d>(min_corner,max_corner),levels);
     }
 //######################################################################
@@ -82,8 +82,8 @@ class Standard_Tests: public DG_Example<T,d>
 //######################################################################
     void Initialize_Sources() override
     {
-        const T radius=.04;
-        const TV center=TV(2.);
+        const T radius=.12;
+        const TV center=TV(3.);
         Implicit_Object<T,d>* obj=new Sphere_Implicit_Object<T,d>(center,radius);
         density_sources.Append(obj);
     }

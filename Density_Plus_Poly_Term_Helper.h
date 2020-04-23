@@ -37,7 +37,6 @@ class Density_Plus_Poly_Term_Helper
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto density_plus_poly_term_helper=[&](uint64_t offset)
         {
-            const T m_alpha_over_pi=(T).9/pi;
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
                 if(flags(offset)&Cell_Type_Interior){ const T cell_density=density_backup_data(offset);
                     density_data(offset)+=dt_over_taus*cell_density*((T)1.-cell_density)*(cell_density+m_data(offset)-(T).5);}

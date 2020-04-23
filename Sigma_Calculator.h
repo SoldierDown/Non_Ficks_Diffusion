@@ -36,8 +36,8 @@ class Sigma_Calculator
         auto sigma_calculator=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Cell_Type_Interior)  {T a=(T)0.; T b=(T)0.; for(int axis=0;axis<d;++axis) 
-                {const T axis_cell_vT_value=allocator.template Get_Const_Array<Struct_type,T>(vT_channels(axis))(offset);
+                if(flags(offset)&Cell_Type_Interior)  {T a=(T)0.; T b=(T)0.; for(int axis=0;axis<d;++axis){ 
+                const T axis_cell_vT_value=allocator.template Get_Const_Array<Struct_type,T>(vT_channels(axis))(offset);
                 a+=pow(axis_cell_vT_value,4); b+=pow(axis_cell_vT_value,2);}
                 sigma_data(offset)=(T)1.-delta*((T)1.-a/b);}
 

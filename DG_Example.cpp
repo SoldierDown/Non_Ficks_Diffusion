@@ -238,7 +238,7 @@ template<class T,int d> void DG_Example<T,d>::
 Explicitly_Update_Density(const T dt)
 {
     Add_Poly_Term_To_Density(dt);
-    Add_Random_Term_To_Density(dt);
+    // Add_Random_Term_To_Density(dt);
     Add_Laplacian_Term_To_Density(dt);
     if(!FICKS) Add_Divergence_Term_To_Density(dt);
 }
@@ -249,8 +249,8 @@ template<class T,int d> void DG_Example<T,d>::
 Add_Laplacian_Term_To_Density(const T dt)
 {
     using Hierarchy_Projection                          = Grid_Hierarchy_Projection<Struct_type,T,d>;
-    T Struct_type::* laplacian_channel                  = &Struct_type::ch20;
-
+    T Struct_type::* laplacian_channel                  = &Struct_type::ch19;
+    if(FICKS) fc_1==(T)1.;
     const T one_over_dx2=Nova_Utilities::Sqr(hierarchy->Lattice(0).one_over_dX(0)); const T dt_over_tau_s=dt/tau_s;
     for(int level=0;level<levels;++level){ SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),laplacian_channel);
         Lap_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_backup_channel,laplacian_channel,one_over_dx2);
@@ -279,25 +279,24 @@ template<class T,int d> void DG_Example<T,d>::
 Add_Poly_Term_To_Density(const T dt)
 {
     // calculate v
-    Channel_Vector vT_channels;
-    vT_channels(0)                              = &Struct_type::ch19;
-    vT_channels(1)                              = &Struct_type::ch20;
-    if(d==3) vT_channels(2)                     = &Struct_type::ch21;
-    T Struct_type::* sigma_channel              = &Struct_type::ch22;
+    Channel_Vector v_channels;
+    v_channels(0)                                   = &Struct_type::ch19;
+    v_channels(1)                                   = &Struct_type::ch20;
+    if(d==3) v_channels(2)                          = &Struct_type::ch21;
+    T Struct_type::* sigma_channel                  = &Struct_type::ch22;
     const TV one_over_2dx=(T).5*hierarchy->Lattice(0).one_over_dX;
     // compute v=-\nabla S -> vT_channels -> sigma_channel
-    for(int level=0;level<levels;++level){for(int axis=0;axis<d;++axis) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),vT_channels(axis));
+    for(int level=0;level<levels;++level){for(int axis=0;axis<d;++axis) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),v_channels(axis));
         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),sigma_channel);
-        Gradient_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_backup_channel,vT_channels,one_over_2dx);
-        for(int axis=0;axis<d;++axis){Flip_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),vT_channels(axis));
-        SPGrid::Masked_Multiply<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),vT_channels(axis),T_channel,vT_channels(axis),Cell_Type_Interior);}
-        Sigma_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),vT_channels,sigma_channel,delta);}
+        Gradient_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_backup_channel,v_channels,one_over_2dx);
+        for(int axis=0;axis<d;++axis) Flip_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),v_channels(axis));
+        Sigma_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),v_channels,sigma_channel,delta);}
     
-    T Struct_type::* m_channel                  = &Struct_type::ch23;
-    for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),m_channel);
-    for(int level=0;level<levels;++level) DG_M_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),m_channel,sigma_channel,m_alpha,gamma);
+    T Struct_type::* m_channel                      = &Struct_type::ch23;
     const T dt_over_tau_s=dt/tau_s;
-    for(int level=0;level<levels;++level) Density_Plus_Poly_Term_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,density_backup_channel,m_channel,dt_over_tau_s);
+    for(int level=0;level<levels;++level) {SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),m_channel);
+    DG_M_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),m_channel,sigma_channel,T_backup_channel,m_alpha,gamma);
+    Density_Plus_Poly_Term_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,density_backup_channel,m_channel,dt_over_tau_s);}
 }
 //######################################################################
 // Add_Random_Term_To_Density
@@ -397,11 +396,12 @@ template    <class T,int d> void DG_Example<T,d>::
 Add_dSdt_Term_To_Temperature(const T dt)
 {
     T Struct_type::* temp_channel         = &Struct_type::ch19;
-    for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),temp_channel);
+    for(int level=0;level<levels;++level){
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),temp_channel);
     // compute S^(n+1) - S^(n)
-    for(int level=0;level<levels;++level) SPGrid::Masked_Subtract<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,density_backup_channel,temp_channel,Cell_Type_Interior);
+    SPGrid::Masked_Subtract<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,density_backup_channel,temp_channel,Cell_Type_Interior);
     // add K*dS/dt to T
-    for(int level=0;level<levels;++level) SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),K,temp_channel,T_channel,T_channel,Cell_Type_Interior);
+    SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),K,temp_channel,T_channel,T_channel,Cell_Type_Interior);}
 }
 //######################################################################
 // Add_Laplacian_Term_To_Temperature
@@ -410,6 +410,7 @@ template    <class T,int d> void DG_Example<T,d>::
 Add_Laplacian_Term_To_Temperature(const T dt)
 {
     T Struct_type::* lap_T_channel      = &Struct_type::ch19;
+    if(FICKS)fc_2==(T)1.;
     const T one_over_dx2=Nova_Utilities::Sqr(hierarchy->Lattice(0).one_over_dX(0)); 
     for(int level=0;level<levels;++level){SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),lap_T_channel);
         Lap_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),T_backup_channel,lap_T_channel,one_over_dx2);
