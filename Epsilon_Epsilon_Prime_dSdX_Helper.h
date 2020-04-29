@@ -26,26 +26,26 @@ class Epsilon_Epsilon_Prime_dSdX_Helper
 
   public:
     Epsilon_Epsilon_Prime_dSdX_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-                            Channel_Vector& dSdX_channels,T Struct_type::* psi_channel,T Struct_type::* epsilon_channel,
-                            const int omega,const T delta)
-    {Run(allocator,blocks,dSdX_channels,psi_channel,epsilon_channel,omega,delta);}
+                            Channel_Vector& dSdX_channels,T Struct_type::* psi_channel,T Struct_type::* Av_channel,
+                            const int omega,const T delta,const T epsilon_xy)
+    {Run(allocator,blocks,dSdX_channels,psi_channel,Av_channel,omega,delta,epsilon_xy);}
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-            Channel_Vector& dSdX_channels,T Struct_type::* psi_channel,T Struct_type::* epsilon_channel,
-            const int omega,const T delta) const
+            Channel_Vector& dSdX_channels,T Struct_type::* psi_channel,T Struct_type::* Av_channel,
+            const int omega,const T delta,const T epsilon_xy) const
     {
         auto dSdx_data=allocator.template Get_Array<Struct_type,T>(dSdX_channels(0));
         auto dSdy_data=allocator.template Get_Array<Struct_type,T>(dSdX_channels(1));
         auto psi_data=allocator.template Get_Const_Array<Struct_type,T>(psi_channel);
-        auto epsilon_data=allocator.template Get_Array<Struct_type,T>(epsilon_channel);
+        auto Av_data=allocator.template Get_Array<Struct_type,T>(Av_channel);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto epsilon_epsilon_prime_dSdX_helper=[&](uint64_t offset)
         {
-            const T coeff1=(T).01; const T coeff2=coeff1*delta; const T coeff3=-coeff2*omega;
+            const T coeff1=delta; const T coeff2=delta*epsilon_xy; const T coeff3=-coeff2*omega;
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)) if(flags(offset)&Cell_Type_Interior){
-                const T psi=psi_data(offset); const T epsilon=coeff1+coeff2*cos(omega*psi); const T epsilon_prime=coeff3*sin(omega*psi);
-                for(int axis=0;axis<d;++axis) allocator.template Get_Array<Struct_type,T>(dSdX_channels(axis))(offset)*=epsilon*epsilon_prime;
-                epsilon_data(offset)=epsilon;}
+                const T psi=psi_data(offset); const T Av=coeff1+coeff2*cos(omega*psi); const T Av_prime=coeff3*sin(omega*psi);
+                for(int axis=0;axis<d;++axis) allocator.template Get_Array<Struct_type,T>(dSdX_channels(axis))(offset)*=Av*Av_prime;
+                Av_data(offset)=Av;}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,epsilon_epsilon_prime_dSdX_helper);
     }

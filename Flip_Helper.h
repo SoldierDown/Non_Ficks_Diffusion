@@ -34,7 +34,7 @@ class Flip_Helper
         auto flip_helper=[&](uint64_t offset)
         {
             for(unsigned e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)) 
-                if(flags(offset) & (Cell_Type_Interior|Cell_Type_Ghost)) data(offset)=-data(offset);
+                if(flags(offset)&Cell_Type_Interior) data(offset)=-data(offset);
         };
 
         SPGrid_Computations::Run_Parallel_Blocks(blocks,flip_helper);

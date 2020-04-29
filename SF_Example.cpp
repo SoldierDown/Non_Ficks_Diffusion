@@ -14,6 +14,8 @@
 #include "Boundary_Condition_Helper.h"
 #include "Poisson_Solver/Poisson_CG_System.h"
 #include "Compute_Time_Step.h"
+#include "Theta_Calculator.h"
+#include "Beta_Calculator.h"
 #include "Density_Modifier.h"
 #include "Source_Adder.h"
 #include "Initialize_Dirichlet_Cells.h"
@@ -21,11 +23,15 @@
 #include "SF_Example.h"
 #include "Clamp_Helper.h"
 #include "Lap_Calculator.h"
+#include "Lap_Star_Calculator.h"
+#include "Range_Checker.h"
 #include "Density_Backup_Helper.h"
 #include "Uniform_Grid_Helper/Uniform_Grid_Advection_Helper.h"
 #include "Uniform_Grid_Helper/Uniform_Grid_Averaging_Helper.h"
 #include "Density_Clamp_Helper.h"
 #include "Flip_Helper.h"
+#include "Gradient_Calculator.h"
+#include "Gradient_Star_Calculator.h"
 #include "Write_To_File_Helper.h"
 #include "SF_M_Calculator.h"
 #include "Face_Vector_Copy.h"
@@ -33,10 +39,12 @@
 #include "Axis_Finite_Differential_Helper.h"
 #include "Psi_Evaluation_Helper.h"
 #include "Epsilon_Epsilon_Prime_dSdX_Helper.h"
-#include "SF_Epsilon_Squared_Grad_S_Helper.h"
+#include "SF_Av_Squared_Grad_Star_S_Helper.h"
 #include "Add_Constant.h"
 #include "K_Gradient_T_Helper.h"
 #include "Add_Random_Term.h"
+#include "Av_Calculator.h"
+#include "AvD_Calculator.h"
 #include "Boundary_Check.h"
 #include <omp.h>
 using namespace Nova;
@@ -59,9 +67,11 @@ SF_Example()
     k=(T)1.;
     // for updating m_channel
     m_alpha=(T).9; gamma=(T)10.; Teq=(T)1.;
-    // for updating epsilon_channel
+    // for updating Av_channel
     omega=6; delta=(T).01;
     bv=(T)1.;
+    
+    zeta=TV(1.); epsilon_xyz=Vector<T,2>({.02,.05}); 
 
     density_channel                     = &Struct_type::ch0;            // intermedia 
     density_backup_channel              = &Struct_type::ch1;            // S^n
@@ -85,6 +95,9 @@ SF_Example()
     face_velocity_channels(0)           = &Struct_type::ch16;
     face_velocity_channels(1)           = &Struct_type::ch17;
     if(d==3) face_velocity_channels(2)  = &Struct_type::ch18;
+    Av_channel                          = &Struct_type::ch19;
+    theta_channel                       = &Struct_type::ch20;
+    beta_channel                        = &Struct_type::ch21;
 }
 //######################################################################
 // Initialize
@@ -116,7 +129,7 @@ Initialize_SPGrid()
     //Set_Neumann_Faces_Inside_Sources();
     hierarchy->Update_Block_Offsets();
     hierarchy->Initialize_Red_Black_Partition(2*number_of_threads);
-    // for(int level=0;level<levels;++level) Boundary_Check<Struct_type,T,d>(*hierarchy,hierarchy->Allocator(level),hierarchy->Blocks(level));
+    // Boundary_Check<Struct_type,T,d>(*hierarchy,hierarchy->Allocator(0),hierarchy->Blocks(0));
 }
 //######################################################################
 // Limit_Dt
@@ -128,10 +141,9 @@ Limit_Dt(T& dt,const T time)
 
     Vector<uint64_t,d> other_face_offsets;
     for(int axis=0;axis<d;++axis) other_face_offsets(axis)=Topology_Helper::Axis_Vector_Offset(axis);
-
-    for(int level=0;level<levels;++level)
-        Compute_Time_Step<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,
-                                           other_face_offsets,level,dt_convection);
+    
+    Compute_Time_Step<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(0),face_velocity_channels,
+                                           other_face_offsets,0,dt_convection);
     Log::cout<<"dt_convection: "<<dt_convection<<std::endl;
     if(dt_convection>(T)1e-5) dt=cfl/dt_convection;
     Log::cout<<"Time Step: "<<dt<<std::endl;
@@ -152,10 +164,10 @@ template    <class T,int d> void SF_Example<T,d>::
 Advect_Density(const T dt)
 {
     Channel_Vector cell_velocity_channels;
-    cell_velocity_channels(0)               = &Struct_type::ch20;
-    cell_velocity_channels(1)               = &Struct_type::ch21;
-    if(d==3) cell_velocity_channels(2)      = &Struct_type::ch22;
-    T Struct_type::* temp_channel           = &Struct_type::ch23;
+    cell_velocity_channels(0)               = &Struct_type::ch22;
+    cell_velocity_channels(1)               = &Struct_type::ch23;
+    if(d==3) cell_velocity_channels(2)      = &Struct_type::ch24;
+    T Struct_type::* temp_channel           = &Struct_type::ch25;
     Vector<uint64_t,d> other_face_offsets;
     for(int axis=0;axis<d;++axis) other_face_offsets(axis)=Topology_Helper::Axis_Vector_Offset(axis);
     Uniform_Grid_Averaging_Helper<Struct_type,T,d>::Uniform_Grid_Average_Face_Velocities_To_Cells(*hierarchy,hierarchy->Allocator(0),hierarchy->Blocks(0),face_velocity_channels,cell_velocity_channels,other_face_offsets);
@@ -168,10 +180,10 @@ template    <class T,int d> void SF_Example<T,d>::
 Advect_Temperature(const T dt)
 {
     Channel_Vector cell_velocity_channels;
-    cell_velocity_channels(0)               = &Struct_type::ch20;
-    cell_velocity_channels(1)               = &Struct_type::ch21;
-    if(d==3) cell_velocity_channels(2)      = &Struct_type::ch22;
-    T Struct_type::* temp_channel           = &Struct_type::ch23;
+    cell_velocity_channels(0)               = &Struct_type::ch22;
+    cell_velocity_channels(1)               = &Struct_type::ch23;
+    if(d==3) cell_velocity_channels(2)      = &Struct_type::ch24;
+    T Struct_type::* temp_channel           = &Struct_type::ch25;
     Vector<uint64_t,d> other_face_offsets;
     for(int axis=0;axis<d;++axis) other_face_offsets(axis)=Topology_Helper::Axis_Vector_Offset(axis);
     Uniform_Grid_Averaging_Helper<Struct_type,T,d>::Uniform_Grid_Average_Face_Velocities_To_Cells(*hierarchy,hierarchy->Allocator(0),hierarchy->Blocks(0),face_velocity_channels,cell_velocity_channels,other_face_offsets);
@@ -194,13 +206,13 @@ Advect_Face_Qsc(const T dt)
 {
     // Advect face vector by axis
     Channel_Vector interpolated_face_velocity_channels;
-    interpolated_face_velocity_channels(0)              = &Struct_type::ch20;
-    interpolated_face_velocity_channels(1)              = &Struct_type::ch21;
-    if(d==3) interpolated_face_velocity_channels(2)     = &Struct_type::ch22; 
-    T Struct_type::* temp_channel                       = &Struct_type::ch23;  
+    interpolated_face_velocity_channels(0)              = &Struct_type::ch22;
+    interpolated_face_velocity_channels(1)              = &Struct_type::ch23;
+    if(d==3) interpolated_face_velocity_channels(2)     = &Struct_type::ch24; 
+    T Struct_type::* temp_channel                       = &Struct_type::ch25;  
     // Clear
-    for(int level=0;level<levels;++level) {for(int v=0;v<d;++v) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),interpolated_face_velocity_channels(v));
-        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),temp_channel);} 
+    {for(int v=0;v<d;++v) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),interpolated_face_velocity_channels(v));
+        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),temp_channel);} 
     Uniform_Grid_Advection_Helper<Struct_type,T,d>::Uniform_Grid_Advect_Face_Vector(*hierarchy,face_qsc_channels,face_velocity_channels,interpolated_face_velocity_channels,temp_channel,dt);
 }
 //######################################################################
@@ -211,13 +223,13 @@ Advect_Face_Qtc(const T dt)
 {
     // Advect face vector by axis
     Channel_Vector interpolated_face_velocity_channels;
-    interpolated_face_velocity_channels(0)              = &Struct_type::ch20;
-    interpolated_face_velocity_channels(1)              = &Struct_type::ch21;
-    if(d==3) interpolated_face_velocity_channels(2)     = &Struct_type::ch22; 
-    T Struct_type::* temp_channel                       = &Struct_type::ch23;  
+    interpolated_face_velocity_channels(0)              = &Struct_type::ch22;
+    interpolated_face_velocity_channels(1)              = &Struct_type::ch23;
+    if(d==3) interpolated_face_velocity_channels(2)     = &Struct_type::ch24; 
+    T Struct_type::* temp_channel                       = &Struct_type::ch25;  
     // Clear
-    for(int level=0;level<levels;++level) {for(int v=0;v<d;++v) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),interpolated_face_velocity_channels(v));
-        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),temp_channel);} 
+    {for(int v=0;v<d;++v) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),interpolated_face_velocity_channels(v));
+        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),temp_channel);} 
     Uniform_Grid_Advection_Helper<Struct_type,T,d>::Uniform_Grid_Advect_Face_Vector(*hierarchy,face_qtc_channels,face_velocity_channels,interpolated_face_velocity_channels,temp_channel,dt);
 }
 //######################################################################
@@ -235,11 +247,89 @@ template    <class T,int d> void SF_Example<T,d>::
 template<class T,int d> void SF_Example<T,d>::
 Explicitly_Update_Density(const T dt)
 {
-    Add_Differential_Term_To_Density(dt);
+    Add_Novel_Divergence_Term_To_Density(dt);
+    // Add_Differential_Term_To_Density(dt);
     Add_Poly_Term_To_Density(dt);
-    Add_Random_Term_To_Density(dt);
+    // Add_Random_Term_To_Density(dt);
     Add_Laplacian_Term_To_Density(dt);
     if(!FICKS) Add_Divergence_Term_To_Density(dt);
+}
+//######################################################################
+// Add_Novel_Divergence_Term_To_Density
+//######################################################################
+template<class T,int d> void SF_Example<T,d>::
+Add_Novel_Divergence_Term_To_Density(const T dt)
+{
+    Channel_Vector AvD_channels;
+    AvD_channels(0)                             = &Struct_type::ch22;
+    AvD_channels(1)                             = &Struct_type::ch23;
+    if(d==3) AvD_channels(2)                    = &Struct_type::ch24;
+    Channel_Vector dSdX_channels;
+    dSdX_channels(0)                            = &Struct_type::ch25;
+    dSdX_channels(1)                            = &Struct_type::ch26;
+    if(d==3) dSdX_channels(2)                   = &Struct_type::ch27;  
+
+    // clear channels
+    for(int axis=0;axis<d;++axis){SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),AvD_channels(axis));
+        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels(axis));}
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),Av_channel);    
+
+    const TV one_over_2dx=(T).5*hierarchy->Lattice(0).one_over_dX;
+    // compute grad(S) at cell center
+    for(int axis=0;axis<d;++axis)
+        Axis_Finite_Differential_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_backup_channel,dSdX_channels(axis),one_over_2dx(axis),axis);
+
+    // compute theta, beta
+    Theta_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels,theta_channel);
+    if(d==3) Beta_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels,beta_channel);
+    
+    // Compute Av
+    Av_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),Av_channel,theta_channel,beta_channel,epsilon_xyz,delta,omega);
+    
+    // compute AvD0, AvD1, (AvD2)
+    Compute_AvD0<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels,Av_channel,AvD_channels(0),theta_channel,epsilon_xyz,delta,omega);
+    Compute_AvD1<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels,Av_channel,AvD_channels(1),theta_channel,epsilon_xyz,delta,omega);
+    if(d==3) Compute_AvD2<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels,Av_channel,AvD_channels(2),epsilon_xyz,delta,omega);
+
+    T Struct_type::* tmp_channel            = &Struct_type::ch28;
+    const T dt_over_tau_s=dt/tau_s;
+    for(int axis=0;axis<d;++axis){
+        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),tmp_channel);
+        Axis_Finite_Differential_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),AvD_channels(axis),tmp_channel,one_over_2dx(axis),axis);
+        SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dt_over_tau_s,tmp_channel,density_channel,density_channel,Cell_Type_Interior);}
+}
+//######################################################################
+// Add_Differential_Term_To_Density
+//######################################################################
+template<class T,int d> void SF_Example<T,d>::
+Add_Differential_Term_To_Density(const T dt)
+{
+    Channel_Vector dSdX_channels;
+    dSdX_channels(0)                = &Struct_type::ch22;
+    dSdX_channels(1)                = &Struct_type::ch23;
+    if(d==3) dSdX_channels(2)       = &Struct_type::ch24;
+
+    for(int axis=0;axis<d;++axis) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels(axis));
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),theta_channel);
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),Av_channel);
+    // compute dS/dx and dS/dy (dS/dz)
+    const TV one_over_2dx=(T).5*hierarchy->Lattice(0).one_over_dX;
+    for(int axis=0;axis<d;++axis)
+        Axis_Finite_Differential_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_backup_channel,dSdX_channels(axis),one_over_2dx(axis),axis);
+    // evaluate psi
+    Theta_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels,theta_channel);
+    // eps * eps' 
+    Epsilon_Epsilon_Prime_dSdX_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels,theta_channel,Av_channel,
+                                                        omega,delta,epsilon_xyz(0));
+
+    const T dt_over_tau_s=dt/tau_s;
+    T Struct_type::* temp_channel = &Struct_type::ch26;    
+    for(int axis=0;axis<d;++axis){
+        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),temp_channel);
+        Axis_Finite_Differential_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels((axis+1)%d),temp_channel,one_over_2dx(axis),axis);
+        const T factor=pow(-1,axis+1);
+        SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),factor*dt_over_tau_s,temp_channel,density_channel,density_channel,Cell_Type_Interior);}
+
 }
 //######################################################################
 // Add_Laplacian_Term_To_Density
@@ -248,21 +338,22 @@ template<class T,int d> void SF_Example<T,d>::
 Add_Laplacian_Term_To_Density(const T dt)
 {
     using Hierarchy_Projection                          = Grid_Hierarchy_Projection<Struct_type,T,d>;
-    Channel_Vector epsilon2_grad_s_channels;
-    epsilon2_grad_s_channels(0)                         = &Struct_type::ch20;
-    epsilon2_grad_s_channels(1)                         = &Struct_type::ch21;
-    if(d==3) epsilon2_grad_s_channels(2)                = &Struct_type::ch22;
-    T Struct_type::* divergence_channel                 = &Struct_type::ch23;
-
+    Channel_Vector Av2_grad_s_channels;
+    Av2_grad_s_channels(0)                              = &Struct_type::ch22;
+    Av2_grad_s_channels(1)                              = &Struct_type::ch23;
+    if(d==3) Av2_grad_s_channels(2)                     = &Struct_type::ch24;
+    T Struct_type::* divergence_channel                 = &Struct_type::ch25;
+    if(FICKS) fc_1=(T)1.;
     const T one_over_dx2=Nova_Utilities::Sqr(hierarchy->Lattice(0).one_over_dX(0)); const T dt_over_tau_s=dt/tau_s;
     const T one_over_dx=hierarchy->Lattice(0).one_over_dX(0);
-    for(int level=0;level<levels;++level){ SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),divergence_channel);
-        for(int axis=0;axis<d;++axis) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),epsilon2_grad_s_channels(axis));
-        SF_Epsilon_Squared_Grad_S_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),epsilon2_grad_s_channels,epsilon_channel,density_backup_channel,(T)1.,one_over_dx,level);
-        Hierarchy_Projection::Compute_Divergence(*hierarchy,epsilon2_grad_s_channels,divergence_channel); 
-	    Flip_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),divergence_channel);
-        SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),fc_1*dt_over_tau_s,divergence_channel,
-                                                density_channel,density_channel,Cell_Type_Interior);}
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),divergence_channel);
+    for(int axis=0;axis<d;++axis) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),Av2_grad_s_channels(axis));
+    SF_Av_Squared_Grad_Star_S_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),Av2_grad_s_channels,Av_channel,density_backup_channel,(T)1.,zeta,one_over_dx);
+    
+    Hierarchy_Projection::Compute_Divergence_Star(*hierarchy,Av2_grad_s_channels,divergence_channel,zeta); 
+	Flip_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),divergence_channel);
+    SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),fc_1*dt_over_tau_s,divergence_channel,
+                                            density_channel,density_channel,Cell_Type_Interior);
 }
 //######################################################################
 // Add_Divergence_Term_To_Density
@@ -271,49 +362,13 @@ template<class T,int d> void SF_Example<T,d>::
 Add_Divergence_Term_To_Density(const T dt)
 {
     using Hierarchy_Projection              = Grid_Hierarchy_Projection<Struct_type,T,d>;
-    T Struct_type::* div_qs_channel         = &Struct_type::ch20;
+    T Struct_type::* div_qs_channel         = &Struct_type::ch22;
     const T dt_over_tau_s=(T)dt/tau_s;
-    for(int level=0;level<levels;++level){SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qs_channel);
-        // compute -div(Qc) at time n
-        Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qsc_backup_channels,div_qs_channel); 
-        SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),dt_over_tau_s,div_qs_channel,
-                                                density_channel,density_channel,Cell_Type_Interior);}
-}
-//######################################################################
-// Add_Differential_Term_To_Density
-//######################################################################
-template<class T,int d> void SF_Example<T,d>::
-Add_Differential_Term_To_Density(const T dt)
-{
-    epsilon_channel                 = &Struct_type::ch19;
-    Channel_Vector dSdX_channels;
-    dSdX_channels(0)                = &Struct_type::ch20;
-    dSdX_channels(1)                = &Struct_type::ch21;
-    if(d==3) dSdX_channels(2)       = &Struct_type::ch22;
-    T Struct_type::* psi_channel    = &Struct_type::ch23;
-
-    for(int level=0;level<levels;++level){ for(int axis=0;axis<d;++axis) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),dSdX_channels(axis));
-        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),psi_channel);
-        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),epsilon_channel);}
-    // compute dS/dx and dS/dy (dS/dz)
-    const TV one_over_2dx=(T).5*hierarchy->Lattice(0).one_over_dX;
-    for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis)
-        Axis_Finite_Differential_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_backup_channel,dSdX_channels(axis),one_over_2dx(axis),axis);
-    // evaluate psi
-    for(int level=0;level<levels;++level) 
-        Psi_Evaluation_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),dSdX_channels,psi_channel);
-    // eps * eps' 
-    for(int level=0;level<levels;++level) 
-        Epsilon_Epsilon_Prime_dSdX_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),dSdX_channels,psi_channel,epsilon_channel,
-                                                            omega,delta);
-    const T dt_over_tau_s=dt/tau_s;
-    T Struct_type::* temp_channel = &Struct_type::ch24;    
-    for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis){
-        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),temp_channel);
-        Axis_Finite_Differential_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),dSdX_channels((axis+1)%d),temp_channel,one_over_2dx(axis),axis);
-        const T factor=pow(-1,axis+1);
-        SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),factor*dt_over_tau_s,temp_channel,density_channel,density_channel,Cell_Type_Interior);}
-
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),div_qs_channel);
+    // compute -div(Qc) at time n
+    Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qsc_backup_channels,div_qs_channel); 
+    SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dt_over_tau_s,div_qs_channel,
+                                            density_channel,density_channel,Cell_Type_Interior);
 }
 //######################################################################
 // Add_Poly_Term_To_Density
@@ -321,11 +376,13 @@ Add_Differential_Term_To_Density(const T dt)
 template<class T,int d> void SF_Example<T,d>::
 Add_Poly_Term_To_Density(const T dt)
 {
-    T Struct_type::* m_channel                     = &Struct_type::ch20;
-    for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),m_channel);
-    for(int level=0;level<levels;++level) SF_M_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),m_channel,T_backup_channel,m_alpha,gamma,Teq);
+    T Struct_type::* m_channel                     = &Struct_type::ch22;
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),m_channel);
+    SF_M_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),m_channel,T_backup_channel,m_alpha,gamma,Teq);
+    Log::cout<<"Check m range: "<<std::endl;
+    // Range_Checker<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),m_channel,(T)0.,(T).5);
     const T dt_over_tau_s=dt/tau_s;
-    for(int level=0;level<levels;++level) Density_Plus_Poly_Term_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,density_backup_channel,m_channel,dt_over_tau_s);
+    Density_Plus_Poly_Term_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,density_backup_channel,m_channel,dt_over_tau_s);
 }
 //######################################################################
 // Add_Random_Term_To_Density
@@ -335,7 +392,7 @@ Add_Random_Term_To_Density(const T dt)
 {
     const T alpha_dt_over_tau_s=(T).01*dt/tau_s;
     const T random_value=random.Get_Uniform_Number(0,1);
-    for(int level=0;level<levels;++level) Add_Random_Term<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,density_backup_channel,alpha_dt_over_tau_s,random_value);
+    Add_Random_Term<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,density_backup_channel,alpha_dt_over_tau_s,random_value);
 }
 //######################################################################
 // Implicitly_Update_Density
@@ -369,8 +426,8 @@ template<class T,int d> void SF_Example<T,d>::
 Add_Linear_Term_To_Face_Qsc(const T dt)
 {
     const T minus_dt_over_tau_1=-dt/tau_1;
-    for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis)  
-        SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),
+    for(int axis=0;axis<d;++axis)  
+        SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),
             minus_dt_over_tau_1,face_qsc_backup_channels(axis),face_qsc_channels(axis),face_qsc_channels(axis),Topology_Helper::Face_Active_Mask(axis));
 }
 //######################################################################
@@ -379,9 +436,9 @@ Add_Linear_Term_To_Face_Qsc(const T dt)
 template<class T,int d> void SF_Example<T,d>::
 Add_Gradient_Term_To_Face_Qsc(const T dt)
 {
-    const T minus_dt_over_tau_1=-dt/tau_1; const TV one_over_dx=hierarchy->Lattice(0).one_over_dX;
-    for(int level=0;level<levels;++level) SF_Epsilon_Squared_Grad_S_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),
-                                                face_qsc_channels,epsilon_channel,density_backup_channel,(1-fc_1)*minus_dt_over_tau_1,one_over_dx,level);
+    // const T minus_dt_over_tau_1=-dt/tau_1; const TV one_over_dx=hierarchy->Lattice(0).one_over_dX;
+    // SF_Epsilon_Squared_Grad_Star_S_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),
+    //                                                 face_qsc_channels,Av_channel,density_backup_channel,(1-fc_1)*minus_dt_over_tau_1,one_over_dx,zeta);
 }
 //######################################################################
 // Implicitly_Update_Face_Qsc
@@ -416,7 +473,7 @@ Explicitly_Update_Temperature(const T dt)
 template    <class T,int d> void SF_Example<T,d>::
 Add_Constant_Term_To_Temperature(const T dt)
 {
-    for(int level=0;level<levels;++level) Add_Constant<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),T_channel,SR*dt);
+    Add_Constant<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),T_channel,SR*dt);
 }
 //######################################################################
 // Add_dSdt_Term_To_Temperature
@@ -424,12 +481,12 @@ Add_Constant_Term_To_Temperature(const T dt)
 template    <class T,int d> void SF_Example<T,d>::
 Add_dSdt_Term_To_Temperature(const T dt)
 {
-    T Struct_type::* temp_channel         = &Struct_type::ch20;
-    for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),temp_channel);
+    T Struct_type::* temp_channel         = &Struct_type::ch22;
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),temp_channel);
     // compute S^(n+1) - S^(n)
-    for(int level=0;level<levels;++level) SPGrid::Masked_Subtract<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,density_backup_channel,temp_channel,Cell_Type_Interior);
+    SPGrid::Masked_Subtract<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,density_backup_channel,temp_channel,Cell_Type_Interior);
     // add K*dS/dt to T
-    for(int level=0;level<levels;++level) SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),K,temp_channel,T_channel,T_channel,Cell_Type_Interior);
+    SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),K,temp_channel,T_channel,T_channel,Cell_Type_Interior);
 }
 //######################################################################
 // Add_Laplacian_Term_To_Temperature
@@ -437,11 +494,11 @@ Add_dSdt_Term_To_Temperature(const T dt)
 template    <class T,int d> void SF_Example<T,d>::
 Add_Laplacian_Term_To_Temperature(const T dt)
 {
-    T Struct_type::* lap_T_channel      = &Struct_type::ch20;
+    T Struct_type::* lap_T_channel      = &Struct_type::ch22;
     const T one_over_dx2=Nova_Utilities::Sqr(hierarchy->Lattice(0).one_over_dX(0)); 
-    for(int level=0;level<levels;++level){SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),lap_T_channel);
-        Lap_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),T_backup_channel,lap_T_channel,one_over_dx2);
-        SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),fc_2*k*dt,lap_T_channel,T_channel,T_channel,Cell_Type_Interior);}
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),lap_T_channel);
+    Lap_Star_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),T_backup_channel,lap_T_channel,zeta,one_over_dx2);
+    SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),fc_2*k*dt,lap_T_channel,T_channel,T_channel,Cell_Type_Interior);
 }
 //######################################################################
 // Add_Divergence_Term_To_Temperature
@@ -450,11 +507,11 @@ template    <class T,int d> void SF_Example<T,d>::
 Add_Divergence_Term_To_Temperature(const T dt)
 {
     using Hierarchy_Projection              = Grid_Hierarchy_Projection<Struct_type,T,d>;
-    T Struct_type::* div_qt_channel         = &Struct_type::ch20;
-    for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qt_channel);
+    T Struct_type::* div_qt_channel         = &Struct_type::ch22;
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),div_qt_channel);
     // compute -div(Qc) at time n
     Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qtc_backup_channels,div_qt_channel); 
-    for(int level=0;level<levels;++level) SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),dt,div_qt_channel,T_channel,T_channel,Cell_Type_Interior);
+    SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dt,div_qt_channel,T_channel,T_channel,Cell_Type_Interior);
 }
 //######################################################################
 // Implicitly_Update_Temperature
@@ -488,8 +545,8 @@ template<class T,int d> void SF_Example<T,d>::
 Add_Linear_Term_To_Face_Qtc(const T dt)
 {
     const T minus_dt_over_tau_2=-dt/tau_2;
-    for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis)  
-        SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),
+    for(int axis=0;axis<d;++axis)  
+        SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),
             minus_dt_over_tau_2,face_qtc_backup_channels(axis),face_qtc_channels(axis),face_qtc_channels(axis),Topology_Helper::Face_Active_Mask(axis));
 }
 //######################################################################
@@ -499,8 +556,8 @@ template<class T,int d> void SF_Example<T,d>::
 Add_Gradient_Term_To_Face_Qtc(const T dt)
 {
     const T coeff=-dt*k*((T)1.-fc_2)/tau_2; const TV one_over_dx=hierarchy->Lattice(0).one_over_dX;
-    for(int level=0;level<levels;++level) K_Gradient_T_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),
-                                                face_qtc_channels,T_backup_channel,coeff,one_over_dx,level);
+    K_Gradient_T_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),
+                                                face_qtc_channels,T_backup_channel,coeff,one_over_dx);
 }
 //######################################################################
 // Implicitly_Update_Face_Qtc
@@ -524,10 +581,9 @@ Backup()
 template<class T,int d> void SF_Example<T,d>::
 Backup_Density()
 {
-    for(int level=0;level<levels;++level){
-        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_backup_channel);
-        SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,
-                                            density_backup_channel,(unsigned)Cell_Type_Interior);}
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_backup_channel);
+        SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,
+                                            density_backup_channel,(unsigned)Cell_Type_Interior);
 }
 //######################################################################
 // Backup_Temperature
@@ -535,10 +591,9 @@ Backup_Density()
 template<class T,int d> void SF_Example<T,d>::
 Backup_Temperature()
 {
-    for(int level=0;level<levels;++level){
-        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),T_backup_channel);
-        SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),T_channel,
-                                            T_backup_channel,(unsigned)Cell_Type_Interior);}
+        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),T_backup_channel);
+        SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),T_channel,
+                                            T_backup_channel,(unsigned)Cell_Type_Interior);
 }
 //######################################################################
 // Backup_Qsc
@@ -546,9 +601,9 @@ Backup_Temperature()
 template<class T,int d> void SF_Example<T,d>::
 Backup_Qsc()
 {
-    for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis) {
-        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qsc_backup_channels(axis));
-        SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qsc_channels(axis),
+    for(int axis=0;axis<d;++axis) {
+        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),face_qsc_backup_channels(axis));
+        SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),face_qsc_channels(axis),
                                                 face_qsc_backup_channels(axis),Topology_Helper::Face_Active_Mask(axis));}
 }
 //######################################################################
@@ -557,29 +612,11 @@ Backup_Qsc()
 template<class T,int d> void SF_Example<T,d>::
 Backup_Qtc()
 {
-    for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis) {
-        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qtc_backup_channels(axis));
-        SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qtc_channels(axis),
+    for(int axis=0;axis<d;++axis) {
+        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),face_qtc_backup_channels(axis));
+        SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),face_qtc_channels(axis),
                                                 face_qtc_backup_channels(axis),Topology_Helper::Face_Active_Mask(axis));}        
 }
-//######################################################################
-// Modify_Density_With_Sources
-//######################################################################
-// template<class T,int d> void SF_Example<T,d>::
-// Modify_Density_With_Sources()
-// {
-//     for(int level=0;level<levels;++level)
-//         Density_Modifier<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),density_channel,sources,level);
-// }
-//######################################################################
-// Add_Source
-//######################################################################
-// template<class T,int d> void SF_Example<T,d>::
-// Add_Source(const T dt)
-// {
-    // for(int level=0;level<levels;++level)
-    //     Source_Adder<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),density_channel,sources,source_rate,dt,level);
-// }
 //######################################################################
 // Advect_Face_Velocities
 //######################################################################
@@ -599,18 +636,18 @@ Backup_Qtc()
 // template<class T,int d> void SF_Example<T,d>::
 // Set_Neumann_Faces_Inside_Sources()
 // {
-//     for(int level=0;level<levels;++level){
-//         auto flags=hierarchy->Allocator(level).template Get_Array<Struct_type,unsigned>(&Struct_type::flags);
-//         for(Grid_Iterator_Face<T,d> iterator(hierarchy->Lattice(level));iterator.Valid();iterator.Next()){
+//     
+//         auto flags=hierarchy->Allocator(0).template Get_Array<Struct_type,unsigned>(&Struct_type::flags);
+//         for(Grid_Iterator_Face<T,d> iterator(hierarchy->Lattice(0));iterator.Valid();iterator.Next()){
 //             const int axis=iterator.Axis();const T_INDEX& face_index=iterator.Face_Index();
 //             uint64_t face_offset=Flag_array_mask::Linear_Offset(face_index._data);
 //             const uint64_t face_active_mask=Topology_Helper::Face_Active_Mask(axis);
 //             const uint64_t face_valid_mask=Topology_Helper::Face_Valid_Mask(axis);
-//             const TV X=hierarchy->Lattice(level).Face(axis,face_index);
+//             const TV X=hierarchy->Lattice(0).Face(axis,face_index);
 //             for(size_t i=0;i<sources.size();++i) if(sources(i)->Inside(X)){
-//                 if(hierarchy->template Set<unsigned>(level,&Struct_type::flags).Is_Set(face_offset,face_valid_mask))
+//                 if(hierarchy->template Set<unsigned>(0,&Struct_type::flags).Is_Set(face_offset,face_valid_mask))
 //                     flags(face_offset)&=~face_active_mask;
-//                 break;}}}
+//                 break;}}
 // }
 //######################################################################
 // Initialize_Velocity_Field
@@ -618,8 +655,7 @@ Backup_Qtc()
 // template<class T,int d> void SF_Example<T,d>::
 // Initialize_Velocity_Field()
 // {
-//     for(int level=0;level<levels;++level)
-//         Uniform_Velocity_Field_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,bv,level);
+//     Uniform_Velocity_Field_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(0),face_velocity_channels,bv,0);
 // }
 //######################################################################
 // Project
@@ -634,13 +670,13 @@ Backup_Qtc()
 //     T Struct_type::* divergence_channel     = &Struct_type::ch8;
 
 //     // clear
-//     for(int level=0;level<levels;++level){
-//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),pressure_channel);
-//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),divergence_channel);}
+//     
+//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),pressure_channel);
+//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),divergence_channel);
 
 //     // set boundary conditions
-//     for(int level=0;level<levels;++level)
-//         Boundary_Condition_Helper<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,pressure_channel,bv,level);
+//     
+//         Boundary_Condition_Helper<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(0),face_velocity_channels,pressure_channel,bv,0);
 
 //     // compute divergence
 //     Hierarchy_Projection::Compute_Divergence(*hierarchy,face_velocity_channels,divergence_channel);
@@ -654,11 +690,11 @@ Backup_Qtc()
 //     T Struct_type::* z_channel              = &Struct_type::ch12;
 
 //     // clear all channels
-//     for(int level=0;level<levels;++level){
-//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),q_channel);
-//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channel);
-//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),s_channel);
-//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),z_channel);}
+//     
+//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),q_channel);
+//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),r_channel);
+//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),s_channel);
+//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),z_channel);
 
 //     CG_Vector<Struct_type,T,d> x_V(*hierarchy,pressure_channel);
 //     CG_Vector<Struct_type,T,d> b_V(*hierarchy,divergence_channel);
@@ -679,8 +715,8 @@ Backup_Qtc()
 //     const T tolerance=std::max(cg_tolerance*b_norm,(T)1e-6);
 //     cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
 
-//     for(int level=0;level<levels;++level)
-//         Apply_Pressure<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,pressure_channel,level);
+//     
+//         Apply_Pressure<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(0),face_velocity_channels,pressure_channel,0);
 // }
 //######################################################################
 // Register_Options
@@ -701,6 +737,7 @@ Register_Options()
     parse_args->Add_Double_Argument("-Teq",(T)1.,"Teq.");
     parse_args->Add_Double_Argument("-gamma",(T)10.,"gamma.");
     parse_args->Add_Double_Argument("-delta",(T).01,"delta.");
+    parse_args->Add_Double_Argument("-zeta",(T).25,"Zeta.");
 
     parse_args->Add_Double_Argument("-k",(T)1.,"k.");
     parse_args->Add_Double_Argument("-K",(T)2.,"K.");
@@ -746,7 +783,7 @@ Parse_Options()
     K=parse_args->Get_Double_Value("-K");
     m_alpha=parse_args->Get_Double_Value("-ma");
     bv=parse_args->Get_Double_Value("-bv");
-
+    if(d==3) zeta(2)=parse_args->Get_Double_Value("-zeta");
     omega=parse_args->Get_Integer_Value("-omega");
     FICKS=parse_args->Get_Option_Value("-ficks");
     explicit_diffusion=parse_args->Get_Option_Value("-ed");
@@ -766,6 +803,7 @@ Parse_Options()
     cg_restart_iterations=parse_args->Get_Integer_Value("-cg_restart_iterations");
     cg_tolerance=(T)parse_args->Get_Double_Value("-cg_tolerance");
     if(FICKS){fc_1=(T)1.; fc_2=(T)1.;}
+    Log::cout<<"epsilon: "<<epsilon_xyz<<", m_alpha: "<<m_alpha<<", delta: "<<delta<<", zeta: "<<zeta<<", gamma: "<<gamma<<std::endl;
 }
 //######################################################################
 // Write_Output_Files

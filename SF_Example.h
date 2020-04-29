@@ -62,7 +62,9 @@ class SF_Example: public Example<T,d>
     T Struct_type::* density_backup_channel;
     T Struct_type::* T_channel;
     T Struct_type::* T_backup_channel;
-    T Struct_type::* epsilon_channel;
+    T Struct_type::* Av_channel;
+    T Struct_type::* theta_channel;
+    T Struct_type::* beta_channel;
     
     Channel_Vector face_qsc_channels;
     Channel_Vector face_qsc_backup_channels;
@@ -72,6 +74,8 @@ class SF_Example: public Example<T,d>
     Channel_Vector face_velocity_channels;
 
     Vector<Vector<bool,2>,d> domain_walls;
+    Vector<T,d> zeta;
+    Vector<T,2> epsilon_xyz;
     
     Array<Implicit_Object<T,d>*> velocity_sources;
     Array<Implicit_Object<T,d>*> density_sources;
@@ -105,6 +109,7 @@ class SF_Example: public Example<T,d>
     void Add_Laplacian_Term_To_Density(const T dt);
     void Add_Divergence_Term_To_Density(const T dt);
     void Add_Differential_Term_To_Density(const T dt);
+    void Add_Novel_Divergence_Term_To_Density(const T dt);
     void Add_Poly_Term_To_Density(const T dt);
     void Add_Random_Term_To_Density(const T dt);
     void Implicitly_Update_Density(const T dt);

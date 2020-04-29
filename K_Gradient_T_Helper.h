@@ -25,11 +25,11 @@ class K_Gradient_T_Helper
 
   public:
     K_Gradient_T_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& face_qs_channels,
-                   T Struct_type::* T_channel,const T coeff,const TV one_over_dx,const int level)
-    {Run(allocator,blocks,face_qs_channels,T_channel,coeff,one_over_dx,level);}
+                   T Struct_type::* T_channel,const T coeff,const TV one_over_dx)
+    {Run(allocator,blocks,face_qs_channels,T_channel,coeff,one_over_dx);}
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& face_qs_channels,
-            T Struct_type::* T_channel,const T coeff,const TV one_over_dx,const int level) const
+            T Struct_type::* T_channel,const T coeff,const TV one_over_dx) const
     {
         auto T_data=allocator.template Get_Const_Array<Struct_type,T>(T_channel);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);

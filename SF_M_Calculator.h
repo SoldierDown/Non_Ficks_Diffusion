@@ -31,8 +31,7 @@ class SF_M_Calculator
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* m_channel,T Struct_type::* T_channel,
             const T m_alpha,const T gamma,const T Teq) const
     {
-        auto m_data=allocator.template Get_Array<Struct_type,T>(m_channel);
-        auto T_data=allocator.template Get_Const_Array<Struct_type,T>(T_channel);
+        auto m_data=allocator.template Get_Array<Struct_type,T>(m_channel); auto T_data=allocator.template Get_Const_Array<Struct_type,T>(T_channel);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto sf_m_calculator=[&](uint64_t offset)
         {

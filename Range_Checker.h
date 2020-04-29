@@ -1,17 +1,17 @@
 //!#####################################################################
-//! \file Traverse_Helper.h
+//! \file Range_Checker.h
 //!#####################################################################
-// Class Traverse_Helper
+// Class Range_Checker
 //######################################################################
-#ifndef __Traverse_Helper__
-#define __Traverse_Helper__
+#ifndef __Range_Checker__
+#define __Range_Checker__
 
 #include <nova/SPGrid/Core/SPGrid_Allocator.h>
 #include <nova/SPGrid/Tools/SPGrid_Threading_Helper.h>
 #include <nova/Tools/Vectors/Vector.h>
 namespace Nova{
 template<class Struct_type,class T,int d>
-class Traverse_Helper
+class Range_Checker
 {
     using Flags_type            = typename Struct_type::Flags_type;
     using Channel_Vector        = Vector<T Struct_type::*,d>;
@@ -20,27 +20,23 @@ class Traverse_Helper
     using Block_Iterator        = SPGrid::SPGrid_Block_Iterator<Flag_array_mask>;
 
   public:
-    Traverse_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* channel)
-    {Run(allocator,blocks,channel);}
+    Range_Checker(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* channel,const T min_value,const T max_value)
+    {Run(allocator,blocks,channel,min_value,max_value);}
 
-    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::*channel) const
+    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::*channel,const T min_value,const T max_value) const
     {
         auto data=allocator.template Get_Const_Array<Struct_type,T>(channel);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-        T min_value=(T)1000.; T max_value=(T)-1000.;
-        auto traverse_helper=[&](uint64_t offset)
+        auto range_checker=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                 if(flags(offset)&(Cell_Type_Interior)) { const T value=data(offset);
-                    // Log::cout<<value<<" ";
-                    if(value<min_value) min_value=value;
-                    if(value>max_value) max_value=value;}
-            }
+                    if(value<min_value||value>max_value) Log::cout<<"Fatal error: "<<value<<std::endl;}}
         };
         for(Block_Iterator iterator(blocks);iterator.Valid();iterator.Next_Block()){
             uint64_t offset=iterator.Offset();
-            traverse_helper(offset);}
-        Log::cout<<"MIN: "<<min_value<<", MAX: "<<max_value<<std::endl;
+            range_checker(offset);}
+        
     }
 };
 }
