@@ -15,6 +15,7 @@
 #include <nova/SPGrid/Tools/SPGrid_Clear.h>
 #include "Clear_Non_Active.h"
 #include "Divergence_Helper.h"
+#include "Divergence_Star_Helper.h"
 #include "Gradient_Helper.h"
 #include "Interior_Laplace_Helper.h"
 #include "Laplace_Gradient_Helper.h"
@@ -74,8 +75,19 @@ class Grid_Hierarchy_Projection
             Divergence_Helper<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),face_velocity_channels,
                                                divergence_channel,other_face_offsets,level);
         
-        // Accumulate_Ghost_Values(hierarchy,divergence_channel);
     }
+
+    static void Compute_Divergence_Star(Hierarchy& hierarchy,Channel_Vector& face_velocity_channels,T Struct_type::* divergence_channel,Vector<T,d> zeta)
+    {
+        Vector<uint64_t,d> other_face_offsets;
+        for(int axis=0;axis<d;++axis) other_face_offsets(axis)=Topology_Helper::Axis_Vector_Offset(axis);
+
+        for(int level=0;level<hierarchy.Levels();++level)
+            Divergence_Star_Helper<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),face_velocity_channels,
+                                               divergence_channel,zeta,other_face_offsets,level);
+        
+    }
+
 
     static void Compute_Gradient(Hierarchy& hierarchy,Channel_Vector& gradient_channels,T Struct_type::* pressure_channel)
     {

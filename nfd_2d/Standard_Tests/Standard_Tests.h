@@ -518,9 +518,56 @@ class Standard_Tests: public MPM_Example<T,d>
                     particles.Append(p);
                 }  
             }
+        }break;
+        // example 26: fluid standard test
+        case 26:{
+            Random_Numbers<T> random;
+            random.Set_Seed(0);
+            
+            fluid_source.min_corner=TV({4.75,4.75});
+            fluid_source.max_corner=TV({5.25,5.25});
+
+            T_Barrier ground(0.,TV({0.,1.}),TV({0.,1}));
+            barriers.Append(ground);
+            T_Barrier ceiling(0.,TV({0.,-1.}),TV({0.,10}));
+            Base::barriers.Append(ceiling);
+            T_Barrier left_wall(0.,TV({1.,0.}),TV({1,0.}));
+            barriers.Append(left_wall);
+            T_Barrier right_wall(0.,TV({-1.,0.}),TV({10,0.}));
+            barriers.Append(right_wall);           
+
+            // fluid
+            {
+                const T solid_density=(T)10.;
+                const T fluid_density=(T)1.;
+                const int number_of_particles=40000;
+                const Range<T,d> block(TV({1.,1.}),TV({10.,5.}));
+                const T block_area=block.Area();
+                const T area_per_particle=block_area/number_of_particles;
+                std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
+                for(int i=0;i<number_of_particles;++i){
+                    T_Particle p;
+                    p.valid=true; 
+                    p.X=random.Get_Uniform_Vector(block);
+                    p.V=TV();
+                    p.mass=fluid_density*area_per_particle;
+                    p.mass_fluid=p.mass;
+                    p.mass_solid=(T)0.;
+                    p.volume=(T)0.;
+                    p.scp=Matrix<T,2>();
+                    p.eos_scp=Matrix<T,2>();
+                    // EOS fluid particle
+                    p.eos=true;
+                    p.density=1;
+                    p.bulk_modulus=(T)1.;
+                    p.gamma=(T)7;
+                    p.saturation=(T)1.;
+                    p.volume_fraction_0=(T)1.;
+                    particles.Append(p);
+                }  
+            }
             
         }break;
-
         default:
             break;
         }

@@ -1397,7 +1397,7 @@ Write_Output_Files(const int frame) const
 
     File_Utilities::Create_Directory(output_directory+"/"+std::to_string(frame));
     File_Utilities::Write_To_Text_File(output_directory+"/"+std::to_string(frame)+"/frame_title",frame_title);
-
+    for(int i=0;i<particles.size();++i) {Log::cout<<"Here"<<std::endl;if(particles(i).eos) Log::cout<<"Fluid"<<std::endl;}
     File_Utilities::Write_To_File(output_directory+"/"+std::to_string(frame)+"/particles",particles);
 
     // write hierarchy
@@ -1415,6 +1415,8 @@ Write_Output_Files(const int frame) const
 
     File_Utilities::Create_Directory(output_directory+"/"+std::to_string(frame));
     File_Utilities::Write_To_Text_File(output_directory+"/"+std::to_string(frame)+"/frame_title",frame_title);
+
+    
 
     File_Utilities::Write_To_File(output_directory+"/"+std::to_string(frame)+"/particles",particles);
 
