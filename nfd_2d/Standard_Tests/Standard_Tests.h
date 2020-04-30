@@ -382,7 +382,7 @@ class Standard_Tests: public MPM_Example<T,d>
             
         }break;
         // example 23: hydrogel falling
-        case 23:{
+        case 27:{
             Random_Numbers<T> random;
             random.Set_Seed(0);
             

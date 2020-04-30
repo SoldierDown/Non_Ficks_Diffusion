@@ -20,6 +20,7 @@ int main(int argc,char** argv)
     example->bbox=Range<T,d>(example->domain.max_corner,example->domain.min_corner);
     File_Utilities::Create_Directory(example->output_directory);
     File_Utilities::Create_Directory(example->output_directory+"/common");
+    File_Utilities::Create_Directory(example->output_directory+"/particle_indicator");
     Log::Instance()->Copy_Log_To_File(example->output_directory+"/common/log.txt",false);
 
     MPM_Driver<T,d> driver(*example);

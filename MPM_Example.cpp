@@ -12,6 +12,7 @@
 #include <omp.h>
 #include "Traverse_Helper.h"
 #include "MPM_Example.h"
+#include "Particle_Indicator_Helper.h"
 #include "Velocity_Normalization_Helper.h"
 #include "Explicit_Force_Helper.h"
 #include "Grid_Based_Collision_Helper.h"
@@ -1397,12 +1398,13 @@ Write_Output_Files(const int frame) const
 
     File_Utilities::Create_Directory(output_directory+"/"+std::to_string(frame));
     File_Utilities::Write_To_Text_File(output_directory+"/"+std::to_string(frame)+"/frame_title",frame_title);
-    for(int i=0;i<particles.size();++i) {Log::cout<<"Here"<<std::endl;if(particles(i).eos) Log::cout<<"Fluid"<<std::endl;}
+    // for(int i=0;i<particles.size();++i) {Log::cout<<"Here"<<std::endl;if(particles(i).eos) Log::cout<<"Fluid"<<std::endl;}
     File_Utilities::Write_To_File(output_directory+"/"+std::to_string(frame)+"/particles",particles);
 
     // write hierarchy
     File_Utilities::Write_To_Text_File(output_directory+"/"+std::to_string(frame)+"/levels",levels);
     mpm_hierarchy->Write_Hierarchy(output_directory,frame);
+    Particle_Indicator_Helper<T,2>(particles,output_directory+"/particle_indicator/"+std::to_string(frame)+".txt");
 }
 //######################################################################
 // Write_Output_Files
@@ -1423,6 +1425,7 @@ Write_Output_Files(const int frame) const
     // write hierarchy
     File_Utilities::Write_To_Text_File(output_directory+"/"+std::to_string(frame)+"/levels",levels);
     mpm_hierarchy->Write_Hierarchy(output_directory,frame);
+    Particle_Indicator_Helper<T,3>(particles,output_directory+"/particle_indicator/"+std::to_string(frame)+".txt");
 }
 //######################################################################
 // Read_Output_Files
