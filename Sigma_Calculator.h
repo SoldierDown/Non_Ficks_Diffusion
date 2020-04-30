@@ -1,10 +1,10 @@
 //!#####################################################################
-//! \file SF_M_Calculator.h
+//! \file Sigma_Calculator.h
 //!#####################################################################
-// Class SF_M_Calculator
+// Class Sigma_Calculator
 //######################################################################
-#ifndef __SF_M_Calculator__
-#define __SF_M_Calculator__
+#ifndef __Sigma_Calculator__
+#define __Sigma_Calculator__
 
 
 #include <nova/SPGrid/Core/SPGrid_Allocator.h>
@@ -14,6 +14,9 @@
 #include <nova/Tools/Utilities/Constants.h>
 
 namespace Nova{
+template<class T>
+    inline T Fourth_Power(const T a)
+    {return a*a*a*a;}
 template<class Struct_type,class T,int d>
 class Sigma_Calculator
 {
@@ -24,22 +27,23 @@ class Sigma_Calculator
     using Topology_Helper       = Grid_Topology_Helper<Flag_array_mask>;
 
   public:
-    Sigma_Calculator(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& vT_channels,T Struct_type::* sigma_channel,
-                    const T delta)
-    {Run(allocator,blocks,vT_channels,sigma_channel,delta);}
+    Sigma_Calculator(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
+                        Channel_Vector& v_channels,T Struct_type::* sigma_channel,const T delta)
+    {Run(allocator,blocks,v_channels,sigma_channel,delta);}
 
-    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& vT_channels,T Struct_type::* sigma_channel,
-                    const T delta) const
+    void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
+                Channel_Vector& v_channels,T Struct_type::* sigma_channel,const T delta) const
     {
         auto sigma_data=allocator.template Get_Array<Struct_type,T>(sigma_channel);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto sigma_calculator=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Cell_Type_Interior)  {T a=(T)0.; T b=(T)0.; for(int axis=0;axis<d;++axis){ 
-                const T axis_cell_vT_value=allocator.template Get_Const_Array<Struct_type,T>(vT_channels(axis))(offset);
-                a+=pow(axis_cell_vT_value,4); b+=pow(axis_cell_vT_value,2);}
-                sigma_data(offset)=(T)1.-delta*((T)1.-a/b);}
+                if(flags(offset)&Cell_Type_Interior)  {T a_value=(T)0.; T b_value=(T)0.; for(int axis=0;axis<d;++axis){ 
+                const T axis_cell_v_value=allocator.template Get_Const_Array<Struct_type,T>(v_channels(axis))(offset);
+                a_value+=Fourth_Power(axis_cell_v_value); b_value+=Nova_Utilities::Sqr(axis_cell_v_value);}
+                if(b_value==(T)0.) sigma_data(offset)=(T)1.;
+                else sigma_data(offset)=(T)1.-delta*((T)1.-a_value/Nova_Utilities::Sqr(b_value));}
 
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,sigma_calculator);

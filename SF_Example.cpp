@@ -59,17 +59,6 @@ SF_Example()
     :Base(),hierarchy(nullptr),rasterizer(nullptr)
 {
     random.Set_Seed(0);
-    // // for updating density
-    tau_s=(T)3.e-4;
-    // for updating face_qsc_channels
-    SR=(T)0.;
-    // for updating face_qtc_channels
-    k=(T)1.;
-    // for updating m_channel
-    m_alpha=(T).9; gamma=(T)10.; Teq=(T)1.;
-    // for updating Av_channel
-    omega=6; delta=(T).01;
-    bv=(T)1.;
     
     zeta=TV(1.); epsilon_xyz=Vector<T,2>({.02,.05}); 
 
@@ -351,8 +340,7 @@ Add_Laplacian_Term_To_Density(const T dt)
     SF_Av_Squared_Grad_Star_S_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),Av2_grad_s_channels,Av_channel,density_backup_channel,(T)1.,zeta,one_over_dx);
     
     Hierarchy_Projection::Compute_Divergence_Star(*hierarchy,Av2_grad_s_channels,divergence_channel,zeta); 
-	Flip_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),divergence_channel);
-    SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),fc_1*dt_over_tau_s,divergence_channel,
+    SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),-fc_1*dt_over_tau_s,divergence_channel,
                                             density_channel,density_channel,Cell_Type_Interior);
 }
 //######################################################################
@@ -782,6 +770,7 @@ Parse_Options()
     k=parse_args->Get_Double_Value("-k");
     K=parse_args->Get_Double_Value("-K");
     m_alpha=parse_args->Get_Double_Value("-ma");
+    Teq=parse_args->Get_Double_Value("-Teq");
     bv=parse_args->Get_Double_Value("-bv");
     if(d==3) zeta(2)=parse_args->Get_Double_Value("-zeta");
     omega=parse_args->Get_Integer_Value("-omega");

@@ -67,7 +67,7 @@ class MPM_Renderable: public Simulation_Renderable<T,d>
 
   public:
     MPM_Renderable(ApplicationFactory& app,const std::string& directory_name,int max_frame)
-        :Base(app,directory_name,max_frame),hierarchy(nullptr),elements_per_block(0),levels(0),selected(false),draw_voxels(true)
+        :Base(app,directory_name,max_frame),hierarchy(nullptr),elements_per_block(0),levels(0),selected(false),draw_voxels(false)
     {
         std::istream *input=(d==3)?File_Utilities::Safe_Open_Input(directory_name+"/common/hierarchy.struct3d"):File_Utilities::Safe_Open_Input(directory_name+"/common/hierarchy.struct2d");
         Read_Write<int>::Read(*input,levels);
@@ -131,10 +131,12 @@ class MPM_Renderable: public Simulation_Renderable<T,d>
         hierarchy=new Hierarchy(grid,levels);
 
         File_Utilities::Read_From_File(directory_name+"/"+std::to_string(active_frame)+"/particles",particles);
-        for(size_t i=0;i<particles.size();++i){glm::vec3 X;
+        for(size_t i=0;i<particles.size();++i){
+            if(particles[i].density>(T)0.){glm::vec3 X;
             for(int v=0;v<d;++v) X[v]=particles[i].X[v];
             if(d==2) X[2]=1;
             locations.push_back(X);}
+        }
 
         std::stringstream ss;ss<<directory_name<<"/"<<active_frame;
         std::istream* input1=File_Utilities::Safe_Open_Input(ss.str()+"/flags");

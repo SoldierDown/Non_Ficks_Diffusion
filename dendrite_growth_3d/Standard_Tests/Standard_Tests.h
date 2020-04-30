@@ -81,9 +81,12 @@ class Standard_Tests: public DG_Example<T,d>
 //######################################################################
     void Initialize_Sources() override
     {
-        const T radius=0.12;
-        const TV center=TV(3.);
-        Implicit_Object<T,d>* obj=new Sphere_Implicit_Object<T,d>(center,radius);
+        // const T radius=0.12;
+        // const TV center=TV(3.);
+        // Implicit_Object<T,d>* obj=new Sphere_Implicit_Object<T,d>(center,radius);
+        // density_sources.Append(obj);
+        const TV min_corner=TV({2.88,0.,2.88}); const TV max_corner=TV({3.12,.15,3.12});
+        Implicit_Object<T,d>* obj=new Box_Implicit_Object<T,d>(min_corner,max_corner);
         density_sources.Append(obj);
     }
 //######################################################################

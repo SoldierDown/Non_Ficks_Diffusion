@@ -135,7 +135,7 @@ class DG_Example: public Example<T,d>
     void Backup_Qsc();
     void Backup_Qtc();
 
-    // void Modify_Density_With_Sources();
+    void Modify_Density_With_Sources();
     // void Add_Source(const T dt);
     // void Set_Neumann_Faces_Inside_Sources();
     // void Initialize_Velocity_Field();

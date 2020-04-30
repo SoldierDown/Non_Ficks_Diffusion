@@ -44,6 +44,7 @@ Advance_One_Time_Step_Explicit_Part(const T dt,const T time)
     else{ Log::cout<<"Non-Fick's"<<std::endl;
     example.Update_Density(dt);example.Update_Face_Qsc(dt);
     example.Update_Temperature(dt);example.Update_Face_Qtc(dt);}
+    // example.Modify_Density_With_Sources();
     example.Backup();
 
     // convect
@@ -75,7 +76,7 @@ Advance_To_Target_Time(const T target_time)
         Advance_One_Time_Step_Explicit_Part(dt,time);
         Advance_One_Time_Step_Implicit_Part(dt,time);
         Log::cout<<"dt: "<<dt<<std::endl;
-        done=true;
+        // done=true;
         if(!done) example.Write_Substep("END Substep",substep,0);
         time+=dt;}
 }

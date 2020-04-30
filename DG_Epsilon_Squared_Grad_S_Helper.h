@@ -25,11 +25,11 @@ class DG_Epsilon_Squared_Grad_S_Helper
 
   public:
     DG_Epsilon_Squared_Grad_S_Helper(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& face_qs_channels,
-                                    T Struct_type::* density_backup_channel,const T epsilon_squared,const T minus_dt_over_tau_1,const TV one_over_dx,const int level)
-    {Run(allocator,blocks,face_qs_channels,density_backup_channel,epsilon_squared,minus_dt_over_tau_1,one_over_dx,level);}
+                                    T Struct_type::* density_backup_channel,const T epsilon_squared,const T minus_dt_over_tau_1,const TV one_over_dx)
+    {Run(allocator,blocks,face_qs_channels,density_backup_channel,epsilon_squared,minus_dt_over_tau_1,one_over_dx);}
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,Channel_Vector& face_qs_channels,
-            T Struct_type::* density_backup_channel,const T epsilon_squared,const T minus_dt_over_tau_1,const TV one_over_dx,const int level) const
+            T Struct_type::* density_backup_channel,const T epsilon_squared,const T minus_dt_over_tau_1,const TV one_over_dx) const
     {
         auto density_backup_data=allocator.template Get_Const_Array<Struct_type,T>(density_backup_channel);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
