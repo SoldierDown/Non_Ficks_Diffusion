@@ -308,6 +308,7 @@ Non_Ficks_Diffusion(const T dt)
             Implicit_Face_Qc_Updater<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_qc_channels,face_qc_backup_channels,density_channel,coeff5,coeff6,level);
     }
 }
+
 //######################################################################
 // Modify_Density_With_Sources
 //######################################################################
@@ -527,7 +528,7 @@ Write_Output_Files(const int frame) const
     hierarchy->template Write_Channel<T>(output_directory+"/"+std::to_string(frame)+"/spgrid_u",face_velocity_channels(0));
     hierarchy->template Write_Channel<T>(output_directory+"/"+std::to_string(frame)+"/spgrid_v",face_velocity_channels(1));
     if(d==3) hierarchy->template Write_Channel<T>(output_directory+"/"+std::to_string(frame)+"/spgrid_w",face_velocity_channels(2));
-    Write_To_File_Helper<Struct_type,T,d>(*hierarchy,hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,output_directory+"/density_data/"+std::to_string(frame)+".txt");
+    // Write_To_File_Helper<Struct_type,T,d>(*hierarchy,hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,output_directory+"/density_data/"+std::to_string(frame)+".txt");
 }
 //######################################################################
 // Read_Output_Files
