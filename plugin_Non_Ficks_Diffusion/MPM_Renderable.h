@@ -59,15 +59,15 @@ class MPM_Renderable: public Simulation_Renderable<T,d>
     Index_type block_size;
     Grid<T,d> grid;
     Array<T_Particle> particles;
-    std::vector<glm::vec3> locations;
-    unsigned int VAO,VAVO;
-    unsigned int VBO,VBVO;
+    std::vector<glm::vec3> solid_locations,fluid_locations;
+    unsigned int VASO,VAFO,VAVO;
+    unsigned int VBSO,VBFO,VBVO;
     std::string frame_title;
-    bool selected,draw_voxels;
+    bool selected,draw_voxels,draw_solid,draw_fluid;
 
   public:
     MPM_Renderable(ApplicationFactory& app,const std::string& directory_name,int max_frame)
-        :Base(app,directory_name,max_frame),hierarchy(nullptr),elements_per_block(0),levels(0),selected(false),draw_voxels(false)
+        :Base(app,directory_name,max_frame),hierarchy(nullptr),elements_per_block(0),levels(0),selected(false),draw_voxels(false),draw_solid(true),draw_fluid(true)
     {
         std::istream *input=(d==3)?File_Utilities::Safe_Open_Input(directory_name+"/common/hierarchy.struct3d"):File_Utilities::Safe_Open_Input(directory_name+"/common/hierarchy.struct2d");
         Read_Write<int>::Read(*input,levels);
@@ -79,7 +79,8 @@ class MPM_Renderable: public Simulation_Renderable<T,d>
 
         File_Utilities::Read_From_File(directory_name+"/common/fine_grid",grid);
         app.GetIOService().On("DISPLAY-VOXELS",[&](IOEvent& event){this->Display_Voxels();});
-        
+        app.GetIOService().On("DISPLAY-SOLID",[&](IOEvent& event){this->Display_Solid();});
+        app.GetIOService().On("DISPLAY-FLUID",[&](IOEvent& event){this->Display_Fluid();});
     }
 
     virtual ~MPM_Renderable()
@@ -88,25 +89,43 @@ class MPM_Renderable: public Simulation_Renderable<T,d>
     void Display_Voxels()
     {draw_voxels=!draw_voxels;}
 
+    void Display_Solid()
+    {draw_solid=!draw_solid;}
+
+    void Display_Fluid()
+    {draw_fluid=!draw_fluid;}
+
     void Clear_Buffers()
     {
-        if(VAO) glDeleteVertexArrays(1,&VAO);
+        if(VASO) glDeleteVertexArrays(1,&VASO);
+        if(VAFO) glDeleteVertexArrays(1,&VAFO);
         if(VAVO) glDeleteVertexArrays(1,&VAVO);
-        if(VBO) glDeleteBuffers(1,&VBO);
+        if(VBSO) glDeleteBuffers(1,&VBSO);
+        if(VBFO) glDeleteBuffers(1,&VBFO);
         if(VBVO) glDeleteBuffers(1,&VBVO);
 
         voxels.clear();
         particles.Clear();
-        locations.clear();
+        solid_locations.clear();
+        fluid_locations.clear();
     }
 
     virtual void Initialize_Buffers()
     {
-        glGenVertexArrays(1,&VAO);
-        glGenBuffers(1,&VBO);
-        glBindVertexArray(VAO);
-        glBindBuffer(GL_ARRAY_BUFFER,VBO);
-        glBufferData(GL_ARRAY_BUFFER,locations.size()*sizeof(glm::vec3),&locations[0],GL_STATIC_DRAW);
+        glGenVertexArrays(1,&VASO);
+        glGenBuffers(1,&VBSO);
+        glBindVertexArray(VASO);
+        glBindBuffer(GL_ARRAY_BUFFER,VBSO);
+        glBufferData(GL_ARRAY_BUFFER,solid_locations.size()*sizeof(glm::vec3),&solid_locations[0],GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,sizeof(glm::vec3),(GLvoid*)0);
+        glBindVertexArray(0);
+
+        glGenVertexArrays(1,&VAFO);
+        glGenBuffers(1,&VBFO);
+        glBindVertexArray(VAFO);
+        glBindBuffer(GL_ARRAY_BUFFER,VBFO);
+        glBufferData(GL_ARRAY_BUFFER,fluid_locations.size()*sizeof(glm::vec3),&fluid_locations[0],GL_STATIC_DRAW);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,sizeof(glm::vec3),(GLvoid*)0);
         glBindVertexArray(0);
@@ -131,12 +150,35 @@ class MPM_Renderable: public Simulation_Renderable<T,d>
         hierarchy=new Hierarchy(grid,levels);
 
         File_Utilities::Read_From_File(directory_name+"/"+std::to_string(active_frame)+"/particles",particles);
+        std::istream *id_file=File_Utilities::Safe_Open_Input(directory_name+"/particle_indicator/"+std::to_string(active_frame)+".txt",false);
+        std::string line;std::getline(*id_file,line);
+        std::vector<bool> is_fluid(particles.size(),false);
+        for(size_t i=0;i<particles.size();++i){size_t id;int fluid;
+            *id_file>>id>>fluid>>fluid;
+            if(fluid) is_fluid[i]=true;}
+        delete id_file;
+
         for(size_t i=0;i<particles.size();++i){
             if(particles[i].density>(T)0.){glm::vec3 X;
-            for(int v=0;v<d;++v) X[v]=particles[i].X[v];
-            if(d==2) X[2]=1;
-            locations.push_back(X);}
-        }
+                for(int v=0;v<d;++v) X[v]=particles[i].X[v];
+                if(d==2) X[2]=1;
+                if(!is_fluid[i]) solid_locations.push_back(X);
+                else fluid_locations.push_back(X);}}
+
+#if 0
+        std::stringstream ribs;ribs<<"particles/hydrogel_";
+        if(active_frame<10) ribs<<"0"<<active_frame;
+        else ribs<<active_frame;
+        ribs<<".rib";
+        std::fstream outFile(ribs.str(),std::ios::out);
+        for(size_t i=0;i<locations.size();++i){
+            outFile<<"                AttributeBegin"<<std::endl;
+            outFile<<"                        Bxdf \"PxrSurface\" \"particles\" \"string __materialid\" [\"particles_SG\"]"<<std::endl;
+            outFile<<"                        Translate "<<locations[i][0]<<" "<<locations[i][1]<<" "<<locations[i][2]<<std::endl;
+            outFile<<"                        Sphere 0.001 -0.001 0.001 360"<<std::endl;
+            outFile<<"                AttributeEnd"<<std::endl;}
+        outFile.close();
+#endif
 
         std::stringstream ss;ss<<directory_name<<"/"<<active_frame;
         std::istream* input1=File_Utilities::Safe_Open_Input(ss.str()+"/flags");
@@ -180,17 +222,31 @@ class MPM_Renderable: public Simulation_Renderable<T,d>
         projection = _app.GetWorld().Get_ProjectionMatrix();
         auto slicePlanes = _app.GetWorld().Get_Slice_Planes();
 
-        auto shader = _app.GetShaderManager().GetShader("Points");
-        shader->SetMatrix4("projection",projection);
-        shader->SetMatrix4("view",view);
-        shader->SetMatrix4("model",model);
-        shader->SetVector4f("slice_plane0",slicePlanes[0]);
-        shader->SetVector4f("slice_plane1",slicePlanes[1]);
-        glBindVertexArray(VAO);
-        glEnable(GL_PROGRAM_POINT_SIZE);
-        shader->SetVector3f("point_color",glm::vec3(.9,.9,.9));
-        glDrawArrays(GL_POINTS,0,locations.size());
-        glBindVertexArray(0);
+        if(solid_locations.size()>0 && draw_solid){
+            auto shader = _app.GetShaderManager().GetShader("Points");
+            shader->SetMatrix4("projection",projection);
+            shader->SetMatrix4("view",view);
+            shader->SetMatrix4("model",model);
+            shader->SetVector4f("slice_plane0",slicePlanes[0]);
+            shader->SetVector4f("slice_plane1",slicePlanes[1]);
+            glBindVertexArray(VASO);
+            glEnable(GL_PROGRAM_POINT_SIZE);
+            shader->SetVector3f("point_color",glm::vec3(.9,.9,.9));
+            glDrawArrays(GL_POINTS,0,solid_locations.size());
+            glBindVertexArray(0);}
+
+        if(fluid_locations.size()>0 && draw_fluid){
+            auto shader = _app.GetShaderManager().GetShader("Points");
+            shader->SetMatrix4("projection",projection);
+            shader->SetMatrix4("view",view);
+            shader->SetMatrix4("model",model);
+            shader->SetVector4f("slice_plane0",slicePlanes[0]);
+            shader->SetVector4f("slice_plane1",slicePlanes[1]);
+            glBindVertexArray(VAFO);
+            glEnable(GL_PROGRAM_POINT_SIZE);
+            shader->SetVector3f("point_color",glm::vec3(0.,0.,.9));
+            glDrawArrays(GL_POINTS,0,fluid_locations.size());
+            glBindVertexArray(0);}
 
         if(draw_voxels){auto shader = _app.GetShaderManager().GetShader("Grid");
             shader->SetMatrix4("projection",projection);
