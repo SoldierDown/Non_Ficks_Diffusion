@@ -53,6 +53,7 @@ class OpenVDB_Converter
     const std::string directory_name;
     Hierarchy *hierarchy;
     std::vector<Voxel> voxels;
+    std::vector<T> node_density;
     unsigned elements_per_block;
     int selected_voxel_level,levels;
     Index_type block_size;
@@ -88,6 +89,10 @@ class OpenVDB_Converter
         return i*ym*zm+j*zm+k;
     }
 
+    int node_id(int i,int j,int k){
+        return i*2*ym*2*zm+j*2*zm+k;
+    }
+
     void Clear_Buffers()
     {
         voxels.clear();
@@ -101,8 +106,9 @@ class OpenVDB_Converter
         hierarchy=new Hierarchy(grid,levels);
         const T dx=grid.dX(0); const T one_over_dx=grid.one_over_dX(0); const T half_dx=(T).5*dx;
         voxels.resize(grid.Number_Of_Cells().Product());
-        std::cout<<"# cells: "<<voxels.size()<<std::endl;
-        voxels.clear();
+        node_density.resize(8*voxels.size());
+        std::cout<<"# cells: "<<voxels.size()<<", # nodes: "<<node_density.size()<<std::endl;
+        
         std::stringstream ss;ss<<directory_name<<"/"<<current_frame;
         std::istream* input1=File_Utilities::Safe_Open_Input(ss.str()+"/flags");
         std::istream* input2=File_Utilities::Safe_Open_Input(ss.str()+"/block_offsets");
@@ -129,13 +135,15 @@ class OpenVDB_Converter
                     
                     if(draw_density){T density;
                         Read_Write<T>::Read(*input3,density);
-                        if(flag&(Cell_Type_Interior&Cell_Type_Dirichlet)){
+                        if(flag&(Cell_Type_Interior|Cell_Type_Dirichlet)){
                             int cell_id=id(cell_ijk(0),cell_ijk(1),cell_ijk(2));
                             voxels[cell_id]=Voxel(cell_location,density);}
-                    range_iterator.Next();}}}}
+                    }
+                    range_iterator.Next();}}}
 
 		// openvdb::initialize();
-        string output_filename=directory_name+"/converted_"+std::to_string(current_frame)+".vdb";
+        string output_filename=directory_name+"/nodes_data/converted_"+std::to_string(current_frame)+".txt";
+        
         // openvdb::FloatGrid::Ptr mygrid = openvdb::FloatGrid::create();
         // openvdb::FloatGrid::Accessor accessor = mygrid->getAccessor();
         for(int i=0;i<xm;++i) for(int j=0;j<ym;++j) for(int k=0;k<zm;++k){
@@ -145,6 +153,7 @@ class OpenVDB_Converter
             for(int ii=-1;ii<=1;ii+=2) for(int jj=-1;jj<=1;jj+=2) for(int kk=-1;kk<=1;kk+=2){
                         T interpolated_density=0.;
                         T_INDEX node_ijk({2*i+(ii+1)/2,2*j+(jj+1)/2,2*k+(kk+1)/2});
+                        int node_index=node_id(node_ijk(0),node_ijk(1),node_ijk(2));
                         TV node_location({cell_location(0)+ii*half_dx,cell_location(1)+jj*half_dx,cell_location(2)+kk*half_dx});
                         for(T_Range_Iterator iterator(T_INDEX({0,0,0}),T_INDEX({ii,jj,kk}));iterator.Valid();iterator.Next()){
                             T_INDEX iter_cell_index=T_INDEX({i,j,k})+iterator.Index();   
@@ -157,9 +166,15 @@ class OpenVDB_Converter
                             T delta_dis=1.-abs(iter_cell_location(axis)-node_location(axis))/dx;
                             factor*=delta_dis;}
                     interpolated_density+=factor*iter_density;}}
+                    node_density[node_index]=interpolated_density;
                 // openvdb::Coord xyz(node_ijk(0),node_ijk(1),node_ijk(2));
                 // accessor.setValue(xyz, float(interpolated_density));
                 }}
+        
+        FILE* fp = fopen(output_filename.c_str(), "w");
+        for(int count=0;count<node_density.size();++count)
+            fprintf(fp, "%.6f\n",node_density[count]);
+        fclose(fp);
         // mygrid->setName("density");
         // openvdb::io::File(output_filename).write({mygrid});
         delete input2;delete input1;
