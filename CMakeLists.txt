@@ -1,5 +1,5 @@
 set(ENABLE_NON_FICKS_DIFFUSION OFF CACHE BOOL "Enable building the Non-Fick's Diffusion project tree.")
-
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 cmake_policy(SET CMP0054 NEW)
 
 if(ENABLE_NON_FICKS_DIFFUSION)
