@@ -252,7 +252,7 @@ class Autonomous_Navigation_Renderable: public Simulation_Renderable<T,d>
                     if(draw_density){T density;
                         Read_Write<T>::Read(*input3,density);
                         hierarchy->Allocator(level).template Get_Array<Struct_type,T>(density_channel)(offset)=density;
-                        if(flag&Cell_Type_Interior && density>(T)1e-6) density_voxels.push_back(Color_Voxel(location,glm::vec3(1,1,1)*std::max(density,(T)0.)));}
+                        if(flag&Cell_Type_Interior && density>(T).01) density_voxels.push_back(Color_Voxel(location,glm::vec3(1,1,1)*std::max(density,(T)0.)));}
 
                     if(draw_velocity) for(int axis=0;axis<d;++axis){T velocity;
                         Read_Write<T>::Read(*velocity_input(axis),velocity);
