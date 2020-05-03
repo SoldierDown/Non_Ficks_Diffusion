@@ -52,6 +52,7 @@ class OpenVDB_Converter
         }
     };
     public: 
+    bool interpolated;
     Parse_Args *parse_args;
     std::string output_directory;
     Hierarchy *hierarchy;
@@ -61,6 +62,7 @@ class OpenVDB_Converter
     int selected_voxel_level,levels;
     int first_frame, last_frame;
     Index_type block_size;
+    T density_factor;
     T Struct_type::* density_channel;
     Grid<T,d> grid;
     int xm,ym,zm;
@@ -89,6 +91,7 @@ class OpenVDB_Converter
         dx=grid.dX(0);  quarter_dx=(T).25*dx;
         std::cout<<"# cells: "<<grid.counts(0)<<"x"<<grid.counts(1)<<"x"<<grid.counts(2)<<std::endl;
         std::cout<<"dx: "<<dx<<", quarter dx: "<<quarter_dx<<std::endl;
+        std::cout<<"density factor: "<<density_factor<<std::endl;
     }
 
     int Cell_ID(int i,int j,int k){
@@ -135,27 +138,45 @@ class OpenVDB_Converter
                         TV cell_location=grid.Center(cell_ijk); voxels[cell_id]=Voxel(cell_location,density);}
                     range_iterator.Next();}}}
 
-		openvdb::initialize();
-        openvdb::FloatGrid::Ptr mygrid = openvdb::FloatGrid::create(); openvdb::FloatGrid::Accessor accessor = mygrid->getAccessor();
-        for(int i=0;i<xm;++i) for(int j=0;j<ym;++j) for(int k=0;k<zm;++k){
-            int cell_id=Cell_ID(i,j,k); TV cell_location=voxels[cell_id].location; T cell_density=voxels[cell_id].density;
-            for(int ii=-1;ii<=1;ii+=2) for(int jj=-1;jj<=1;jj+=2) for(int kk=-1;kk<=1;kk+=2){
-                T interpolated_density=0.; T_INDEX node_ijk({2*i+(ii+1)/2,2*j+(jj+1)/2,2*k+(kk+1)/2}); 
-                int node_index=Node_ID(node_ijk(0),node_ijk(1),node_ijk(2)); assert(node_index!=-1);
-                TV node_location({cell_location(0)+ii*quarter_dx,cell_location(1)+jj*quarter_dx,cell_location(2)+kk*quarter_dx});
-                for(T_Range_Iterator iterator(T_INDEX(),T_INDEX({ii,jj,kk}));iterator.Valid();iterator.Next()){
-                    T_INDEX iter_cell_index=T_INDEX({i+1,j+1,k+1})+iterator.Index();   
-                    int iter_id=Cell_ID(iter_cell_index(0)-1,iter_cell_index(1)-1,iter_cell_index(2)-1);
-                    if(iter_id==-1) ;
-                    else{TV iter_cell_location=grid.Center(iter_cell_index);
-                    T iter_density=voxels[iter_id].density; T factor=1.;
-                    for(int axis=0;axis<3;++axis){ T delta_dis=1.-abs(iter_cell_location(axis)-node_location(axis))/dx; factor*=delta_dis;}
-                    interpolated_density+=factor*iter_density;}}
-                openvdb::Coord xyz(node_ijk(0),node_ijk(1),node_ijk(2));
-                accessor.setValue(xyz,interpolated_density);}}
-        string output_filename=output_directory+"/converted_data/"+std::to_string(current_frame)+".vdb";
-        mygrid->setName("density");
-        openvdb::io::File(output_filename).write({mygrid});
+        if(interpolated){
+            std::cout<<"using interpolated data"<<std::endl;
+		    openvdb::initialize();
+            openvdb::FloatGrid::Ptr mygrid = openvdb::FloatGrid::create(); openvdb::FloatGrid::Accessor accessor = mygrid->getAccessor();
+            mygrid->setTransform(openvdb::math::Transform::createLinearTransform(256./xm*0.1f));
+            std::cout<<"cell width: "<<mygrid->voxelSize()[0]<<std::endl;
+            for(int i=0;i<xm;++i) for(int j=0;j<ym;++j) for(int k=0;k<zm;++k){
+                int cell_id=Cell_ID(i,j,k); TV cell_location=voxels[cell_id].location; T cell_density=voxels[cell_id].density;
+                for(int ii=-1;ii<=1;ii+=2) for(int jj=-1;jj<=1;jj+=2) for(int kk=-1;kk<=1;kk+=2){
+                    T interpolated_density=0.; T_INDEX node_ijk({2*i+(ii+1)/2,2*j+(jj+1)/2,2*k+(kk+1)/2}); 
+                    int node_index=Node_ID(node_ijk(0),node_ijk(1),node_ijk(2)); assert(node_index!=-1);
+                    TV node_location({cell_location(0)+ii*quarter_dx,cell_location(1)+jj*quarter_dx,cell_location(2)+kk*quarter_dx});
+                    for(T_Range_Iterator iterator(T_INDEX(),T_INDEX({ii,jj,kk}));iterator.Valid();iterator.Next()){
+                        T_INDEX iter_cell_index=T_INDEX({i+1,j+1,k+1})+iterator.Index();   
+                        int iter_id=Cell_ID(iter_cell_index(0)-1,iter_cell_index(1)-1,iter_cell_index(2)-1);
+                        if(iter_id==-1) ;
+                        else{TV iter_cell_location=grid.Center(iter_cell_index);
+                        T iter_density=voxels[iter_id].density; T factor=1.;
+                        for(int axis=0;axis<3;++axis){ T delta_dis=1.-abs(iter_cell_location(axis)-node_location(axis))/dx; factor*=delta_dis;}
+                        interpolated_density+=factor*iter_density;}}
+                        openvdb::Coord xyz(node_ijk(0),node_ijk(1),node_ijk(2));
+                        accessor.setValue(xyz,interpolated_density*density_factor);}}
+            string output_filename=output_directory+"/converted_data/interpolated_"+std::to_string(current_frame)+"_factor_"+std::to_string(density_factor)+".vdb";
+            mygrid->setName("density");
+            openvdb::io::File(output_filename).write({mygrid});}
+        else{
+            std::cout<<"using cell data"<<std::endl;
+            openvdb::initialize();
+            openvdb::FloatGrid::Ptr mygrid = openvdb::FloatGrid::create(); openvdb::FloatGrid::Accessor accessor = mygrid->getAccessor();
+            mygrid->setTransform(openvdb::math::Transform::createLinearTransform(512./xm*0.1f));
+            std::cout<<"cell width: "<<mygrid->voxelSize()[0]<<std::endl;
+            for(int i=0;i<xm;++i) for(int j=0;j<ym;++j) for(int k=0;k<zm;++k){
+                int cell_id=Cell_ID(i,j,k); T cell_density=voxels[cell_id].density;
+                openvdb::Coord xyz(i,j,k);
+                accessor.setValue(xyz,cell_density*density_factor);}
+            string output_filename=output_directory+"/converted_data/"+std::to_string(current_frame)+"_factor_"+std::to_string(density_factor)+".vdb";
+            mygrid->setName("density");
+            openvdb::io::File(output_filename).write({mygrid});}
+
         delete input2;delete input1;
         if(input3!=nullptr) delete input3;
     }
@@ -163,17 +184,21 @@ class OpenVDB_Converter
     void Register_Options()
     {
         if(!parse_args) return;
+        parse_args->Add_Option_Argument("-inter","Use interpolation");
         parse_args->Add_String_Argument("-o","","output directory");
         parse_args->Add_Integer_Argument("-first_frame",0,"frame","first frame");
         parse_args->Add_Integer_Argument("-last_frame",0,"frame","last frame");
+        parse_args->Add_Double_Argument("-df",4.,"density factor");
     }
 
     void Parse_Options()
     {
         if(!parse_args) return;
+        interpolated=parse_args->Get_Option_Value("-inter");
         output_directory=parse_args->Get_String_Value("-o");
         first_frame=parse_args->Get_Integer_Value("-first_frame");
         last_frame=parse_args->Get_Integer_Value("-last_frame");
+        density_factor=parse_args->Get_Double_Value("-df");
     }
 
     void Parse(int argc,char* argv[])
