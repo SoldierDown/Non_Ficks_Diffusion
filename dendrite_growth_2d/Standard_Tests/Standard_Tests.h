@@ -31,7 +31,7 @@ class Standard_Tests: public DG_Example<T,d>
   public:
     using Base::output_directory; using Base::test_number;using Base::counts;using Base::levels;using Base::domain_walls;using Base::hierarchy;using Base::rasterizer;
     using Base::cfl;    using Base::density_sources; using Base::velocity_sources;    using Base::density_channel; using Base::T_channel;
-    using Base::omega;  using Base::FICKS; using Base::const_density_value;
+    using Base::FICKS; using Base::const_density_value;
     using Base::explicit_diffusion;
     /****************************
      * example explanation:
@@ -47,10 +47,10 @@ class Standard_Tests: public DG_Example<T,d>
     void Parse_Options() override
     {
         Base::Parse_Options();
-        output_directory=(explicit_diffusion?(FICKS?"Dendrite_Growth_F_":"Dendrite_Growth_NF_"):(FICKS?"Implicit_Dendrite_Growth_F_":"Implicit_Dendrite_Growth_NF_"))+std::to_string(d)+"d_"+std::to_string(omega)+"branches_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
+        output_directory=(explicit_diffusion?(FICKS?"Dendrite_Growth_F_":"Dendrite_Growth_NF_"):(FICKS?"Implicit_Dendrite_Growth_F_":"Implicit_Dendrite_Growth_NF_"))+std::to_string(d)+"d_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
         output_directory="QQQ";
         for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=false;
-        TV min_corner,max_corner=TV(6.);
+        TV min_corner,max_corner=TV(2.);
         hierarchy=new Hierarchy(counts,Range<T,d>(min_corner,max_corner),levels);
     }
 //######################################################################
@@ -83,9 +83,11 @@ class Standard_Tests: public DG_Example<T,d>
 //######################################################################
     void Initialize_Sources() override
     {
-        const T radius=.12;
-        const TV center=TV(3.);
-        Implicit_Object<T,d>* obj=new Sphere_Implicit_Object<T,d>(center,radius);
+        // const T radius=.12;
+        // const TV center=TV(3.);
+        // Implicit_Object<T,d>* obj=new Sphere_Implicit_Object<T,d>(center,radius);
+        const TV min_corner({.95,0.}); const TV max_corner({1.05,.015});
+        Implicit_Object<T,d>* obj=new Box_Implicit_Object<T,d>(min_corner,max_corner);
         density_sources.Append(obj);
     }
 //######################################################################

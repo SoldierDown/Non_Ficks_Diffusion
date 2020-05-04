@@ -42,17 +42,15 @@ class DG_Example: public Example<T,d>
     // for updating face_qs_channels
     T fc_1,tau_1,SR,K;
     // for updating face_qt_channels
-    T fc_2,tau_2,k;
+    T fc_2,tau_2;
     // for updating m_channel
     T m_alpha,gamma,Teq;
     // for updating epsilon_channel
-    int omega;
     T epsilon;
     T delta;
     int test_number;
     T const_time_step;
     T const_density_value;
-    T bv;
     T_INDEX counts;
     int levels,mg_levels,cg_iterations,cg_restart_iterations;
     T cfl,cg_tolerance;

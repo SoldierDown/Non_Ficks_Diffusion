@@ -28,11 +28,11 @@ class Sigma_Calculator
 
   public:
     Sigma_Calculator(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-                        Channel_Vector& v_channels,T Struct_type::* sigma_channel,const T delta)
-    {Run(allocator,blocks,v_channels,sigma_channel,delta);}
+                        Channel_Vector& dSdX_channels,T Struct_type::* sigma_channel,const T delta)
+    {Run(allocator,blocks,dSdX_channels,sigma_channel,delta);}
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-                Channel_Vector& v_channels,T Struct_type::* sigma_channel,const T delta) const
+                Channel_Vector& dSdX_channels,T Struct_type::* sigma_channel,const T delta) const
     {
         auto sigma_data=allocator.template Get_Array<Struct_type,T>(sigma_channel);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
@@ -40,10 +40,11 @@ class Sigma_Calculator
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
                 if(flags(offset)&Cell_Type_Interior)  {T a_value=(T)0.; T b_value=(T)0.; for(int axis=0;axis<d;++axis){ 
-                const T axis_cell_v_value=allocator.template Get_Const_Array<Struct_type,T>(v_channels(axis))(offset);
+                const T axis_cell_v_value=allocator.template Get_Const_Array<Struct_type,T>(dSdX_channels(axis))(offset);
                 a_value+=Fourth_Power(axis_cell_v_value); b_value+=Nova_Utilities::Sqr(axis_cell_v_value);}
-                if(b_value==(T)0.) sigma_data(offset)=(T)1.;
-                else sigma_data(offset)=(T)1.-delta*((T)1.-a_value/Nova_Utilities::Sqr(b_value));}
+                if(b_value<(T)1.e-10) sigma_data(offset)=(T)1.-delta;
+                else sigma_data(offset)=(T)1.-delta*((T)1.-a_value/Nova_Utilities::Sqr(b_value));
+                assert(sigma_data(offset)>(T)0.);}
 
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,sigma_calculator);

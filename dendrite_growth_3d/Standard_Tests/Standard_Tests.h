@@ -30,8 +30,8 @@ class Standard_Tests: public DG_Example<T,d>
 
   public:
     using Base::output_directory; using Base::test_number;using Base::counts;using Base::levels;using Base::domain_walls;using Base::hierarchy;using Base::rasterizer;
-    using Base::cfl;    using Base::density_sources; using Base::velocity_sources;    using Base::density_channel;
-    using Base::omega;  using Base::FICKS; using Base::const_density_value;
+    using Base::cfl;    using Base::density_sources; using Base::velocity_sources;    using Base::density_channel; using Base::T_channel;
+    using Base::FICKS; using Base::const_density_value;
     using Base::explicit_diffusion;
     /****************************
      * example explanation:
@@ -47,9 +47,10 @@ class Standard_Tests: public DG_Example<T,d>
     void Parse_Options() override
     {
         Base::Parse_Options();
-        output_directory=(explicit_diffusion?(FICKS?"Dendrite_Growth_F_":"Dendrite_Growth_NF_"):(FICKS?"Implicit_Dendrite_Growth_F_":"Implicit_Dendrite_Growth_NF_"))+std::to_string(d)+"d_"+std::to_string(omega)+"branches_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
-        for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=false;
-        TV min_corner,max_corner=TV(6);
+        output_directory=(explicit_diffusion?(FICKS?"Dendrite_Growth_F_":"Dendrite_Growth_NF_"):(FICKS?"Implicit_Dendrite_Growth_F_":"Implicit_Dendrite_Growth_NF_"))+std::to_string(d)+"d_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1))+"x"+std::to_string(counts(2));
+        for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=true;
+        TV min_corner,max_corner=TV(4.8);
+        max_corner(1)=(T)6.;
         hierarchy=new Hierarchy(counts,Range<T,d>(min_corner,max_corner),levels);
     }
 //######################################################################
@@ -66,7 +67,8 @@ class Standard_Tests: public DG_Example<T,d>
 
         for(int level=0;level<levels;++level){auto blocks=hierarchy->Blocks(level);
             auto block_size=hierarchy->Allocator(level).Block_Size();
-            auto data=hierarchy->Allocator(level).template Get_Array<Struct_type,T>(density_channel);
+            auto density_data=hierarchy->Allocator(level).template Get_Array<Struct_type,T>(density_channel);
+            auto T_data=hierarchy->Allocator(level).template Get_Array<Struct_type,T>(T_channel);
             auto flags=hierarchy->Allocator(level).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
 
             for(unsigned block=0;block<blocks.second;++block){uint64_t offset=blocks.first[block];
@@ -75,17 +77,19 @@ class Standard_Tests: public DG_Example<T,d>
 
                 for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                     const T_INDEX index=base_index+range_iterator.Index();
-                    if(flags(offset)&Cell_Type_Interior && density_sources(0)->Inside(hierarchy->Lattice(level).Center(index))) data(offset)=const_density_value;
+                    if(flags(offset)&Cell_Type_Interior && density_sources(0)->Inside(hierarchy->Lattice(level).Center(index))) 
+                    {density_data(offset)=const_density_value;}
+                    T_data(offset)=-.25;
                     range_iterator.Next();}}}
     }
 //######################################################################
     void Initialize_Sources() override
     {
-        // const T radius=0.12;
-        // const TV center=TV(3.);
+        // const T radius=0.04;
+        // const TV center=TV(1.);
         // Implicit_Object<T,d>* obj=new Sphere_Implicit_Object<T,d>(center,radius);
         // density_sources.Append(obj);
-        const TV min_corner=TV({2.88,0.,2.88}); const TV max_corner=TV({3.12,.15,3.12});
+        const TV min_corner=TV({2.34,0.,2.34}); const TV max_corner=TV({2.46,0.12,2.46});
         Implicit_Object<T,d>* obj=new Box_Implicit_Object<T,d>(min_corner,max_corner);
         density_sources.Append(obj);
     }
