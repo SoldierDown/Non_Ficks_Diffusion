@@ -66,9 +66,9 @@ class Compute_AvD0
                     const T dSdx2_plus_dSdy2=Nova_Utilities::Sqr(dSdx)+Nova_Utilities::Sqr(dSdy); 
                     const T dSdX_squared=dSdx2_plus_dSdy2+Nova_Utilities::Sqr(dSdz);
                     const T Av=Av_data(offset); const T Av_prime=-delta*eps_xy*omega*sin(omega*theta_data(offset));
-                    const T FP=-Av_prime*dSdy/dSdx2_plus_dSdy2;
+                    const T FP=Av_prime*dSdy/dSdx2_plus_dSdy2;
                     const T SP=(T)4.*eps_z*delta*dSdx*Nova_Utilities::Sqr(dSdz)/Nova_Utilities::Sqr(dSdX_squared);
-                    AvD0_data(offset)=dSdX_squared*Av*(FP+SP);}
+                    AvD0_data(offset)=-dSdX_squared*Av*(FP+SP);}
         };
 
         SPGrid_Computations::Run_Parallel_Blocks(blocks,compute_avd0);
@@ -129,9 +129,9 @@ class Compute_AvD1
                     const T dSdx2_plus_dSdy2=Nova_Utilities::Sqr(dSdx)+Nova_Utilities::Sqr(dSdy); 
                     const T dSdX_squared=dSdx2_plus_dSdy2+Nova_Utilities::Sqr(dSdz);
                     const T Av=Av_data(offset); const T Av_prime=-delta*eps_xy*omega*sin(omega*theta_data(offset));
-                    const T FP=Av_prime*dSdx/dSdx2_plus_dSdy2;
+                    const T FP=-Av_prime*dSdx/dSdx2_plus_dSdy2;
                     const T SP=(T)4.*eps_z*delta*dSdy*delta*Nova_Utilities::Sqr(dSdz)/Nova_Utilities::Sqr(dSdX_squared);
-                    AvD1_data(offset)=dSdX_squared*Av*(FP+SP);}
+                    AvD1_data(offset)=-dSdX_squared*Av*(FP+SP);}
                                  
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,compute_avd1);
@@ -191,7 +191,7 @@ class Compute_AvD2
                     const T dSdX_squared=dSdx2_plus_dSdy2+Nova_Utilities::Sqr(dSdz);
                     const T Av=Av_data(offset);
                     const T D2=-(T)4.*eps_z*delta*dSdz*dSdx2_plus_dSdy2/Nova_Utilities::Sqr(dSdX_squared);
-                    AvD2_data(offset)=dSdX_squared*Av*D2;}
+                    AvD2_data(offset)=-dSdX_squared*Av*D2;}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,compute_avd2);
     }

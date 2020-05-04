@@ -60,7 +60,7 @@ SF_Example()
 {
     random.Set_Seed(0);
     
-    zeta=TV(1.); epsilon_xyz=Vector<T,2>({.02,.2}); 
+    zeta=TV(1.); epsilon_xyz=Vector<T,2>({.2,.05}); 
 
     density_channel                     = &Struct_type::ch0;            // intermedia 
     density_backup_channel              = &Struct_type::ch1;            // S^n
@@ -200,8 +200,8 @@ Advect_Face_Qsc(const T dt)
     if(d==3) interpolated_face_velocity_channels(2)     = &Struct_type::ch24; 
     T Struct_type::* temp_channel                       = &Struct_type::ch25;  
     // Clear
-    {for(int v=0;v<d;++v) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),interpolated_face_velocity_channels(v));
-        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),temp_channel);} 
+    for(int v=0;v<d;++v) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),interpolated_face_velocity_channels(v));
+        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),temp_channel);
     Uniform_Grid_Advection_Helper<Struct_type,T,d>::Uniform_Grid_Advect_Face_Vector(*hierarchy,face_qsc_channels,face_velocity_channels,interpolated_face_velocity_channels,temp_channel,dt);
 }
 //######################################################################
@@ -284,7 +284,7 @@ Add_Novel_Divergence_Term_To_Density(const T dt)
     for(int axis=0;axis<d;++axis){
         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),tmp_channel);
         Axis_Finite_Differential_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),AvD_channels(axis),tmp_channel,one_over_2dx(axis),axis);
-        SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dt_over_tau_s,tmp_channel,density_channel,density_channel,Cell_Type_Interior);}
+        SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),zeta(axis)*dt_over_tau_s,tmp_channel,density_channel,density_channel,Cell_Type_Interior);}
 }
 //######################################################################
 // Add_Differential_Term_To_Density

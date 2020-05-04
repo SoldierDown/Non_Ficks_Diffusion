@@ -436,7 +436,7 @@ Project()
     const T b_norm=cg_system.Convergence_Norm(r_V);
     Log::cout<<"Norm: "<<b_norm<<std::endl;
     cg.restart_iterations=cg_restart_iterations;
-    const T tolerance=std::max(1e-4*b_norm,(T)1e-4);
+    const T tolerance=std::max((T)1e-4*b_norm,(T)1e-4);
     cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
 
     for(int level=0;level<levels;++level)

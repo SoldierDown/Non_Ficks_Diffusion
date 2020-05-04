@@ -30,7 +30,7 @@ class Standard_Tests: public SF_Example<T,d>
 
   public:
     using Base::output_directory; using Base::test_number;using Base::counts;using Base::levels;using Base::domain_walls;using Base::hierarchy;using Base::rasterizer;
-    using Base::cfl;    using Base::density_sources; using Base::velocity_sources;    using Base::density_channel;
+    using Base::cfl;    using Base::density_sources; using Base::velocity_sources;    using Base::density_channel; using Base::T_channel;
     using Base::omega;  using Base::FICKS; using Base::const_density_value;
     using Base::explicit_diffusion;
     /****************************
@@ -50,7 +50,7 @@ class Standard_Tests: public SF_Example<T,d>
         output_directory=(explicit_diffusion?(FICKS?"Snow_Flake_F_":"Snow_Flake_NF_"):(FICKS?"Implicit_Snow_Flake_F_":"Implicit_Snow_Flake_NF_"))+std::to_string(d)+"d_"+std::to_string(omega)+"branches_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
         output_directory="3Qt";
         for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=true;
-        TV min_corner,max_corner=TV(6);
+        TV min_corner,max_corner=TV(4);
         hierarchy=new Hierarchy(counts,Range<T,d>(min_corner,max_corner),levels);
     }
 //######################################################################
@@ -62,28 +62,27 @@ class Standard_Tests: public SF_Example<T,d>
     void Initialize_State() override
     {
         // clear density channel
-        for(int level=0;level<levels;++level)
-            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel);
+        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel);
 
-        for(int level=0;level<levels;++level){auto blocks=hierarchy->Blocks(level);
-            auto block_size=hierarchy->Allocator(level).Block_Size();
-            auto data=hierarchy->Allocator(level).template Get_Array<Struct_type,T>(density_channel);
-            auto flags=hierarchy->Allocator(level).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-
-            for(unsigned block=0;block<blocks.second;++block){uint64_t offset=blocks.first[block];
-                Range_Iterator<d> range_iterator(T_INDEX(),*reinterpret_cast<T_INDEX*>(&block_size)-1);
-                T_INDEX base_index(Flag_array_mask::LinearToCoord(offset));
-
-                for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-                    const T_INDEX index=base_index+range_iterator.Index();
-                    if(flags(offset)&Cell_Type_Interior && density_sources(0)->Inside(hierarchy->Lattice(level).Center(index))) data(offset)=const_density_value;
-                    range_iterator.Next();}}}
+        auto blocks=hierarchy->Blocks(0);
+        auto block_size=hierarchy->Allocator(0).Block_Size();
+        auto density_data=hierarchy->Allocator(0).template Get_Array<Struct_type,T>(density_channel);
+        auto T_data=hierarchy->Allocator(0).template Get_Array<Struct_type,T>(T_channel);
+        auto flags=hierarchy->Allocator(0).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
+        for(unsigned block=0;block<blocks.second;++block){uint64_t offset=blocks.first[block];
+            Range_Iterator<d> range_iterator(T_INDEX(),*reinterpret_cast<T_INDEX*>(&block_size)-1);
+            T_INDEX base_index(Flag_array_mask::LinearToCoord(offset));
+            for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
+                const T_INDEX index=base_index+range_iterator.Index();
+                if(flags(offset)&Cell_Type_Interior && density_sources(0)->Inside(hierarchy->Lattice(0).Center(index))) density_data(offset)=const_density_value;
+                T_data(offset)=(T)-.25;
+                range_iterator.Next();}}
     }
 //######################################################################
     void Initialize_Sources() override
     {
-        const T radius=0.03*8;
-        const TV center=TV(3.);
+        const T radius=.04;
+        const TV center=TV(2.);
         Implicit_Object<T,d>* obj=new Sphere_Implicit_Object<T,d>(center,radius);
         density_sources.Append(obj);
     }
