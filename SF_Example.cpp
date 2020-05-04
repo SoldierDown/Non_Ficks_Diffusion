@@ -60,7 +60,7 @@ SF_Example()
 {
     random.Set_Seed(0);
     
-    zeta=TV(1.); epsilon_xyz=Vector<T,2>({.02,.05}); 
+    zeta=TV(1.); epsilon_xyz=Vector<T,2>({.02,.2}); 
 
     density_channel                     = &Struct_type::ch0;            // intermedia 
     density_backup_channel              = &Struct_type::ch1;            // S^n
@@ -237,7 +237,6 @@ template<class T,int d> void SF_Example<T,d>::
 Explicitly_Update_Density(const T dt)
 {
     Add_Novel_Divergence_Term_To_Density(dt);
-    // Add_Differential_Term_To_Density(dt);
     Add_Poly_Term_To_Density(dt);
     // Add_Random_Term_To_Density(dt);
     Add_Laplacian_Term_To_Density(dt);
@@ -366,9 +365,7 @@ Add_Poly_Term_To_Density(const T dt)
 {
     T Struct_type::* m_channel                     = &Struct_type::ch22;
     SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),m_channel);
-    SF_M_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),m_channel,T_backup_channel,m_alpha,gamma,Teq);
-    Log::cout<<"Check m range: "<<std::endl;
-    // Range_Checker<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),m_channel,(T)0.,(T).5);
+    SF_M_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),m_channel,T_backup_channel,m_alpha,gamma);
     const T dt_over_tau_s=dt/tau_s;
     Density_Plus_Poly_Term_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,density_backup_channel,m_channel,dt_over_tau_s);
 }
@@ -473,8 +470,8 @@ Add_dSdt_Term_To_Temperature(const T dt)
     SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),temp_channel);
     // compute S^(n+1) - S^(n)
     SPGrid::Masked_Subtract<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,density_backup_channel,temp_channel,Cell_Type_Interior);
-    // add K*dS/dt to T
-    SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),K,temp_channel,T_channel,T_channel,Cell_Type_Interior);
+    // add dS to T
+    SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),(T)1.,temp_channel,T_channel,T_channel,Cell_Type_Interior);
 }
 //######################################################################
 // Add_Laplacian_Term_To_Temperature
@@ -483,10 +480,11 @@ template    <class T,int d> void SF_Example<T,d>::
 Add_Laplacian_Term_To_Temperature(const T dt)
 {
     T Struct_type::* lap_T_channel      = &Struct_type::ch22;
+    if(FICKS) fc_2=(T)1.;
     const T one_over_dx2=Nova_Utilities::Sqr(hierarchy->Lattice(0).one_over_dX(0)); 
     SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),lap_T_channel);
     Lap_Star_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),T_backup_channel,lap_T_channel,zeta,one_over_dx2);
-    SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),fc_2*k*dt,lap_T_channel,T_channel,T_channel,Cell_Type_Interior);
+    SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),fc_2*dt,lap_T_channel,T_channel,T_channel,Cell_Type_Interior);
 }
 //######################################################################
 // Add_Divergence_Term_To_Temperature
@@ -543,7 +541,7 @@ Add_Linear_Term_To_Face_Qtc(const T dt)
 template<class T,int d> void SF_Example<T,d>::
 Add_Gradient_Term_To_Face_Qtc(const T dt)
 {
-    const T coeff=-dt*k*((T)1.-fc_2)/tau_2; const TV one_over_dx=hierarchy->Lattice(0).one_over_dX;
+    const T coeff=-dt*((T)1.-fc_2)/tau_2; const TV one_over_dx=hierarchy->Lattice(0).one_over_dX;
     K_Gradient_T_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),
                                                 face_qtc_channels,T_backup_channel,coeff,one_over_dx);
 }
@@ -722,13 +720,10 @@ Register_Options()
     parse_args->Add_Double_Argument("-fc1",(T)0.,"Fc 1.");
     parse_args->Add_Double_Argument("-tau2",(T).0001,"tau 2.");
     parse_args->Add_Double_Argument("-fc2",(T)0.,"Fc 2.");
-    parse_args->Add_Double_Argument("-Teq",(T)1.,"Teq.");
     parse_args->Add_Double_Argument("-gamma",(T)10.,"gamma.");
     parse_args->Add_Double_Argument("-delta",(T).01,"delta.");
     parse_args->Add_Double_Argument("-zeta",(T).25,"Zeta.");
 
-    parse_args->Add_Double_Argument("-k",(T)1.,"k.");
-    parse_args->Add_Double_Argument("-K",(T)2.,"K.");
     parse_args->Add_Double_Argument("-ma",(T).9,"m_alpha.");
     parse_args->Add_Double_Argument("-SR",(T)0.,"SR.");
     parse_args->Add_Double_Argument("-bv",(T)1.,"background velocity");
@@ -767,10 +762,7 @@ Parse_Options()
     fc_2=parse_args->Get_Double_Value("-fc2");
     gamma=parse_args->Get_Double_Value("-gamma");
     delta=parse_args->Get_Double_Value("-delta");
-    k=parse_args->Get_Double_Value("-k");
-    K=parse_args->Get_Double_Value("-K");
     m_alpha=parse_args->Get_Double_Value("-ma");
-    Teq=parse_args->Get_Double_Value("-Teq");
     bv=parse_args->Get_Double_Value("-bv");
     if(d==3) zeta(2)=parse_args->Get_Double_Value("-zeta");
     omega=parse_args->Get_Integer_Value("-omega");
@@ -807,10 +799,6 @@ Write_Output_Files(const int frame) const
     File_Utilities::Write_To_Text_File(output_directory+"/"+std::to_string(frame)+"/levels",levels);
     hierarchy->Write_Hierarchy(output_directory,frame);
     hierarchy->template Write_Channel<T>(output_directory+"/"+std::to_string(frame)+"/spgrid_density",density_channel);
-    hierarchy->template Write_Channel<T>(output_directory+"/"+std::to_string(frame)+"/spgrid_u",face_velocity_channels(0));
-    hierarchy->template Write_Channel<T>(output_directory+"/"+std::to_string(frame)+"/spgrid_v",face_velocity_channels(1));
-    if(d==3) hierarchy->template Write_Channel<T>(output_directory+"/"+std::to_string(frame)+"/spgrid_w",face_velocity_channels(2));
-    Write_To_File_Helper<Struct_type,T,d>(*hierarchy,hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,output_directory+"/density_data/"+std::to_string(frame)+".txt");
 }
 //######################################################################
 // Read_Output_Files

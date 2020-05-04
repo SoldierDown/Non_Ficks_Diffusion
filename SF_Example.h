@@ -40,11 +40,11 @@ class SF_Example: public Example<T,d>
     // for updating density
     T tau_s;
     // for updating face_qs_channels
-    T fc_1,tau_1,SR,K;
+    T fc_1,tau_1,SR;
     // for updating face_qt_channels
-    T fc_2,tau_2,k;
+    T fc_2,tau_2;
     // for updating m_channel
-    T m_alpha,gamma,Teq;
+    T m_alpha,gamma;
     // for updating epsilon_channel
     int omega;
     T delta;

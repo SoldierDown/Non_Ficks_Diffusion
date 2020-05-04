@@ -25,11 +25,11 @@ class SF_M_Calculator
 
   public:
     SF_M_Calculator(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* m_channel,T Struct_type::* T_channel,
-                    const T m_alpha,const T gamma,const T Teq)
-    {Run(allocator,blocks,m_channel,T_channel,m_alpha,gamma,Teq);}
+                    const T m_alpha,const T gamma)
+    {Run(allocator,blocks,m_channel,T_channel,m_alpha,gamma);}
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* m_channel,T Struct_type::* T_channel,
-            const T m_alpha,const T gamma,const T Teq) const
+            const T m_alpha,const T gamma) const
     {
         auto m_data=allocator.template Get_Array<Struct_type,T>(m_channel); auto T_data=allocator.template Get_Const_Array<Struct_type,T>(T_channel);
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
@@ -37,7 +37,7 @@ class SF_M_Calculator
         {
             const T m_alpha_over_pi=m_alpha/pi;
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Cell_Type_Interior)  m_data(offset)=m_alpha_over_pi*atan(gamma*(Teq-T_data(offset)));
+                if(flags(offset)&Cell_Type_Interior)  m_data(offset)=-m_alpha_over_pi*atan(gamma*T_data(offset));
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,sf_m_calculator);
     }

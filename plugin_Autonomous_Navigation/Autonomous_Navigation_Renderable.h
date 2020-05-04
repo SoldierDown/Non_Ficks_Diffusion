@@ -103,7 +103,7 @@ class Autonomous_Navigation_Renderable: public Simulation_Renderable<T,d>
   public:
     Autonomous_Navigation_Renderable(ApplicationFactory& app,const std::string& directory_name,int max_frame)
         :Base(app,directory_name,max_frame),hierarchy(nullptr),elements_per_block(0),levels(0),draw_density(false),
-        draw_velocity(false),draw_voxels(true)
+        draw_velocity(false),draw_voxels(false)
     {
         std::istream *input=(d==3)?File_Utilities::Safe_Open_Input(directory_name+"/common/hierarchy.struct3d"):File_Utilities::Safe_Open_Input(directory_name+"/common/hierarchy.struct2d");
         Read_Write<int>::Read(*input,levels);
