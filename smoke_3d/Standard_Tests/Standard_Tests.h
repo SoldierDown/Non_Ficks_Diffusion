@@ -48,8 +48,8 @@ class Standard_Tests: public Smoke_Example<T,d>
     {
         Base::Parse_Options();
         output_directory=(explicit_diffusion?"Source_Smoke_":"Implicit_Source_Smoke_")+std::to_string(d)+"d_"+(FICKS?"F":"NF")+"_case_"+std::to_string(test_number)+"_diff_"+std::to_string(diff_coeff)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau)+"_bv_"+std::to_string(bv)+"_sr_"+std::to_string(source_rate)+"_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1))+"x"+std::to_string(counts(2));
-        for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=false;
-        // domain_walls(1)(0)=false; domain_walls(1)(1)=false;
+        for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=true;
+        domain_walls(1)(0)=false; domain_walls(1)(1)=false;
         TV min_corner,max_corner=TV(8.);
         // max_corner(1)=(T)8.;
         hierarchy=new Hierarchy(counts,Range<T,d>(min_corner,max_corner),levels);
@@ -103,7 +103,7 @@ class Standard_Tests: public Smoke_Example<T,d>
             TV density_min_corner=TV({(T)4.-cell_width,(T)2.-cell_width,(T)4.-cell_width}),density_max_corner=TV({(T)4.+cell_width,(T)2.+cell_width,(T)4.+cell_width});
             Implicit_Object<T,d>* density_obj=new Box_Implicit_Object<T,d>(density_min_corner,density_max_corner);
             density_sources.Append(density_obj);
-            TV velocity_min_corner=TV({(T)3.6,(T)0.,(T)3.6}),velocity_max_corner=TV({(T)4.4,(T)4.*cell_width,(T)4.4});
+            TV velocity_min_corner=TV({(T)3.8,(T)0.,(T)3.8}),velocity_max_corner=TV({(T)4.2,(T)2.*cell_width,(T)4.2});
             Implicit_Object<T,d>* velocity_obj=new Box_Implicit_Object<T,d>(velocity_min_corner,velocity_max_corner);
             velocity_sources.Append(velocity_obj);
         }break;

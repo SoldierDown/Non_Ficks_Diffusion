@@ -183,6 +183,9 @@ class OpenVDB_Converter
             std::cout<<"cell width: "<<mygrid->voxelSize()[0]<<std::endl;
             for(int i=0;i<xm;++i) for(int j=0;j<ym;++j) for(int k=0;k<zm;++k){
                 int cell_id=Cell_ID(i,j,k); T cell_density=voxels[cell_id].density;
+                // transform: 
+                cell_density=(clamp(cell_density,l,u)-l)/(u-l);
+                cell_density=pow(cell_density,gamma_l)*((T)1.-cell_density) +pow(cell_density,gamma_u)*cell_density;
                 openvdb::Coord xyz(i,j,k);
                 accessor.setValue(xyz,cell_density*density_factor);}
             string output_filename=output_directory+"/converted_data/"+std::to_string(current_frame)+"_factor_"+std::to_string(density_factor)+".vdb";

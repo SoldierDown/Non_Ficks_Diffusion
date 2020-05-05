@@ -178,7 +178,7 @@ Ficks_Diffusion(const T dt)
         // cg.print_residuals=true;
         // cg.print_diagnostics=true;
         cg.restart_iterations=cg_restart_iterations;
-        const T tolerance=std::max((T)1e-6*b_norm,(T)1e-6);
+        const T tolerance=std::max((T)1e-4*b_norm,(T)1e-4);
         cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
         for(int level=0;level<levels;++level) Clamp_Heler<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel);}
     else{
@@ -277,7 +277,7 @@ Non_Ficks_Diffusion(const T dt)
         cg.print_residuals=true;
         cg.print_diagnostics=true;
         cg.restart_iterations=cg_restart_iterations;
-        const T tolerance=std::max((T)1e-6*b_norm,(T)1e-6);
+        const T tolerance=std::max((T)1e-4*b_norm,(T)1e-4);
         cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
         for(int level=0;level<levels;++level) Density_Clamp_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel);
 
