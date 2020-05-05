@@ -85,7 +85,7 @@ class Standard_Tests: public Smoke_Example<T,d>
 //######################################################################
     void Initialize_Sources(const int test_number) override
     {
-        const T cell_width=(T)4./counts(0);
+        const T cell_width=(T)8./counts(0);
         switch (test_number)
         {
         // test case 1: density&velocity source near the bottom 
@@ -100,10 +100,10 @@ class Standard_Tests: public Smoke_Example<T,d>
             velocity_sources.Append(velocity_obj);}break;
         case 3:
         case 4:{
-            TV density_min_corner=TV({(T)2.-cell_width,(T)2.-cell_width,(T)2.-cell_width}),density_max_corner=TV({(T)2.+cell_width,(T)2.+cell_width,(T)2.+cell_width});
+            TV density_min_corner=TV({(T)4.-cell_width,(T)2.-cell_width,(T)4.-cell_width}),density_max_corner=TV({(T)4.+cell_width,(T)2.+cell_width,(T)4.+cell_width});
             Implicit_Object<T,d>* density_obj=new Box_Implicit_Object<T,d>(density_min_corner,density_max_corner);
             density_sources.Append(density_obj);
-            TV velocity_min_corner=TV({(T)1.8,(T)0.,(T)1.8}),velocity_max_corner=TV({(T)2.2,(T)2.*cell_width,(T)2.2});
+            TV velocity_min_corner=TV({(T)3.6,(T)0.,(T)3.6}),velocity_max_corner=TV({(T)4.4,(T)4.*cell_width,(T)4.4});
             Implicit_Object<T,d>* velocity_obj=new Box_Implicit_Object<T,d>(velocity_min_corner,velocity_max_corner);
             velocity_sources.Append(velocity_obj);
         }break;

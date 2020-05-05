@@ -22,6 +22,13 @@
 using namespace std;
 
 namespace Nova{
+template<class T>
+inline T clamp(T a, T lower, T upper)
+{   
+    if(a<lower) return lower;
+    else if(a>upper) return upper;
+    else return a;
+}
 template<class T,int d>
 class OpenVDB_Converter
 {
@@ -61,6 +68,7 @@ class OpenVDB_Converter
     unsigned elements_per_block;
     int selected_voxel_level,levels;
     int first_frame, last_frame;
+    int step;
     Index_type block_size;
     T density_factor;
     T Struct_type::* density_channel;
@@ -137,7 +145,7 @@ class OpenVDB_Converter
                     if(flag&(Cell_Type_Interior|Cell_Type_Dirichlet)){const int cell_id=Cell_ID(cell_ijk(0)-1,cell_ijk(1)-1,cell_ijk(2)-1);
                         TV cell_location=grid.Center(cell_ijk); voxels[cell_id]=Voxel(cell_location,density);}
                     range_iterator.Next();}}}
-
+        const T l=(T).04,u=(T)1.; const T gamma_l=(T)1.5,gamma_u=(T)3.;
         if(interpolated){
             std::cout<<"using interpolated data"<<std::endl;
 		    openvdb::initialize();
@@ -158,6 +166,10 @@ class OpenVDB_Converter
                         T iter_density=voxels[iter_id].density; T factor=1.;
                         for(int axis=0;axis<3;++axis){ T delta_dis=1.-abs(iter_cell_location(axis)-node_location(axis))/dx; factor*=delta_dis;}
                         interpolated_density+=factor*iter_density;}}
+                        // transform: 
+                        interpolated_density=(clamp(interpolated_density,l,u)-l)/(u-l);
+                        interpolated_density=pow(interpolated_density,gamma_l)*((T)1.-interpolated_density)
+                                                +pow(interpolated_density,gamma_u)*interpolated_density;
                         openvdb::Coord xyz(node_ijk(0),node_ijk(1),node_ijk(2));
                         accessor.setValue(xyz,interpolated_density*density_factor);}}
             string output_filename=output_directory+"/converted_data/interpolated_"+std::to_string(current_frame)+"_factor_"+std::to_string(density_factor)+".vdb";
@@ -186,8 +198,9 @@ class OpenVDB_Converter
         if(!parse_args) return;
         parse_args->Add_Option_Argument("-inter","Use interpolation");
         parse_args->Add_String_Argument("-o","","output directory");
-        parse_args->Add_Integer_Argument("-first_frame",0,"frame","first frame");
-        parse_args->Add_Integer_Argument("-last_frame",0,"frame","last frame");
+        parse_args->Add_Integer_Argument("-first_frame",0,"first frame");
+        parse_args->Add_Integer_Argument("-last_frame",0,"last frame");
+        parse_args->Add_Integer_Argument("-step",1,"step");
         parse_args->Add_Double_Argument("-df",4.,"density factor");
     }
 
@@ -198,7 +211,9 @@ class OpenVDB_Converter
         output_directory=parse_args->Get_String_Value("-o");
         first_frame=parse_args->Get_Integer_Value("-first_frame");
         last_frame=parse_args->Get_Integer_Value("-last_frame");
+        step=parse_args->Get_Integer_Value("-step");
         density_factor=parse_args->Get_Double_Value("-df");
+        
     }
 
     void Parse(int argc,char* argv[])

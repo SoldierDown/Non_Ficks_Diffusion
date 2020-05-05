@@ -20,8 +20,8 @@ int main(int argc,char** argv)
     boost::filesystem::path directory_path(converter.output_directory+"/converted_data");
     boost::filesystem::create_directory(directory_path);
     converter.Initialize();
-    std::cout<<"first: "<<converter.first_frame<<", last: "<<converter.last_frame<<std::endl;
-    for(int i=converter.first_frame;i<=converter.last_frame;++i)
+    std::cout<<"first: "<<converter.first_frame<<", last: "<<converter.last_frame<<", step: "<<converter.step<<std::endl;
+    for(int i=converter.first_frame;i<=converter.last_frame;i+=converter.step)
         converter.Convert_Frame(i);
     return 0;
 }
