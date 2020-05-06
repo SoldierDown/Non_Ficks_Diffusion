@@ -1277,7 +1277,8 @@ Register_Options()
 {
     Base::Register_Options();
 	parse_args->Add_Integer_Argument("-mg_levels",2,"Number of multigrid levels.");
-	parse_args->Add_Integer_Argument("-np",40000,"Number of particles.");
+	parse_args->Add_Integer_Argument("-n_s",40000,"Number of hydrogel particles.");
+	parse_args->Add_Integer_Argument("-n_f",400000,"Number of fluid particles.");
 	parse_args->Add_Integer_Argument("-cg_max_iterations",10000,"Maximum cg iterations");
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
@@ -1302,7 +1303,8 @@ Register_Options()
 {
     Base::Register_Options();
 	parse_args->Add_Integer_Argument("-mg_levels",2,"Number of multigrid levels.");
-	parse_args->Add_Integer_Argument("-np",40000,"Number of particles.");
+	parse_args->Add_Integer_Argument("-n_s",40000,"Number of hydrogel particles.");
+	parse_args->Add_Integer_Argument("-n_f",400000,"Number of fluid particles.");
 	parse_args->Add_Integer_Argument("-cg_max_iterations",10000,"Maximum cg iterations");
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
@@ -1341,7 +1343,8 @@ Parse_Options()
 {
     Base::Parse_Options();
 	mg_levels=parse_args->Get_Integer_Value("-mg_levels");
-	np=parse_args->Get_Integer_Value("-np");
+	n_solid=parse_args->Get_Integer_Value("-n_s");
+	n_fluid=parse_args->Get_Integer_Value("-n_f");
 	cg_max_iterations=parse_args->Get_Integer_Value("-cg_max_iterations");
     threads=parse_args->Get_Integer_Value("-threads");
     omp_set_num_threads(threads);
@@ -1368,7 +1371,8 @@ Parse_Options()
 {
     Base::Parse_Options();
 	mg_levels=parse_args->Get_Integer_Value("-mg_levels");
-	np=parse_args->Get_Integer_Value("-np");
+	n_solid=parse_args->Get_Integer_Value("-n_s");
+	n_fluid=parse_args->Get_Integer_Value("-n_f");
 	cg_max_iterations=parse_args->Get_Integer_Value("-cg_max_iterations");
     threads=parse_args->Get_Integer_Value("-threads");
     omp_set_num_threads(threads);
@@ -1417,8 +1421,6 @@ Write_Output_Files(const int frame) const
 
     File_Utilities::Create_Directory(output_directory+"/"+std::to_string(frame));
     File_Utilities::Write_To_Text_File(output_directory+"/"+std::to_string(frame)+"/frame_title",frame_title);
-
-    
 
     File_Utilities::Write_To_File(output_directory+"/"+std::to_string(frame)+"/particles",particles);
 

@@ -158,6 +158,7 @@ class MPM_Example<T,2>: public Example<T,2>
     T flip;
     T cfl;
     int levels,threads;
+    int n_fluid,n_solid;
     T_INDEX counts;
     Range<T,2> domain;
     Range<T,2> bbox;
@@ -184,7 +185,6 @@ class MPM_Example<T,2>: public Example<T,2>
     Range<T,2> fluid_source;
     Random_Numbers<T> random;
 
-    int np;
     int mg_levels;
     int cg_max_iterations;
     int cg_restart_iterations;
@@ -301,6 +301,7 @@ class MPM_Example<T,3>: public Example<T,3>
     T flip;
     T cfl;
     int levels,threads;
+    int n_fluid,n_solid;
     T_INDEX counts;
     Range<T,3> domain;
     Range<T,3> bbox;
@@ -327,7 +328,6 @@ class MPM_Example<T,3>: public Example<T,3>
     Range<T,3> fluid_source;
     Random_Numbers<T> random;
 
-    int np;
     int mg_levels;
     int cg_max_iterations;
     int cg_restart_iterations;

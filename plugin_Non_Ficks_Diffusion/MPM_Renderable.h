@@ -231,7 +231,7 @@ class MPM_Renderable: public Simulation_Renderable<T,d>
             shader->SetVector4f("slice_plane1",slicePlanes[1]);
             glBindVertexArray(VASO);
             glEnable(GL_PROGRAM_POINT_SIZE);
-            shader->SetVector3f("point_color",glm::vec3(.9,.9,.9));
+            shader->SetVector3f("point_color",glm::vec3(254./256.,110./256.,0.));
             glDrawArrays(GL_POINTS,0,solid_locations.size());
             glBindVertexArray(0);}
 
@@ -244,7 +244,7 @@ class MPM_Renderable: public Simulation_Renderable<T,d>
             shader->SetVector4f("slice_plane1",slicePlanes[1]);
             glBindVertexArray(VAFO);
             glEnable(GL_PROGRAM_POINT_SIZE);
-            shader->SetVector3f("point_color",glm::vec3(0.,0.,.9));
+            shader->SetVector3f("point_color",glm::vec3(153./256.,204./256.,255./256.));
             glDrawArrays(GL_POINTS,0,fluid_locations.size());
             glBindVertexArray(0);}
 
