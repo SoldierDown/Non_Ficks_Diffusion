@@ -180,7 +180,7 @@ Ficks_Diffusion(const T dt)
         cg.restart_iterations=cg_restart_iterations;
         const T tolerance=std::max((T)1e-4*b_norm,(T)1e-4);
         cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
-        for(int level=0;level<levels;++level) Clamp_Heler<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel);}
+        for(int level=0;level<levels;++level) Density_Clamp_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel);}
     else{
         T Struct_type::* lap_density_channel    = &Struct_type::ch8;
         for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),lap_density_channel);
@@ -206,7 +206,7 @@ Non_Ficks_Diffusion(const T dt)
         const T coeff5=-dt/tau;                             const T coeff6=-diff_coeff*dt*(1-Fc)/tau;
         T Struct_type::* div_qc_channel                     = &Struct_type::ch8;
         for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qc_channel);
-        // compute div(Qc) at time n
+        // compute div(Qc) at *
         Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qc_channels,div_qc_channel); 
 	    for(int level=0;level<levels;++level) Flip_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qc_channel);
         
@@ -243,6 +243,7 @@ Non_Ficks_Diffusion(const T dt)
     else{
         const T coeff1=dt*diff_coeff*(Fc*tau+dt)/(dt+tau);  const T coeff2=dt*tau/(dt+tau);                    
         const T coeff5=tau/(tau+dt);                        const T coeff6=-diff_coeff*dt*(1-Fc)/(tau+dt);        
+        if(!FICKS) assert(coeff6==(T)0.); if(tau==(T)0.) assert(coeff5==(T)0.);
         // compute div(Qc^n)
         T Struct_type::* div_qc_channel                 = &Struct_type::ch8;
         for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qc_channel);
@@ -523,10 +524,8 @@ Write_Output_Files(const int frame) const
     File_Utilities::Write_To_Text_File(output_directory+"/"+std::to_string(frame)+"/levels",levels);
     hierarchy->Write_Hierarchy(output_directory,frame);
     hierarchy->template Write_Channel<T>(output_directory+"/"+std::to_string(frame)+"/spgrid_density",density_channel);
-    // hierarchy->template Write_Channel<T>(output_directory+"/"+std::to_string(frame)+"/spgrid_u",face_velocity_channels(0));
-    // hierarchy->template Write_Channel<T>(output_directory+"/"+std::to_string(frame)+"/spgrid_v",face_velocity_channels(1));
-    // if(d==3) hierarchy->template Write_Channel<T>(output_directory+"/"+std::to_string(frame)+"/spgrid_w",face_velocity_channels(2));
-    // Write_To_File_Helper<Struct_type,T,d>(*hierarchy,hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,output_directory+"/density_data/"+std::to_string(frame)+".txt");
+    
+   
 }
 //######################################################################
 // Read_Output_Files

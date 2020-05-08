@@ -12,7 +12,7 @@
 #include "../Clear_Mask.h"
 #include "../Convergence_Norm_Helper.h"
 #include "../Copy_Channel.h"
-#include "../Grid_Hierarchy_Projection.h"
+#include "../Poisson_Solver/Grid_Hierarchy_Projection.h"
 #include "../Initialize_Mask.h"
 #include "../Mark_Boundary.h"
 #include "../Multigrid_Helper/Multigrid_Refinement.h"

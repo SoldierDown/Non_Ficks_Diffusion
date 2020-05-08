@@ -26,6 +26,7 @@ int main(int argc,char** argv)
     File_Utilities::Create_Directory(example->output_directory);
     File_Utilities::Create_Directory(example->output_directory+"/common");
     File_Utilities::Create_Directory(example->output_directory+"/density_data");
+    File_Utilities::Create_Directory(example->output_directory+"/converted_data");
     Log::Instance()->Copy_Log_To_File(example->output_directory+"/common/log.txt",false);
 
     Smoke_Driver<T,d> driver(*example);
