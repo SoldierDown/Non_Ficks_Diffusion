@@ -31,7 +31,7 @@ class DG_Example: public Example<T,d>
 
   public:
     using Base::frame_title;using Base::output_directory;using Base::parse_args;using Base::first_frame;
-
+    using Base::output;
     Random_Numbers<T> random;
     bool uvf;
     bool FICKS;
@@ -40,12 +40,13 @@ class DG_Example: public Example<T,d>
     // for updating density
     T tau_s;
     // for updating face_qs_channels
-    T fc_1,tau_1,SR,K;
+    T fc_1,tau_1,SR;
     // for updating face_qt_channels
     T fc_2,tau_2;
     // for updating m_channel
-    T m_alpha,gamma,Teq;
+    T m_alpha,gamma;
     // for updating epsilon_channel
+    T K;
     T epsilon;
     T delta;
     int test_number;
@@ -140,6 +141,7 @@ class DG_Example: public Example<T,d>
     void Register_Options() override;
     void Parse_Options() override;
     void Read_Output_Files(const int frame);
+    void Log_Parameters() const override;
     void Write_Output_Files(const int frame) const override;
     void Wrtie_To_File(const int frame);
 //######################################################################

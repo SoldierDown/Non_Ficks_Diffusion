@@ -34,21 +34,10 @@ Initialize()
 template<class T,int d> void DG_Driver<T,d>::
 Advance_One_Time_Step_Explicit_Part(const T dt,const T time)
 {
-    // scalar advance
-    // example.Add_Source(dt);
-    // example.Advect_Scalar_Field(dt);
-    // if(!example.FICKS) example.Advect_Face_Vector_Field(dt);
-
-    if(example.FICKS){Log::cout<<"Fick's"<<std::endl;
-    example.Update_Density(dt); example.Update_Temperature(dt);}
-    else{ Log::cout<<"Non-Fick's"<<std::endl;
-    example.Update_Density(dt);example.Update_Face_Qsc(dt);
+    if(example.FICKS){example.Update_Density(dt); example.Update_Temperature(dt);}
+    else{example.Update_Density(dt);example.Update_Face_Qsc(dt);
     example.Update_Temperature(dt);example.Update_Face_Qtc(dt);}
-    // example.Modify_Density_With_Sources();
     example.Backup();
-
-    // convect
-    // example.Advect_Face_Velocities(dt);
 }
 //######################################################################
 // Advance_One_Time_Step_Implicit_Part

@@ -30,7 +30,7 @@ class Standard_Tests: public DG_Example<T,d>
 
   public:
     using Base::output_directory; using Base::test_number;using Base::counts;using Base::levels;using Base::domain_walls;using Base::hierarchy;using Base::rasterizer;
-    using Base::cfl;    using Base::density_sources; using Base::velocity_sources;    using Base::density_channel; using Base::T_channel;
+    using Base::cfl;    using Base::density_sources; using Base::velocity_sources;    using Base::density_channel; using Base::T_channel; using Base::K;
     using Base::FICKS; using Base::const_density_value;
     using Base::explicit_diffusion;
     /****************************
@@ -49,8 +49,8 @@ class Standard_Tests: public DG_Example<T,d>
         Base::Parse_Options();
         output_directory=(explicit_diffusion?(FICKS?"Dendrite_Growth_F_":"Dendrite_Growth_NF_"):(FICKS?"Implicit_Dendrite_Growth_F_":"Implicit_Dendrite_Growth_NF_"))+std::to_string(d)+"d_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1))+"x"+std::to_string(counts(2));
         for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=true;
-        TV min_corner,max_corner=TV(4.8);
-        max_corner(1)=(T)6.;
+        TV min_corner,max_corner=TV(.03*counts(0));
+        max_corner(1)=(T)0.03*counts(1);
         hierarchy=new Hierarchy(counts,Range<T,d>(min_corner,max_corner),levels);
     }
 //######################################################################
@@ -79,17 +79,18 @@ class Standard_Tests: public DG_Example<T,d>
                     const T_INDEX index=base_index+range_iterator.Index();
                     if(flags(offset)&Cell_Type_Interior && density_sources(0)->Inside(hierarchy->Lattice(level).Center(index))) 
                     {density_data(offset)=const_density_value;}
-                    T_data(offset)=-.25;
+                    T_data(offset)=-(T)1./K;
                     range_iterator.Next();}}}
     }
 //######################################################################
     void Initialize_Sources() override
     {
-        // const T radius=0.04;
-        // const TV center=TV(1.);
-        // Implicit_Object<T,d>* obj=new Sphere_Implicit_Object<T,d>(center,radius);
+        const T radius=(T).03;
+        // const TV center=TV({(T).5*radius*counts(0),(T)0.,(T).5*radius*counts(2)});
+        // Implicit_Object<T,d>* obj=new Sphere_Implicit_Object<T,d>(center,(T)2*radius);
         // density_sources.Append(obj);
-        const TV min_corner=TV({2.34,0.,2.34}); const TV max_corner=TV({2.46,0.12,2.46});
+        const TV min_corner=TV({(T).5*radius*counts(0)-radius,(T)0.,(T).5*radius*counts(2)-radius}); 
+        const TV max_corner=TV({(T).5*radius*counts(0)+radius,(T)2.*radius,(T).5*radius*counts(2)+radius});
         Implicit_Object<T,d>* obj=new Box_Implicit_Object<T,d>(min_corner,max_corner);
         density_sources.Append(obj);
     }

@@ -31,7 +31,7 @@ class Standard_Tests: public DG_Example<T,d>
   public:
     using Base::output_directory; using Base::test_number;using Base::counts;using Base::levels;using Base::domain_walls;using Base::hierarchy;using Base::rasterizer;
     using Base::cfl;    using Base::density_sources; using Base::velocity_sources;    using Base::density_channel; using Base::T_channel;
-    using Base::FICKS; using Base::const_density_value;
+    using Base::FICKS; using Base::const_density_value; using Base::K;
     using Base::explicit_diffusion;
     /****************************
      * example explanation:

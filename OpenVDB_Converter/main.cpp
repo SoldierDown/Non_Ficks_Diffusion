@@ -19,8 +19,9 @@ int main(int argc,char** argv)
     converter.Parse(argc,argv);
     boost::filesystem::path directory_path(converter.output_directory+"/converted_data");
     boost::filesystem::create_directory(directory_path);
+    Log::Instance()->Copy_Log_To_File(converter.output_directory+"/converted_data/parameters.txt",false);
     converter.Initialize();
-    std::cout<<"first: "<<converter.first_frame<<", last: "<<converter.last_frame<<", step: "<<converter.step<<std::endl;
+    Log::cout<<"first: "<<converter.first_frame<<", last: "<<converter.last_frame<<", step: "<<converter.step<<std::endl;
     for(int i=converter.first_frame;i<=converter.last_frame;i+=converter.step)
         converter.Convert_Frame(i);
     return 0;

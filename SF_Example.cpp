@@ -20,6 +20,7 @@
 #include "Source_Adder.h"
 #include "Initialize_Dirichlet_Cells.h"
 #include "Poisson_Solver/Multigrid_Data.h"
+#include "SF_Av_Squared_Grad_Star_S_Helper.h"
 #include "SF_Example.h"
 #include "Clamp_Helper.h"
 #include "Lap_Calculator.h"
@@ -39,7 +40,6 @@
 #include "Axis_Finite_Differential_Helper.h"
 #include "Psi_Evaluation_Helper.h"
 #include "Epsilon_Epsilon_Prime_dSdX_Helper.h"
-#include "SF_Av_Squared_Grad_Star_S_Helper.h"
 #include "Add_Constant.h"
 #include "K_Gradient_T_Helper.h"
 #include "Add_Random_Term.h"
@@ -60,33 +60,33 @@ SF_Example()
 {
     random.Set_Seed(0);
     
-    zeta=TV(1.); epsilon_xyz=Vector<T,2>({.2,.05}); 
+    zeta=TV(1.); epsilon_xyz=Vector<T,2>({.01,.01}); 
 
-    density_channel                     = &Struct_type::ch0;            // intermedia 
-    density_backup_channel              = &Struct_type::ch1;            // S^n
-    T_channel                           = &Struct_type::ch2;
-    T_backup_channel                    = &Struct_type::ch3;
+    density_channel                         = &Struct_type::ch0;            // intermedia 
+    density_backup_channel                  = &Struct_type::ch1;            // S^n
+    T_channel                               = &Struct_type::ch2;
+    T_backup_channel                        = &Struct_type::ch3;
 
-    face_qsc_channels(0)                 = &Struct_type::ch4;
-    face_qsc_channels(1)                 = &Struct_type::ch5;
-    if(d==3) face_qsc_channels(2)        = &Struct_type::ch6;
-    face_qsc_backup_channels(0)          = &Struct_type::ch7;
-    face_qsc_backup_channels(1)          = &Struct_type::ch8;
-    if(d==3) face_qsc_backup_channels(2) = &Struct_type::ch9;
-    
-    face_qtc_channels(0)                 = &Struct_type::ch10;
-    face_qtc_channels(1)                 = &Struct_type::ch11;
-    if(d==3) face_qtc_channels(2)        = &Struct_type::ch12;
-    face_qtc_backup_channels(0)          = &Struct_type::ch13;
-    face_qtc_backup_channels(1)          = &Struct_type::ch14;
-    if(d==3) face_qtc_backup_channels(2) = &Struct_type::ch15;
-    
-    face_velocity_channels(0)           = &Struct_type::ch16;
-    face_velocity_channels(1)           = &Struct_type::ch17;
-    if(d==3) face_velocity_channels(2)  = &Struct_type::ch18;
-    Av_channel                          = &Struct_type::ch19;
-    theta_channel                       = &Struct_type::ch20;
-    beta_channel                        = &Struct_type::ch21;
+    face_qsc_channels(0)                    = &Struct_type::ch4;
+    face_qsc_channels(1)                    = &Struct_type::ch5;
+    if(d==3) face_qsc_channels(2)           = &Struct_type::ch6;
+    face_qsc_backup_channels(0)             = &Struct_type::ch7;
+    face_qsc_backup_channels(1)             = &Struct_type::ch8;
+    if(d==3) face_qsc_backup_channels(2)    = &Struct_type::ch9;
+
+    face_qtc_channels(0)                    = &Struct_type::ch10;
+    face_qtc_channels(1)                    = &Struct_type::ch11;
+    if(d==3) face_qtc_channels(2)           = &Struct_type::ch12;
+    face_qtc_backup_channels(0)             = &Struct_type::ch13;
+    face_qtc_backup_channels(1)             = &Struct_type::ch14;
+    if(d==3) face_qtc_backup_channels(2)    = &Struct_type::ch15;
+
+    face_velocity_channels(0)               = &Struct_type::ch16;
+    face_velocity_channels(1)               = &Struct_type::ch17;
+    if(d==3) face_velocity_channels(2)      = &Struct_type::ch18;
+    Av_channel                              = &Struct_type::ch19;
+    theta_channel                           = &Struct_type::ch20;
+    beta_channel                            = &Struct_type::ch21;
 }
 //######################################################################
 // Initialize
@@ -238,7 +238,7 @@ Explicitly_Update_Density(const T dt)
 {
     Add_Novel_Divergence_Term_To_Density(dt);
     Add_Poly_Term_To_Density(dt);
-    // Add_Random_Term_To_Density(dt);
+    Add_Random_Term_To_Density(dt);
     Add_Laplacian_Term_To_Density(dt);
     if(!FICKS) Add_Divergence_Term_To_Density(dt);
 }
@@ -365,7 +365,7 @@ Add_Poly_Term_To_Density(const T dt)
 {
     T Struct_type::* m_channel                     = &Struct_type::ch22;
     SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),m_channel);
-    SF_M_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),m_channel,T_backup_channel,m_alpha,gamma);
+    SF_M_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),m_channel,T_backup_channel,m_alpha,K*gamma);
     const T dt_over_tau_s=dt/tau_s;
     Density_Plus_Poly_Term_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,density_backup_channel,m_channel,dt_over_tau_s);
 }
@@ -375,7 +375,7 @@ Add_Poly_Term_To_Density(const T dt)
 template<class T,int d> void SF_Example<T,d>::
 Add_Random_Term_To_Density(const T dt)
 {
-    const T alpha_dt_over_tau_s=(T).01*dt/tau_s;
+    const T alpha_dt_over_tau_s=(T).05;
     const T random_value=random.Get_Uniform_Number(0,1);
     Add_Random_Term<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,density_backup_channel,alpha_dt_over_tau_s,random_value);
 }
@@ -421,9 +421,8 @@ Add_Linear_Term_To_Face_Qsc(const T dt)
 template<class T,int d> void SF_Example<T,d>::
 Add_Gradient_Term_To_Face_Qsc(const T dt)
 {
-    // const T minus_dt_over_tau_1=-dt/tau_1; const TV one_over_dx=hierarchy->Lattice(0).one_over_dX;
-    // SF_Epsilon_Squared_Grad_Star_S_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),
-    //                                                 face_qsc_channels,Av_channel,density_backup_channel,(1-fc_1)*minus_dt_over_tau_1,one_over_dx,zeta);
+    const T minus_dt_over_tau_1=-dt/tau_1; const TV one_over_dx=hierarchy->Lattice(0).one_over_dX;
+    SF_Av_Squared_Grad_Star_S_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),face_qsc_channels,Av_channel,density_backup_channel,(1-fc_1)*minus_dt_over_tau_1,zeta,one_over_dx);
 }
 //######################################################################
 // Implicitly_Update_Face_Qsc
@@ -638,11 +637,11 @@ Backup_Qtc()
 //######################################################################
 // Initialize_Velocity_Field
 //######################################################################
-// template<class T,int d> void SF_Example<T,d>::
-// Initialize_Velocity_Field()
-// {
-//     Uniform_Velocity_Field_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(0),face_velocity_channels,bv,0);
-// }
+template<class T,int d> void SF_Example<T,d>::
+Initialize_Velocity_Field()
+{
+    Uniform_Velocity_Field_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(0),face_velocity_channels,bv,0);
+}
 //######################################################################
 // Project
 //######################################################################
@@ -705,6 +704,28 @@ Backup_Qtc()
 //         Apply_Pressure<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(0),face_velocity_channels,pressure_channel,0);
 // }
 //######################################################################
+// Log_Parameters
+//######################################################################
+template<class T,int d> void SF_Example<T,d>::
+Log_Parameters() const
+{
+    Base::Log_Parameters();
+    *output<<"omega="<<omega<<std::endl;
+    *output<<"tau_s="<<tau_s<<std::endl;
+    *output<<"tau_1="<<tau_1<<std::endl;
+    *output<<"fc_1="<<fc_1<<std::endl;
+    *output<<"tau_2="<<tau_2<<std::endl;
+    *output<<"fc_2="<<fc_2<<std::endl;
+    *output<<"gamma="<<gamma<<std::endl;
+    *output<<"K="<<K<<std::endl;
+    *output<<"delta="<<delta<<std::endl;
+    *output<<"zeta="<<zeta<<std::endl;
+    *output<<"epsilon="<<epsilon_xyz<<std::endl;
+    *output<<"m_alpha="<<m_alpha<<std::endl;
+    *output<<"SR="<<SR<<std::endl;
+    *output<<"dt="<<const_time_step<<std::endl;
+}
+//######################################################################
 // Register_Options
 //######################################################################
 template<class T,int d> void SF_Example<T,d>::
@@ -721,6 +742,7 @@ Register_Options()
     parse_args->Add_Double_Argument("-tau2",(T).0001,"tau 2.");
     parse_args->Add_Double_Argument("-fc2",(T)0.,"Fc 2.");
     parse_args->Add_Double_Argument("-gamma",(T)10.,"gamma.");
+    parse_args->Add_Double_Argument("-K",(T)4.,"K");
     parse_args->Add_Double_Argument("-delta",(T).01,"delta.");
     parse_args->Add_Double_Argument("-zeta",(T).25,"Zeta.");
 
@@ -733,6 +755,8 @@ Register_Options()
 
     parse_args->Add_Double_Argument("-cfl",(T).5,"CFL number.");
     parse_args->Add_Double_Argument("-dt",(T)1.e-5,"Constant time step.");
+    parse_args->Add_Double_Argument("-eps_xy",(T).01,"epsilon_xy.");
+    parse_args->Add_Double_Argument("-eps_z",(T).01,"epsilon_z.");
     parse_args->Add_Integer_Argument("-test_number",1,"Test number.");
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
     parse_args->Add_Integer_Argument("-mg_levels",1,"Number of levels in the Multigrid hierarchy.");
@@ -761,9 +785,12 @@ Parse_Options()
     tau_2=parse_args->Get_Double_Value("-tau2");
     fc_2=parse_args->Get_Double_Value("-fc2");
     gamma=parse_args->Get_Double_Value("-gamma");
+    K=parse_args->Get_Double_Value("-K");
     delta=parse_args->Get_Double_Value("-delta");
     m_alpha=parse_args->Get_Double_Value("-ma");
     bv=parse_args->Get_Double_Value("-bv");
+    epsilon_xyz(0)=parse_args->Get_Double_Value("-eps_xy");
+    epsilon_xyz(1)=parse_args->Get_Double_Value("-eps_z");
     if(d==3) zeta(2)=parse_args->Get_Double_Value("-zeta");
     omega=parse_args->Get_Integer_Value("-omega");
     FICKS=parse_args->Get_Option_Value("-ficks");

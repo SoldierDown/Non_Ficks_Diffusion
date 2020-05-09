@@ -7,6 +7,10 @@
 #include <nova/Tools/Grids/Grid_Iterator_Face.h>
 #include <nova/Tools/Krylov_Solvers/Conjugate_Gradient.h>
 #include <nova/Tools/Utilities/File_Utilities.h>
+#include "Ficks_Solver/Ficks_CG_System.h"
+#include "Ficks_RHS_Helper.h"
+#include "DG_Ficks_T_RHS_Helper.h"
+#include "Non_Ficks_Solver/Non_Ficks_CG_System.h"
 #include "Apply_Pressure.h"
 #include "Boundary_Value_Initializer.h"
 #include "Uniform_Velocity_Field_Initializer.h"
@@ -63,7 +67,6 @@ DG_Example()
     SR=(T)0.;
     // for updating face_qtc_channels
     // for updating m_channel
-    gamma=(T)10.; Teq=(T)1.;
     // for updating epsilon_channel
 
     density_channel                     = &Struct_type::ch0;            // intermedia 
@@ -237,7 +240,7 @@ template<class T,int d> void DG_Example<T,d>::
 Explicitly_Update_Density(const T dt)
 {
     Add_Poly_Term_To_Density(dt);
-    // Add_Random_Term_To_Density(dt);
+    Add_Random_Term_To_Density(dt);
     Add_Laplacian_Term_To_Density(dt);
     if(!FICKS) Add_Divergence_Term_To_Density(dt);
 }
@@ -255,35 +258,6 @@ Add_Laplacian_Term_To_Density(const T dt)
     Lap_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_backup_channel,laplacian_channel,one_over_dx2);
     SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),fc_1*Nova_Utilities::Sqr(epsilon)*dt_over_tau_s,laplacian_channel,
                                             density_channel,density_channel,Cell_Type_Interior);
-    
-    // using Hierarchy_Projection                          = Grid_Hierarchy_Projection<Struct_type,T,d>;
-    // using Flags_type                                    = typename Struct_type::Flags_type;
-    // using T_Range_Iterator                              = Range_Iterator<d,T_INDEX>;
-
-    // if(FICKS) fc_1=(T)1.;
-    // const T one_over_dx2=Nova_Utilities::Sqr(hierarchy->Lattice(0).one_over_dX(0)); const T dt_over_tau_s=dt/tau_s;
-
-    // auto blocks=hierarchy->Blocks(0);
-    // auto block_size=hierarchy->Allocator(0).Block_Size();
-    // auto density_backup_data=hierarchy->Allocator(0).template Get_Const_Array<Struct_type,T>(density_backup_channel);
-    // auto density_data=hierarchy->Allocator(0).template Get_Array<Struct_type,T>(density_channel);
-    // auto flags=hierarchy->Allocator(0).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-    
-    // for(unsigned block=0;block<blocks.second;++block){
-    //     uint64_t offset=blocks.first[block];
-    //     Range_Iterator<d> range_iterator(T_INDEX(),*reinterpret_cast<T_INDEX*>(&block_size)-1);
-    //     T_INDEX base_index(Flag_array_mask::LinearToCoord(offset));
-    //     for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-    //         if(hierarchy->template Set<unsigned>(0,&Struct_type::flags).Is_Set(offset,Cell_Type_Interior)){
-    //             const T_INDEX index=base_index+range_iterator.Index(); T laplacian=(T)0.;
-    //             for(T_Range_Iterator iterator(T_INDEX(-1),T_INDEX(1));iterator.Valid();iterator.Next()){
-    //                 if(iterator.Index()==T_INDEX()) ; //skip itself
-    //                 else{T_INDEX neighbor_index=index+iterator.Index(); uint64_t neighbor_offset(Flag_array_mask::Linear_Offset(neighbor_index._data));
-    //                     if((hierarchy->template Set<unsigned>(0,&Struct_type::flags).Is_Set(neighbor_offset,Cell_Type_Interior))
-    //                         ||(hierarchy->template Set<unsigned>(0,&Struct_type::flags).Is_Set(neighbor_offset,Cell_Type_Dirichlet))){
-    //                         laplacian+=density_backup_data(neighbor_offset)-density_backup_data(offset);}}}
-    //                         laplacian*=one_third*one_over_dx2*fc_1*Nova_Utilities::Sqr(epsilon)*dt_over_tau_s;
-    //                         density_data(offset)+=laplacian;} range_iterator.Next();}}
 }
 //######################################################################
 // Add_Divergence_Term_To_Density
@@ -326,7 +300,7 @@ Add_Poly_Term_To_Density(const T dt)
     T Struct_type::* m_channel                      = &Struct_type::ch23;
     const T dt_over_tau_s=dt/tau_s;
     SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),m_channel);
-    DG_M_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),m_channel,sigma_channel,T_backup_channel,m_alpha,gamma,Teq);
+    DG_M_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),m_channel,sigma_channel,T_backup_channel,m_alpha,K*gamma);
     Range_Checker<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),m_channel,(T)-.5,(T).5);
     Density_Plus_Poly_Term_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,density_backup_channel,m_channel,dt_over_tau_s);    
 }
@@ -336,7 +310,7 @@ Add_Poly_Term_To_Density(const T dt)
 template<class T,int d> void DG_Example<T,d>::
 Add_Random_Term_To_Density(const T dt)
 {
-    const T random_factor=(T).2;
+    const T random_factor=(T).05*dt;
     const T random_value=random.Get_Uniform_Number(0,1);
     Add_Random_Term<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,density_backup_channel,random_factor,random_value);
 }
@@ -346,6 +320,43 @@ Add_Random_Term_To_Density(const T dt)
 template<class T,int d> void DG_Example<T,d>::
 Implicitly_Update_Density(const T dt)
 {
+    Log::cout<<"Updating density: Fick's"<<std::endl;
+    using Multigrid_struct_type 	                = Multigrid_Data<T>;
+    Add_Poly_Term_To_Density(dt);
+    Add_Random_Term_To_Density(dt);
+    // so far S^n->S*
+	const Grid<T,d>& grid=hierarchy->Lattice(0);
+    const T eps2_dt_over_taus=Nova_Utilities::Sqr(epsilon)*dt/tau_s;
+	Ficks_CG_System<Struct_type,Multigrid_struct_type,T,d> cg_system(*hierarchy,mg_levels,eps2_dt_over_taus,3,1,200);
+    T Struct_type::* q_channel              = &Struct_type::ch19;
+    T Struct_type::* r_channel              = &Struct_type::ch20;
+    T Struct_type::* s_channel              = &Struct_type::ch21;
+    T Struct_type::* k_channel              = &Struct_type::ch22;
+    T Struct_type::* z_channel              = &Struct_type::ch22;
+    T Struct_type::* b_channel              = &Struct_type::ch24;
+    
+    // clear all channels
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),q_channel);
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),r_channel);
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),s_channel);
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),z_channel);
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),b_channel);
+
+    const T eps2_dt_over_tau_s_dx2=Nova_Utilities::Sqr(epsilon*grid.one_over_dX(0))*dt/tau_s; 
+	Ficks_RHS_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,b_channel,eps2_dt_over_tau_s_dx2);
+	CG_Vector<Struct_type,T,d> x_V(*hierarchy,density_channel),b_V(*hierarchy,b_channel),q_V(*hierarchy,q_channel),
+                                s_V(*hierarchy,s_channel),r_V(*hierarchy,r_channel),k_V(*hierarchy,k_channel),z_V(*hierarchy,z_channel);   
+	Conjugate_Gradient<T> cg;
+    cg_system.Multiply(x_V,r_V);
+    r_V-=b_V;
+    const T b_norm=cg_system.Convergence_Norm(r_V);
+    Log::cout<<"Norm: "<<b_norm<<std::endl;
+    // cg.print_residuals=true;
+    // cg.print_diagnostics=true;
+    cg.restart_iterations=cg_restart_iterations;
+    const T tolerance=std::max((T)1e-4*b_norm,(T)1e-4);
+    cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
+    Clamp_Heler<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel);
 }
 //######################################################################
 // Update_Face_Qsc
@@ -431,7 +442,7 @@ Add_dSdt_Term_To_Temperature(const T dt)
     SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dS_channel);
     // compute S^(n+1) - S^(n)
     SPGrid::Masked_Subtract<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,density_backup_channel,dS_channel,Cell_Type_Interior);
-    // add K*dS to T
+    // add dS to T
     SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),(T)1.,dS_channel,T_channel,T_channel,Cell_Type_Interior);
 }
 //######################################################################
@@ -446,35 +457,6 @@ Add_Laplacian_Term_To_Temperature(const T dt)
     SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),lap_T_channel);
     Lap_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),T_backup_channel,lap_T_channel,one_over_dx2);
     SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),fc_2*dt,lap_T_channel,T_channel,T_channel,Cell_Type_Interior);
-
-    // using Hierarchy_Projection                          = Grid_Hierarchy_Projection<Struct_type,T,d>;
-    // using Flags_type                                    = typename Struct_type::Flags_type;
-    // using T_Range_Iterator                              = Range_Iterator<d,T_INDEX>;
-
-    // if(FICKS) fc_2=(T)1.;
-    // const T one_over_dx2=Nova_Utilities::Sqr(hierarchy->Lattice(0).one_over_dX(0)); const T dt_over_tau_s=dt/tau_s;
-
-    // auto blocks=hierarchy->Blocks(0);
-    // auto block_size=hierarchy->Allocator(0).Block_Size();
-    // auto T_backup_data=hierarchy->Allocator(0).template Get_Const_Array<Struct_type,T>(T_backup_channel);
-    // auto T_data=hierarchy->Allocator(0).template Get_Array<Struct_type,T>(T_channel);
-    // auto flags=hierarchy->Allocator(0).template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
-    
-    // for(unsigned block=0;block<blocks.second;++block){
-    //     uint64_t offset=blocks.first[block];
-    //     Range_Iterator<d> range_iterator(T_INDEX(),*reinterpret_cast<T_INDEX*>(&block_size)-1);
-    //     T_INDEX base_index(Flag_array_mask::LinearToCoord(offset));
-    //     for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
-    //         if(hierarchy->template Set<unsigned>(0,&Struct_type::flags).Is_Set(offset,Cell_Type_Interior)){
-    //             const T_INDEX index=base_index+range_iterator.Index(); T laplacian=(T)0.;
-    //             for(T_Range_Iterator iterator(T_INDEX(-1),T_INDEX(1));iterator.Valid();iterator.Next()){
-    //                 if(iterator.Index()==T_INDEX()) ; //skip itself
-    //                 else{T_INDEX neighbor_index=index+iterator.Index(); uint64_t neighbor_offset(Flag_array_mask::Linear_Offset(neighbor_index._data));
-    //                     if((hierarchy->template Set<unsigned>(0,&Struct_type::flags).Is_Set(neighbor_offset,Cell_Type_Interior))
-    //                         ||(hierarchy->template Set<unsigned>(0,&Struct_type::flags).Is_Set(neighbor_offset,Cell_Type_Dirichlet))){
-    //                         laplacian+=T_backup_data(neighbor_offset)-T_backup_data(offset);}}}
-    //                         laplacian*=one_third*one_over_dx2*fc_2*k*dt;
-    //                         T_data(offset)+=laplacian;} range_iterator.Next();}}
 }
 //######################################################################
 // Add_Divergence_Term_To_Temperature
@@ -496,6 +478,40 @@ Add_Divergence_Term_To_Temperature(const T dt)
 template    <class T,int d> void DG_Example<T,d>::
 Implicitly_Update_Temperature(const T dt)
 {
+    Log::cout<<"Updating temperature: Fick's"<<std::endl;
+    using Multigrid_struct_type 	        = Multigrid_Data<T>;
+	const Grid<T,d>& grid=hierarchy->Lattice(0);
+	Ficks_CG_System<Struct_type,Multigrid_struct_type,T,d> cg_system(*hierarchy,mg_levels,dt,3,1,200);
+    T Struct_type::* q_channel              = &Struct_type::ch19;
+    T Struct_type::* r_channel              = &Struct_type::ch20;
+    T Struct_type::* s_channel              = &Struct_type::ch21;
+    T Struct_type::* k_channel              = &Struct_type::ch22;
+    T Struct_type::* z_channel              = &Struct_type::ch22;
+    T Struct_type::* b_channel              = &Struct_type::ch24;
+    
+    // clear all channels
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),q_channel);
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),r_channel);
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),s_channel);
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),z_channel);
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),b_channel);
+
+    const T dt_over_dx2=dt*Nova_Utilities::Sqr(grid.one_over_dX(0)); 
+	DG_Ficks_T_RHS_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),
+                        density_channel,density_backup_channel,T_channel,b_channel,dt_over_dx2,SR*dt);
+	CG_Vector<Struct_type,T,d> x_V(*hierarchy,T_channel),b_V(*hierarchy,b_channel),q_V(*hierarchy,q_channel),
+                                s_V(*hierarchy,s_channel),r_V(*hierarchy,r_channel),k_V(*hierarchy,k_channel),z_V(*hierarchy,z_channel);   
+	Conjugate_Gradient<T> cg;
+    cg_system.Multiply(x_V,r_V);
+    r_V-=b_V;
+    const T b_norm=cg_system.Convergence_Norm(r_V);
+    Log::cout<<"Norm: "<<b_norm<<std::endl;
+    // cg.print_residuals=true;
+    // cg.print_diagnostics=true;
+    cg.restart_iterations=cg_restart_iterations;
+    const T tolerance=std::max((T)1e-4*b_norm,(T)1e-4);
+    cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
+    // Clamp_Heler<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),T_channel);
 }
 //######################################################################
 // Update_Face_Qtc
@@ -598,8 +614,7 @@ Backup_Qtc()
 template<class T,int d> void DG_Example<T,d>::
 Modify_Density_With_Sources()
 {
-    for(int level=0;level<levels;++level)
-        Density_Modifier<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),density_channel,density_sources,level);
+    Density_Modifier<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(0),density_channel,density_sources,0);
 }
 //######################################################################
 // Add_Source
@@ -607,8 +622,7 @@ Modify_Density_With_Sources()
 // template<class T,int d> void DG_Example<T,d>::
 // Add_Source(const T dt)
 // {
-    // for(int level=0;level<levels;++level)
-    //     Source_Adder<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),density_channel,sources,source_rate,dt,level);
+    //     Source_Adder<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(0),density_channel,sources,source_rate,dt,0);
 // }
 //######################################################################
 // Advect_Face_Velocities
@@ -629,18 +643,18 @@ Modify_Density_With_Sources()
 // template<class T,int d> void DG_Example<T,d>::
 // Set_Neumann_Faces_Inside_Sources()
 // {
-//     for(int level=0;level<levels;++level){
-//         auto flags=hierarchy->Allocator(level).template Get_Array<Struct_type,unsigned>(&Struct_type::flags);
-//         for(Grid_Iterator_Face<T,d> iterator(hierarchy->Lattice(level));iterator.Valid();iterator.Next()){
+//     
+//         auto flags=hierarchy->Allocator(0).template Get_Array<Struct_type,unsigned>(&Struct_type::flags);
+//         for(Grid_Iterator_Face<T,d> iterator(hierarchy->Lattice(0));iterator.Valid();iterator.Next()){
 //             const int axis=iterator.Axis();const T_INDEX& face_index=iterator.Face_Index();
 //             uint64_t face_offset=Flag_array_mask::Linear_Offset(face_index._data);
 //             const uint64_t face_active_mask=Topology_Helper::Face_Active_Mask(axis);
 //             const uint64_t face_valid_mask=Topology_Helper::Face_Valid_Mask(axis);
-//             const TV X=hierarchy->Lattice(level).Face(axis,face_index);
+//             const TV X=hierarchy->Lattice(0).Face(axis,face_index);
 //             for(size_t i=0;i<sources.size();++i) if(sources(i)->Inside(X)){
-//                 if(hierarchy->template Set<unsigned>(level,&Struct_type::flags).Is_Set(face_offset,face_valid_mask))
+//                 if(hierarchy->template Set<unsigned>(0,&Struct_type::flags).Is_Set(face_offset,face_valid_mask))
 //                     flags(face_offset)&=~face_active_mask;
-//                 break;}}}
+//                 break;}}
 // }
 //######################################################################
 // Initialize_Velocity_Field
@@ -648,8 +662,8 @@ Modify_Density_With_Sources()
 // template<class T,int d> void DG_Example<T,d>::
 // Initialize_Velocity_Field()
 // {
-//     for(int level=0;level<levels;++level)
-//         Uniform_Velocity_Field_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,bv,level);
+//     
+//         Uniform_Velocity_Field_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(0),face_velocity_channels,bv,0);
 // }
 //######################################################################
 // Project
@@ -664,13 +678,13 @@ Modify_Density_With_Sources()
 //     T Struct_type::* divergence_channel     = &Struct_type::ch8;
 
 //     // clear
-//     for(int level=0;level<levels;++level){
-//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),pressure_channel);
-//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),divergence_channel);}
+//     
+//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),pressure_channel);
+//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),divergence_channel);
 
 //     // set boundary conditions
-//     for(int level=0;level<levels;++level)
-//         Boundary_Condition_Helper<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,pressure_channel,bv,level);
+//     
+//         Boundary_Condition_Helper<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(0),face_velocity_channels,pressure_channel,bv,0);
 
 //     // compute divergence
 //     Hierarchy_Projection::Compute_Divergence(*hierarchy,face_velocity_channels,divergence_channel);
@@ -684,11 +698,11 @@ Modify_Density_With_Sources()
 //     T Struct_type::* z_channel              = &Struct_type::ch12;
 
 //     // clear all channels
-//     for(int level=0;level<levels;++level){
-//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),q_channel);
-//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),r_channel);
-//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),s_channel);
-//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),z_channel);}
+//     
+//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),q_channel);
+//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),r_channel);
+//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),s_channel);
+//         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),z_channel);
 
 //     CG_Vector<Struct_type,T,d> x_V(*hierarchy,pressure_channel);
 //     CG_Vector<Struct_type,T,d> b_V(*hierarchy,divergence_channel);
@@ -709,8 +723,8 @@ Modify_Density_With_Sources()
 //     const T tolerance=std::max(cg_tolerance*b_norm,(T)1e-6);
 //     cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
 
-//     for(int level=0;level<levels;++level)
-//         Apply_Pressure<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_velocity_channels,pressure_channel,level);
+//     
+//         Apply_Pressure<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(0),face_velocity_channels,pressure_channel,0);
 // }
 //######################################################################
 // Register_Options
@@ -720,23 +734,22 @@ Register_Options()
 {
     Base::Register_Options();
     // for phase field
-    parse_args->Add_Option_Argument("-ficks","Fick's diffusion");
+    parse_args->Add_Option_Argument("-ficks","Fick's diffusion.");
     parse_args->Add_Double_Argument("-cdv",(T)1.,"Constant density value.");
     parse_args->Add_Double_Argument("-taus",(T)3.e-4,"tau s.");
     parse_args->Add_Double_Argument("-tau1",(T).0001,"tau 1.");
     parse_args->Add_Double_Argument("-fc1",(T)0.,"Fc 1.");
     parse_args->Add_Double_Argument("-tau2",(T).0001,"tau 2.");
     parse_args->Add_Double_Argument("-fc2",(T)0.,"Fc 2.");
-    parse_args->Add_Double_Argument("-Teq",(T)1.,"Teq.");
-    parse_args->Add_Double_Argument("-gamma",(T)40.,"gamma.");
+    parse_args->Add_Double_Argument("-gamma",(T)10.,"gamma.");
     parse_args->Add_Double_Argument("-delta",(T).2,"delta.");
     parse_args->Add_Double_Argument("-eps",(T)1.e-2,"epsilon.");
+    parse_args->Add_Double_Argument("-K",(T)2.,"K.");
 
-    parse_args->Add_Double_Argument("-K",(T)4.,"K.");
     parse_args->Add_Double_Argument("-ma",(T).9,"m_alpha.");
     parse_args->Add_Double_Argument("-SR",(T)0.,"SR.");
 
-    parse_args->Add_Option_Argument("-ed","Explicit diffusion");
+    parse_args->Add_Option_Argument("-ed","Explicit diffusion.");
     parse_args->Add_Option_Argument("-uvf","Uniform velocity field.");
 
     parse_args->Add_Double_Argument("-cfl",(T).5,"CFL number.");
@@ -745,14 +758,13 @@ Register_Options()
     parse_args->Add_Integer_Argument("-levels",1,"Number of levels in the SPGrid hierarchy.");
     parse_args->Add_Integer_Argument("-mg_levels",1,"Number of levels in the Multigrid hierarchy.");
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
-    if(d==2) parse_args->Add_Vector_2D_Argument("-size",Vector<double,2>(200.),"n","Grid resolution");
-    else if(d==3) parse_args->Add_Vector_3D_Argument("-size",Vector<double,3>(200.),"n","Grid resolution");
+    if(d==2) parse_args->Add_Vector_2D_Argument("-size",Vector<double,2>(200.),"n","Grid resolution.");
+    else if(d==3) parse_args->Add_Vector_3D_Argument("-size",Vector<double,3>(200.),"n","Grid resolution.");
 
-    
     // for CG
     parse_args->Add_Integer_Argument("-cg_iterations",100,"Number of CG iterations.");
     parse_args->Add_Integer_Argument("-cg_restart_iterations",40,"Number of CG restart iterations.");
-    parse_args->Add_Double_Argument("-cg_tolerance",1e-4,"CG tolerance");
+    parse_args->Add_Double_Argument("-cg_tolerance",1e-4,"CG tolerance.");
 }
 //######################################################################
 // Parse_Options
@@ -770,14 +782,13 @@ Parse_Options()
     fc_2=parse_args->Get_Double_Value("-fc2");
     gamma=parse_args->Get_Double_Value("-gamma");
     delta=parse_args->Get_Double_Value("-delta");
-    epsilon=parse_args->Get_Double_Value("-eps");
     K=parse_args->Get_Double_Value("-K");
+    epsilon=parse_args->Get_Double_Value("-eps");
     m_alpha=parse_args->Get_Double_Value("-ma");
 
     FICKS=parse_args->Get_Option_Value("-ficks");
     explicit_diffusion=parse_args->Get_Option_Value("-ed");
     uvf=parse_args->Get_Option_Value("-uvf");
-
 
     cfl=(T)parse_args->Get_Double_Value("-cfl");
     const_time_step=(T)parse_args->Get_Double_Value("-dt");
@@ -791,6 +802,26 @@ Parse_Options()
     cg_restart_iterations=parse_args->Get_Integer_Value("-cg_restart_iterations");
     cg_tolerance=(T)parse_args->Get_Double_Value("-cg_tolerance");
     if(FICKS){fc_1=(T)1.; fc_2=(T)1.;}
+}
+//######################################################################
+// Log_Parameters
+//######################################################################
+template<class T,int d> void DG_Example<T,d>::
+Log_Parameters() const
+{
+    Base::Log_Parameters();
+    *output<<"tau_s="<<tau_s<<std::endl;
+    *output<<"tau_1="<<tau_1<<std::endl;
+    *output<<"fc_1="<<fc_1<<std::endl;
+    *output<<"tau_2="<<tau_2<<std::endl;
+    *output<<"fc_2="<<fc_2<<std::endl;
+    *output<<"gamma="<<gamma<<std::endl;
+    *output<<"K="<<K<<std::endl;
+    *output<<"delta="<<delta<<std::endl;
+    *output<<"epsilon="<<epsilon<<std::endl;
+    *output<<"m_alpha="<<m_alpha<<std::endl;
+    *output<<"SR="<<SR<<std::endl;
+    *output<<"dt="<<const_time_step<<std::endl;
 }
 //######################################################################
 // Write_Output_Files

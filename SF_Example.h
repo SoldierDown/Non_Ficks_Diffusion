@@ -31,6 +31,7 @@ class SF_Example: public Example<T,d>
 
   public:
     using Base::frame_title;using Base::output_directory;using Base::parse_args;using Base::first_frame;
+    using Base::output;
 
     Random_Numbers<T> random;
     bool uvf;
@@ -48,6 +49,7 @@ class SF_Example: public Example<T,d>
     // for updating epsilon_channel
     int omega;
     T delta;
+    T K;
     int test_number;
     T const_time_step;
     T const_density_value;
@@ -144,7 +146,8 @@ class SF_Example: public Example<T,d>
     // void Modify_Density_With_Sources();
     // void Add_Source(const T dt);
     // void Set_Neumann_Faces_Inside_Sources();
-    // void Initialize_Velocity_Field();
+    void Initialize_Velocity_Field();
+    void Log_Parameters() const override;
     void Register_Options() override;
     void Parse_Options() override;
     void Read_Output_Files(const int frame);

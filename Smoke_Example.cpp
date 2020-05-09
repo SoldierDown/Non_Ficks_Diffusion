@@ -25,7 +25,6 @@
 #include "Ficks_RHS_Helper.h"
 #include "Non_Ficks_RHS_Helper.h"
 #include "Non_Ficks_Smoke_Density_Explicit_Update_Helper.h"
-#include "Clamp_Helper.h"
 #include "Lap_Calculator.h"
 #include "Density_Backup_Helper.h"
 #include "Explicit_Face_Qc_Updater.h"
@@ -186,7 +185,7 @@ Ficks_Diffusion(const T dt)
         for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),lap_density_channel);
         for(int level=0;level<levels;++level) Lap_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_backup_channel,lap_density_channel,one_over_dx2);        
         for(int level=0;level<levels;++level) SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),dt,lap_density_channel,density_backup_channel,density_channel,Cell_Type_Interior);
-        for(int level=0;level<levels;++level) Clamp_Heler<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel);}
+        for(int level=0;level<levels;++level) Density_Clamp_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel);}
         Log::cout<<"Fick's Diffusion finished"<<std::endl;
 }
 //######################################################################
@@ -524,8 +523,6 @@ Write_Output_Files(const int frame) const
     File_Utilities::Write_To_Text_File(output_directory+"/"+std::to_string(frame)+"/levels",levels);
     hierarchy->Write_Hierarchy(output_directory,frame);
     hierarchy->template Write_Channel<T>(output_directory+"/"+std::to_string(frame)+"/spgrid_density",density_channel);
-    
-   
 }
 //######################################################################
 // Read_Output_Files
