@@ -15,6 +15,7 @@
 #include <nova/Tools/Utilities/File_Utilities.h>
 #include <nova/Tools/Utilities/Range_Iterator.h>
 #include <assert.h>
+#include <omp.h>
 #include <openvdb/openvdb.h>
 #include "Viewer_Data.h"
 #include "../Poisson_Solver/Grid_Hierarchy_Projection.h"
@@ -60,6 +61,7 @@ class OpenVDB_Converter
     };
     public: 
     bool interpolated;
+    int threads;
     Parse_Args *parse_args;
     std::string output_directory;
     Hierarchy *hierarchy;
@@ -69,6 +71,7 @@ class OpenVDB_Converter
     int selected_voxel_level,levels;
     int first_frame, last_frame;
     int step;
+    int fix_frame;
     Index_type block_size;
     T threshold;
     T density_factor;
@@ -93,7 +96,7 @@ class OpenVDB_Converter
         Log::cout<<"# of elements/block: "<<elements_per_block<<std::endl;
         for(int v=0;v<d;++v) Read_Write<unsigned>::Read(*input,block_size[v]);
         delete input;
-
+        omp_set_num_threads(threads);
         File_Utilities::Read_From_File(output_directory+"/common/fine_grid",grid);
         xm=grid.counts(0); ym=grid.counts(1); zm=grid.counts(2);
         density_channel                         = &Struct_type::ch0;
@@ -155,7 +158,9 @@ class OpenVDB_Converter
             openvdb::FloatGrid::Ptr mygrid = openvdb::FloatGrid::create(); openvdb::FloatGrid::Accessor accessor = mygrid->getAccessor();
             mygrid->setTransform(openvdb::math::Transform::createLinearTransform(256./xm*0.1f));
             Log::cout<<"cell width: "<<mygrid->voxelSize()[0]<<std::endl;
-            for(int i=0;i<xm;++i) for(int j=0;j<ym;++j) for(int k=0;k<zm;++k){
+#pragma omp parallel for
+            for(int i=0;i<xm;++i) 
+                for(int j=0;j<ym;++j) for(int k=0;k<zm;++k){
                 int cell_id=Cell_ID(i,j,k); TV cell_location=voxels[cell_id].location; T cell_density=voxels[cell_id].density;
                 for(int ii=-1;ii<=1;ii+=2) for(int jj=-1;jj<=1;jj+=2) for(int kk=-1;kk<=1;kk+=2){
                     T interpolated_density=0.; T_INDEX node_ijk({2*i+(ii+1)/2,2*j+(jj+1)/2,2*k+(kk+1)/2}); 
@@ -208,7 +213,9 @@ class OpenVDB_Converter
         parse_args->Add_String_Argument("-o","","output directory");
         parse_args->Add_Integer_Argument("-first_frame",0,"first frame");
         parse_args->Add_Integer_Argument("-last_frame",0,"last frame");
+        parse_args->Add_Integer_Argument("-fix",0,"fix frame");
         parse_args->Add_Integer_Argument("-step",1,"step");
+        parse_args->Add_Integer_Argument("-threads",1,"threads");
         parse_args->Add_Double_Argument("-df",4.,"density factor");
         parse_args->Add_Double_Argument("-th",0.,"density threshold");
     }
@@ -216,13 +223,18 @@ class OpenVDB_Converter
     void Parse_Options()
     {
         if(!parse_args) return;
+        fix_frame=parse_args->Get_Integer_Value("-fix");
         interpolated=parse_args->Get_Option_Value("-inter");
         output_directory=parse_args->Get_String_Value("-o");
-        first_frame=parse_args->Get_Integer_Value("-first_frame");
+        if(fix_frame>0){last_frame=fix_frame; first_frame=fix_frame; step=1;}
+        else{ first_frame=parse_args->Get_Integer_Value("-first_frame");
         last_frame=parse_args->Get_Integer_Value("-last_frame");
-        step=parse_args->Get_Integer_Value("-step");
+        step=parse_args->Get_Integer_Value("-step");}
+        
         density_factor=parse_args->Get_Double_Value("-df");
         threshold=parse_args->Get_Double_Value("-th");
+        threads=parse_args->Get_Integer_Value("-threads");
+        if(threads>8) threads=8;
     }
 
     void Parse(int argc,char* argv[])
