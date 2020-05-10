@@ -159,9 +159,9 @@ class OpenVDB_Converter
             mygrid->setTransform(openvdb::math::Transform::createLinearTransform(256./xm*0.1f));
             Log::cout<<"cell width: "<<mygrid->voxelSize()[0]<<std::endl;
 #pragma omp parallel for
-            for(int i=0;i<xm;++i) 
-                for(int j=0;j<ym;++j) for(int k=0;k<zm;++k){
-                int cell_id=Cell_ID(i,j,k); TV cell_location=voxels[cell_id].location; T cell_density=voxels[cell_id].density;
+            for(int cell_id=0;cell_id<voxels.size();++cell_id){
+                const int i=cell_id/(ym*zm); const int j=(cell_id-i*ym*zm)/zm; const int k=cell_id-i*ym*zm-j*zm;
+                TV cell_location=voxels[cell_id].location; T cell_density=voxels[cell_id].density;
                 for(int ii=-1;ii<=1;ii+=2) for(int jj=-1;jj<=1;jj+=2) for(int kk=-1;kk<=1;kk+=2){
                     T interpolated_density=0.; T_INDEX node_ijk({2*i+(ii+1)/2,2*j+(jj+1)/2,2*k+(kk+1)/2}); 
                     int node_index=Node_ID(node_ijk(0),node_ijk(1),node_ijk(2)); assert(node_index!=-1);
@@ -180,7 +180,9 @@ class OpenVDB_Converter
                         interpolated_density=pow(interpolated_density,gamma_l)*((T)1.-interpolated_density)
                                                 +pow(interpolated_density,gamma_u)*interpolated_density;
                         if(interpolated_density>threshold){ openvdb::Coord xyz(node_ijk(0),node_ijk(1),node_ijk(2));
-                            accessor.setValue(xyz,interpolated_density);}}}
+                            accessor.setValue(xyz,interpolated_density);}}
+            }
+
             string output_filename=output_directory+"/converted_data/"+std::to_string(current_frame/step)+".vdb";
             mygrid->setName("density");
             openvdb::io::File(output_filename).write({mygrid});}
