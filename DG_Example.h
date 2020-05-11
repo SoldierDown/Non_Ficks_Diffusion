@@ -49,6 +49,7 @@ class DG_Example: public Example<T,d>
     T K;
     T epsilon;
     T delta;
+    T random_factor;
     int test_number;
     T const_time_step;
     T const_density_value;

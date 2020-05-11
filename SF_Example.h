@@ -53,6 +53,7 @@ class SF_Example: public Example<T,d>
     int test_number;
     T const_time_step;
     T const_density_value;
+    T random_factor;
     T bv;
     T_INDEX counts;
     int levels,mg_levels,cg_iterations,cg_restart_iterations;

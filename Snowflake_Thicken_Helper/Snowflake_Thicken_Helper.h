@@ -168,7 +168,7 @@ class Snowflake_Thicken_Helper
                         for(int layer=0;layer<2*thickness;++layer){
                             openvdb::Coord xyz(node_ijk(0),node_ijk(1),layer);
                             accessor.setValue(xyz,interpolated_density);}}}
-            string output_filename=output_directory+"/converted_data/interpolated_"+std::to_string(current_frame)+"_factor_"+std::to_string(density_factor)+".vdb";
+            string output_filename=output_directory+"/converted_data/"+std::to_string(current_frame/step)+".vdb";
             mygrid->setName("density");
             openvdb::io::File(output_filename).write({mygrid});}
         else{
@@ -181,7 +181,7 @@ class Snowflake_Thicken_Helper
                 int cell_id=Cell_ID(i,j); T cell_density=voxels[cell_id].density;
                 for(int layer=0;layer<thickness;++layer){openvdb::Coord xyz(i,j,layer);
                     accessor.setValue(xyz,cell_density*density_factor);}}
-            string output_filename=output_directory+"/converted_data/"+std::to_string(current_frame)+"_factor_"+std::to_string(density_factor)+".vdb";
+            string output_filename=output_directory+"/converted_data/"+std::to_string(current_frame/step)+".vdb";
             mygrid->setName("density");
             openvdb::io::File(output_filename).write({mygrid});}
 

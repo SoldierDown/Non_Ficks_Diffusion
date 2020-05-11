@@ -310,9 +310,8 @@ Add_Poly_Term_To_Density(const T dt)
 template<class T,int d> void DG_Example<T,d>::
 Add_Random_Term_To_Density(const T dt)
 {
-    const T random_factor=(T).05*dt;
     const T random_value=random.Get_Uniform_Number(0,1);
-    Add_Random_Term<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,density_backup_channel,random_factor,random_value);
+    Add_Random_Term<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,density_backup_channel,random_factor*dt,random_value);
 }
 //######################################################################
 // Implicitly_Update_Density
@@ -748,6 +747,7 @@ Register_Options()
 
     parse_args->Add_Double_Argument("-ma",(T).9,"m_alpha.");
     parse_args->Add_Double_Argument("-SR",(T)0.,"SR.");
+    parse_args->Add_Double_Argument("-rf",(T).05,"random factor.");
 
     parse_args->Add_Option_Argument("-ed","Explicit diffusion.");
     parse_args->Add_Option_Argument("-uvf","Uniform velocity field.");
@@ -785,7 +785,8 @@ Parse_Options()
     K=parse_args->Get_Double_Value("-K");
     epsilon=parse_args->Get_Double_Value("-eps");
     m_alpha=parse_args->Get_Double_Value("-ma");
-
+    random_factor=parse_args->Get_Double_Value("-rf");
+    test_number=parse_args->Get_Integer_Value("-test_number");
     FICKS=parse_args->Get_Option_Value("-ficks");
     explicit_diffusion=parse_args->Get_Option_Value("-ed");
     uvf=parse_args->Get_Option_Value("-uvf");
@@ -821,6 +822,7 @@ Log_Parameters() const
     *output<<"epsilon="<<epsilon<<std::endl;
     *output<<"m_alpha="<<m_alpha<<std::endl;
     *output<<"SR="<<SR<<std::endl;
+    *output<<"rf="<<random_factor<<std::endl;
     *output<<"dt="<<const_time_step<<std::endl;
 }
 //######################################################################
