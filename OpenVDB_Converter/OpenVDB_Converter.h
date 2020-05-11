@@ -153,13 +153,14 @@ class OpenVDB_Converter
                     range_iterator.Next();}}}
         const T l=(T).04,u=(T)1.; const T gamma_l=(T)1.5,gamma_u=(T)3.;
         if(interpolated){
-            Log::cout<<"using interpolated data"<<std::endl;
+            std::cout<<"using interpolated data"<<std::endl;
 		    openvdb::initialize();
-            openvdb::FloatGrid::Ptr mygrid = openvdb::FloatGrid::create(); openvdb::FloatGrid::Accessor accessor = mygrid->getAccessor();
+            openvdb::FloatGrid::Ptr mygrid = openvdb::FloatGrid::create(); 
             mygrid->setTransform(openvdb::math::Transform::createLinearTransform(256./xm*0.1f));
-            Log::cout<<"cell width: "<<mygrid->voxelSize()[0]<<std::endl;
+            std::cout<<"cell width: "<<mygrid->voxelSize()[0]<<std::endl;
 #pragma omp parallel for
             for(int cell_id=0;cell_id<voxels.size();++cell_id){
+                openvdb::FloatGrid::Accessor accessor = mygrid->getAccessor();
                 const int i=cell_id/(ym*zm); const int j=(cell_id-i*ym*zm)/zm; const int k=cell_id-i*ym*zm-j*zm;
                 TV cell_location=voxels[cell_id].location; T cell_density=voxels[cell_id].density;
                 for(int ii=-1;ii<=1;ii+=2) for(int jj=-1;jj<=1;jj+=2) for(int kk=-1;kk<=1;kk+=2){
@@ -187,13 +188,17 @@ class OpenVDB_Converter
             mygrid->setName("density");
             openvdb::io::File(output_filename).write({mygrid});}
         else{
-            Log::cout<<"using cell data"<<std::endl;
+            std::cout<<"using cell data"<<std::endl;
             openvdb::initialize();
-            openvdb::FloatGrid::Ptr mygrid = openvdb::FloatGrid::create(); openvdb::FloatGrid::Accessor accessor = mygrid->getAccessor();
+            openvdb::FloatGrid::Ptr mygrid = openvdb::FloatGrid::create();
             mygrid->setTransform(openvdb::math::Transform::createLinearTransform(512./xm*0.1f));
-            Log::cout<<"cell width: "<<mygrid->voxelSize()[0]<<std::endl;
-            for(int i=0;i<xm;++i) for(int j=0;j<ym;++j) for(int k=0;k<zm;++k){
-                int cell_id=Cell_ID(i,j,k); T cell_density=voxels[cell_id].density;
+            std::cout<<"cell width: "<<mygrid->voxelSize()[0]<<std::endl;
+
+#pragma omp parallel for
+            for(int cell_id=0;cell_id<voxels.size();++cell_id){
+                openvdb::FloatGrid::Accessor accessor = mygrid->getAccessor();
+                const int i=cell_id/(ym*zm); const int j=(cell_id-i*ym*zm)/zm; const int k=cell_id-i*ym*zm-j*zm;
+                T cell_density=voxels[cell_id].density;
                 // transform: 
                 cell_density*=density_factor;
                 cell_density=(clamp(cell_density,l,u)-l)/(u-l);
