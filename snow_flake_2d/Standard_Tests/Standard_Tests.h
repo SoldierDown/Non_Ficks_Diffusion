@@ -49,7 +49,7 @@ class Standard_Tests: public SF_Example<T,d>
         Base::Parse_Options();
         output_directory=(explicit_diffusion?(FICKS?"Snow_Flake_F_":"Snow_Flake_NF_"):(FICKS?"Implicit_Snow_Flake_F_":"Implicit_Snow_Flake_NF_"))+std::to_string(d)+"d_"+"case"+std::to_string(test_number)+"_"+std::to_string(omega)+"branches_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
         for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=false;
-        TV min_corner,max_corner=TV(7.68);
+        TV min_corner,max_corner=TV(4.);
         hierarchy=new Hierarchy(counts,Range<T,d>(min_corner,max_corner),levels);
     }
 //######################################################################
@@ -83,8 +83,8 @@ class Standard_Tests: public SF_Example<T,d>
 //######################################################################
     void Initialize_Sources() override
     {
-        const T radius=.06;
-        const TV center=TV(3.84);
+        const T radius=(T).04;
+        const TV center=TV(2.);
         Implicit_Object<T,d>* obj=new Sphere_Implicit_Object<T,d>(center,radius);
         density_sources.Append(obj);
     }
