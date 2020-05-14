@@ -223,8 +223,9 @@ class OpenVDB_Converter
         parse_args->Add_Integer_Argument("-fix",0,"fix frame");
         parse_args->Add_Integer_Argument("-step",1,"step");
         parse_args->Add_Integer_Argument("-threads",1,"threads");
-        parse_args->Add_Double_Argument("-df",4.,"density factor");
+        parse_args->Add_Double_Argument("-df",1.,"density factor");
         parse_args->Add_Double_Argument("-th",0.,"density threshold");
+        parse_args->Add_Vector_3D_Argument("-fo",Vector<double,3>(0.),"fo","very first, last minus first, first minus very first");
     }
 
     void Parse_Options()
@@ -234,10 +235,11 @@ class OpenVDB_Converter
         interpolated=parse_args->Get_Option_Value("-inter");
         output_directory=parse_args->Get_String_Value("-o");
         if(fix_frame>0){last_frame=fix_frame; first_frame=fix_frame; step=1;}
-        else{ first_frame=parse_args->Get_Integer_Value("-first_frame");
+        else{first_frame=parse_args->Get_Integer_Value("-first_frame");
         last_frame=parse_args->Get_Integer_Value("-last_frame");
         step=parse_args->Get_Integer_Value("-step");}
-        
+        auto fo=parse_args->Get_Vector_3D_Value("-fo");
+        if(fo(0)>0){first_frame=fo(0)+fo(2);last_frame=first_frame+fo(1);step=1;}
         density_factor=parse_args->Get_Double_Value("-df");
         threshold=parse_args->Get_Double_Value("-th");
         threads=parse_args->Get_Integer_Value("-threads");

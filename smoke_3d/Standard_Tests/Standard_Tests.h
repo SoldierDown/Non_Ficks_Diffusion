@@ -84,7 +84,7 @@ class Standard_Tests: public Smoke_Example<T,d>
 //######################################################################
     void Initialize_Sources(const int test_number) override
     {
-        const T cell_width=(T)4./(T)64.;
+        const T cell_width=(T)4./counts(0);
         switch (test_number)
         {
         // test case 1: density&velocity source near the bottom 

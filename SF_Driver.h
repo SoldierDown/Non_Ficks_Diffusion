@@ -3,8 +3,8 @@
 //!#####################################################################
 // Class SF_Driver
 //######################################################################
-#ifndef __PF_Driver__
-#define __PF_Driver__
+#ifndef __SF_Driver__
+#define __SF_Driver__
 
 #include <nova/Tools/Utilities/Driver.h>
 #include "SF_Example.h"
