@@ -760,6 +760,7 @@ Register_Options()
     parse_args->Add_Integer_Argument("-threads",1,"Number of threads for OpenMP to use");
     if(d==2) parse_args->Add_Vector_2D_Argument("-size",Vector<double,2>(200.),"n","Grid resolution.");
     else if(d==3) parse_args->Add_Vector_3D_Argument("-size",Vector<double,3>(200.),"n","Grid resolution.");
+    parse_args->Add_Double_Argument("-cw",2e-2,"cell width.");
 
     // for CG
     parse_args->Add_Integer_Argument("-cg_iterations",100,"Number of CG iterations.");
@@ -792,6 +793,7 @@ Parse_Options()
     uvf=parse_args->Get_Option_Value("-uvf");
 
     cfl=(T)parse_args->Get_Double_Value("-cfl");
+    cell_width=(T)parse_args->Get_Double_Value("-cw");
     const_time_step=(T)parse_args->Get_Double_Value("-dt");
     levels=parse_args->Get_Integer_Value("-levels");
     mg_levels=parse_args->Get_Integer_Value("-mg_levels");
@@ -824,6 +826,7 @@ Log_Parameters() const
     *output<<"SR="<<SR<<std::endl;
     *output<<"rf="<<random_factor<<std::endl;
     *output<<"dt="<<const_time_step<<std::endl;
+    *output<<"dt="<<cell_width<<std::endl;
 }
 //######################################################################
 // Write_Output_Files

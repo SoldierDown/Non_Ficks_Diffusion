@@ -46,6 +46,7 @@ class DG_Example: public Example<T,d>
     // for updating m_channel
     T m_alpha,gamma;
     // for updating epsilon_channel
+    T cell_width;
     T K;
     T epsilon;
     T delta;
