@@ -32,6 +32,7 @@ class Standard_Tests: public SF_Example<T,d>
     using Base::output_directory; using Base::test_number;using Base::counts;using Base::levels;using Base::domain_walls;using Base::hierarchy;using Base::rasterizer;
     using Base::cfl;    using Base::density_sources; using Base::velocity_sources;    using Base::density_channel; using Base::T_channel;
     using Base::omega;  using Base::FICKS; using Base::const_density_value; using Base::K; using Base::cell_width;
+    using Base::T0;
     using Base::explicit_diffusion;
     /****************************
      * example explanation:
@@ -48,9 +49,9 @@ class Standard_Tests: public SF_Example<T,d>
     {
         Base::Parse_Options();
         output_directory=(explicit_diffusion?(FICKS?"Snow_Flake_F_":"Snow_Flake_NF_"):(FICKS?"Implicit_Snow_Flake_F_":"Implicit_Snow_Flake_NF_"))+std::to_string(d)+"d_"+std::to_string(omega)+"branches_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
-        output_directory="3Qt";
+        // output_directory="3Qt";
         for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=false;
-        TV min_corner,max_corner=TV(cell_width*counts(0));
+        TV min_corner,max_corner=TV({cell_width*counts(0),cell_width*counts(1),cell_width*counts(2)});
         hierarchy=new Hierarchy(counts,Range<T,d>(min_corner,max_corner),levels);
     }
 //######################################################################
@@ -75,14 +76,14 @@ class Standard_Tests: public SF_Example<T,d>
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                 const T_INDEX index=base_index+range_iterator.Index();
                 if(flags(offset)&Cell_Type_Interior && density_sources(0)->Inside(hierarchy->Lattice(0).Center(index))) density_data(offset)=const_density_value;
-                T_data(offset)=-(T)1./K;
+                T_data(offset)=T0;
                 range_iterator.Next();}}
     }
 //######################################################################
     void Initialize_Sources() override
     {
         const T radius=(T)2.*cell_width;
-        const TV center=TV((T).5*cell_width*counts(0));
+        const TV center=TV({(T).5*cell_width*counts(0),(T).5*cell_width*counts(1),(T).5*cell_width*counts(2)});
         Implicit_Object<T,d>* obj=new Sphere_Implicit_Object<T,d>(center,radius);
         density_sources.Append(obj);
     }

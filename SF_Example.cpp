@@ -745,6 +745,7 @@ Register_Options()
     parse_args->Add_Double_Argument("-fc2",(T)0.,"Fc 2.");
     parse_args->Add_Double_Argument("-gamma",(T)10.,"gamma.");
     parse_args->Add_Double_Argument("-K",(T)4.,"K");
+    parse_args->Add_Double_Argument("-T0",(T)-.25,"K");
     parse_args->Add_Double_Argument("-delta",(T).01,"delta.");
     parse_args->Add_Double_Argument("-zeta",(T).25,"Zeta.");
 
@@ -790,6 +791,7 @@ Parse_Options()
     fc_2=parse_args->Get_Double_Value("-fc2");
     gamma=parse_args->Get_Double_Value("-gamma");
     K=parse_args->Get_Double_Value("-K");
+    T0=parse_args->Get_Double_Value("-T0");
     cell_width=parse_args->Get_Double_Value("-cw");
     delta=parse_args->Get_Double_Value("-delta");
     m_alpha=parse_args->Get_Double_Value("-ma");

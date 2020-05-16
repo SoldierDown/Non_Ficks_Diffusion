@@ -79,6 +79,7 @@ class OpenVDB_Converter
     Grid<T,d> grid;
     int xm,ym,zm;
     T dx,quarter_dx;
+    bool tr;
   public:
     OpenVDB_Converter()
         :parse_args(nullptr),hierarchy(nullptr),elements_per_block(0),levels(0)
@@ -177,9 +178,10 @@ class OpenVDB_Converter
                         interpolated_density+=factor*iter_density;}}
                         interpolated_density*=density_factor;
                         // transform: 
-                        interpolated_density=(clamp(interpolated_density,l,u)-l)/(u-l);
+                        if(tr){interpolated_density=(clamp(interpolated_density,l,u)-l)/(u-l);
                         interpolated_density=pow(interpolated_density,gamma_l)*((T)1.-interpolated_density)
-                                                +pow(interpolated_density,gamma_u)*interpolated_density;
+                                            +pow(interpolated_density,gamma_u)*interpolated_density;}
+
                         if(interpolated_density>threshold){ openvdb::Coord xyz(node_ijk(0),node_ijk(1),node_ijk(2));
                             accessor.setValue(xyz,interpolated_density);}}
             }
@@ -199,10 +201,10 @@ class OpenVDB_Converter
                 openvdb::FloatGrid::Accessor accessor = mygrid->getAccessor();
                 const int i=cell_id/(ym*zm); const int j=(cell_id-i*ym*zm)/zm; const int k=cell_id-i*ym*zm-j*zm;
                 T cell_density=voxels[cell_id].density;
-                // transform: 
                 cell_density*=density_factor;
-                cell_density=(clamp(cell_density,l,u)-l)/(u-l);
-                cell_density=pow(cell_density,gamma_l)*((T)1.-cell_density)+pow(cell_density,gamma_u)*cell_density;
+                // transform: 
+                if(tr){cell_density=(clamp(cell_density,l,u)-l)/(u-l);
+                cell_density=pow(cell_density,gamma_l)*((T)1.-cell_density)+pow(cell_density,gamma_u)*cell_density;}                
                 if(cell_density>threshold){ openvdb::Coord xyz(i,j,k);
                     accessor.setValue(xyz,cell_density);}}
             string output_filename=output_directory+"/converted_data/"+std::to_string(current_frame/step)+".vdb";
@@ -217,6 +219,7 @@ class OpenVDB_Converter
     {
         if(!parse_args) return;
         parse_args->Add_Option_Argument("-inter","Use interpolation");
+        parse_args->Add_Option_Argument("-tr","Use transform");
         parse_args->Add_String_Argument("-o","","output directory");
         parse_args->Add_Integer_Argument("-first_frame",0,"first frame");
         parse_args->Add_Integer_Argument("-last_frame",0,"last frame");
@@ -233,6 +236,7 @@ class OpenVDB_Converter
         if(!parse_args) return;
         fix_frame=parse_args->Get_Integer_Value("-fix");
         interpolated=parse_args->Get_Option_Value("-inter");
+        tr=parse_args->Get_Option_Value("-tr");
         output_directory=parse_args->Get_String_Value("-o");
         if(fix_frame>0){last_frame=fix_frame; first_frame=fix_frame; step=1;}
         else{first_frame=parse_args->Get_Integer_Value("-first_frame");

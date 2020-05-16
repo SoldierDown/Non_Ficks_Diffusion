@@ -51,6 +51,7 @@ class SF_Example: public Example<T,d>
     T cell_width;
     T delta;
     T K;
+    T T0;
     int test_number;
     T const_time_step;
     T const_density_value;
