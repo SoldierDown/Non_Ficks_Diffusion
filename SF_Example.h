@@ -48,6 +48,7 @@ class SF_Example: public Example<T,d>
     T m_alpha,gamma;
     // for updating epsilon_channel
     int omega;
+    T cell_width;
     T delta;
     T K;
     int test_number;

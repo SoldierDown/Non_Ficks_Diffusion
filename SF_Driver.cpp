@@ -36,8 +36,8 @@ Advance_One_Time_Step_Explicit_Part(const T dt,const T time)
 {
     // scalar advance
     // example.Add_Source(dt);
-    example.Advect_Scalar_Field(dt);
-    if(!example.FICKS) example.Advect_Face_Vector_Field(dt);
+    // example.Advect_Scalar_Field(dt);
+    // if(!example.FICKS) example.Advect_Face_Vector_Field(dt);
 
     if(example.FICKS){Log::cout<<"Fick's"<<std::endl;
     example.Update_Density(dt); example.Update_Temperature(dt);}
@@ -75,6 +75,7 @@ Advance_To_Target_Time(const T target_time)
         Advance_One_Time_Step_Explicit_Part(dt,time);
         Advance_One_Time_Step_Implicit_Part(dt,time);
         Log::cout<<"dt: "<<dt<<std::endl;
+        // done=true;
         if(!done) example.Write_Substep("END Substep",substep,0);
         time+=dt;}
 }

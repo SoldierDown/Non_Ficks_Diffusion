@@ -63,12 +63,12 @@ class Compute_AvD0
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
                 if(flags(offset)&Cell_Type_Interior){ 
                     const T dSdx=dSdx_data(offset); const T dSdy=dSdy_data(offset); const T dSdz=dSdz_data(offset); 
-                    const T dSdx2_plus_dSdy2=Nova_Utilities::Sqr(dSdx)+Nova_Utilities::Sqr(dSdy); 
-                    const T dSdX_squared=dSdx2_plus_dSdy2+Nova_Utilities::Sqr(dSdz);
-                    const T Av=Av_data(offset); const T Av_prime=-delta*eps_xy*omega*sin(omega*theta_data(offset));
-                    const T FP=Av_prime*dSdy/dSdx2_plus_dSdy2;
-                    const T SP=(T)4.*eps_z*delta*dSdx*Nova_Utilities::Sqr(dSdz)/Nova_Utilities::Sqr(dSdX_squared);
-                    AvD0_data(offset)=-dSdX_squared*Av*(FP+SP);}
+                    const T dSdX_squared=Nova_Utilities::Sqr(dSdx)+Nova_Utilities::Sqr(dSdy)+Nova_Utilities::Sqr(dSdz);
+                    const T Av=Av_data(offset);
+                    const T FP=Av*delta*eps_xy*omega*sin(omega*theta_data(offset))*dSdy;
+                    T SP=(T)0.;
+                    if(dSdX_squared!=(T)0.) SP=Av*-(T)4.*eps_z*delta*dSdx*Nova_Utilities::Sqr(dSdz)/dSdX_squared;
+                    AvD0_data(offset)=FP+SP;}
         };
 
         SPGrid_Computations::Run_Parallel_Blocks(blocks,compute_avd0);
@@ -126,13 +126,12 @@ class Compute_AvD1
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
                 if(flags(offset)&Cell_Type_Interior){ 
                     const T dSdx=dSdx_data(offset); const T dSdy=dSdy_data(offset); const T dSdz=dSdz_data(offset);
-                    const T dSdx2_plus_dSdy2=Nova_Utilities::Sqr(dSdx)+Nova_Utilities::Sqr(dSdy); 
-                    const T dSdX_squared=dSdx2_plus_dSdy2+Nova_Utilities::Sqr(dSdz);
-                    const T Av=Av_data(offset); const T Av_prime=-delta*eps_xy*omega*sin(omega*theta_data(offset));
-                    const T FP=-Av_prime*dSdx/dSdx2_plus_dSdy2;
-                    const T SP=(T)4.*eps_z*delta*dSdy*delta*Nova_Utilities::Sqr(dSdz)/Nova_Utilities::Sqr(dSdX_squared);
-                    AvD1_data(offset)=-dSdX_squared*Av*(FP+SP);}
-                                 
+                    const T dSdX_squared=Nova_Utilities::Sqr(dSdx)+Nova_Utilities::Sqr(dSdy)+Nova_Utilities::Sqr(dSdz);
+                    const T Av=Av_data(offset);
+                    const T FP=Av*-delta*eps_xy*omega*sin(omega*theta_data(offset))*dSdx;
+                    T SP=(T)0.;
+                    if(dSdX_squared!=(T)0.) SP=Av*-(T)4.*eps_z*delta*dSdy*Nova_Utilities::Sqr(dSdz)/dSdX_squared;
+                    AvD1_data(offset)=FP+SP;}                 
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,compute_avd1);
     }
@@ -188,10 +187,11 @@ class Compute_AvD2
                 if(flags(offset)&Cell_Type_Interior){ 
                     const T dSdx=dSdx_data(offset); const T dSdy=dSdy_data(offset); const T dSdz=dSdz_data(offset);
                     const T dSdx2_plus_dSdy2=Nova_Utilities::Sqr(dSdx)+Nova_Utilities::Sqr(dSdy); 
-                    const T dSdX_squared=dSdx2_plus_dSdy2+Nova_Utilities::Sqr(dSdz);
+                    const T dSdX_squared=Nova_Utilities::Sqr(dSdx)+Nova_Utilities::Sqr(dSdy)+Nova_Utilities::Sqr(dSdz);
+                    if(dSdX_squared!=(T)0.){
                     const T Av=Av_data(offset);
-                    const T D2=-(T)4.*eps_z*delta*dSdz*dSdx2_plus_dSdy2/Nova_Utilities::Sqr(dSdX_squared);
-                    AvD2_data(offset)=-dSdX_squared*Av*D2;}
+                    const T D2=(T)4.*eps_z*delta*dSdz*dSdx2_plus_dSdy2/dSdX_squared;
+                    AvD2_data(offset)=Av*D2;}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,compute_avd2);
     }

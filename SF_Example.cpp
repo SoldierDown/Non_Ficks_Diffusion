@@ -8,6 +8,7 @@
 #include <nova/Tools/Krylov_Solvers/Conjugate_Gradient.h>
 #include <nova/Tools/Utilities/File_Utilities.h>
 #include "Apply_Pressure.h"
+#include "MinMax_Checker.h"
 #include "Boundary_Value_Initializer.h"
 #include "Uniform_Velocity_Field_Initializer.h"
 #include "Velocity_Field_Traverser.h"
@@ -118,7 +119,6 @@ Initialize_SPGrid()
     //Set_Neumann_Faces_Inside_Sources();
     hierarchy->Update_Block_Offsets();
     hierarchy->Initialize_Red_Black_Partition(2*number_of_threads);
-    // Boundary_Check<Struct_type,T,d>(*hierarchy,hierarchy->Allocator(0),hierarchy->Blocks(0));
 }
 //######################################################################
 // Limit_Dt
@@ -225,7 +225,7 @@ Advect_Face_Qtc(const T dt)
 // Update_Density
 //######################################################################
 template    <class T,int d> void SF_Example<T,d>::
- Update_Density(const T dt)
+Update_Density(const T dt)
 {
     if(explicit_diffusion) Explicitly_Update_Density(dt);
     else Implicitly_Update_Density(dt);    
@@ -238,7 +238,7 @@ Explicitly_Update_Density(const T dt)
 {
     Add_Novel_Divergence_Term_To_Density(dt);
     Add_Poly_Term_To_Density(dt);
-    Add_Random_Term_To_Density(dt);
+    // Add_Random_Term_To_Density(dt);
     Add_Laplacian_Term_To_Density(dt);
     if(!FICKS) Add_Divergence_Term_To_Density(dt);
 }
@@ -287,37 +287,25 @@ Add_Novel_Divergence_Term_To_Density(const T dt)
         SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),zeta(axis)*dt_over_tau_s,tmp_channel,density_channel,density_channel,Cell_Type_Interior);}
 }
 //######################################################################
-// Add_Differential_Term_To_Density
+// Add_Poly_Term_To_Density
 //######################################################################
 template<class T,int d> void SF_Example<T,d>::
-Add_Differential_Term_To_Density(const T dt)
+Add_Poly_Term_To_Density(const T dt)
 {
-    Channel_Vector dSdX_channels;
-    dSdX_channels(0)                = &Struct_type::ch22;
-    dSdX_channels(1)                = &Struct_type::ch23;
-    if(d==3) dSdX_channels(2)       = &Struct_type::ch24;
-
-    for(int axis=0;axis<d;++axis) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels(axis));
-    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),theta_channel);
-    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),Av_channel);
-    // compute dS/dx and dS/dy (dS/dz)
-    const TV one_over_2dx=(T).5*hierarchy->Lattice(0).one_over_dX;
-    for(int axis=0;axis<d;++axis)
-        Axis_Finite_Differential_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_backup_channel,dSdX_channels(axis),one_over_2dx(axis),axis);
-    // evaluate psi
-    Theta_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels,theta_channel);
-    // eps * eps' 
-    Epsilon_Epsilon_Prime_dSdX_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels,theta_channel,Av_channel,
-                                                        omega,delta,epsilon_xyz(0));
-
+    T Struct_type::* m_channel                     = &Struct_type::ch22;
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),m_channel);
+    SF_M_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),m_channel,T_backup_channel,m_alpha,K*gamma);
     const T dt_over_tau_s=dt/tau_s;
-    T Struct_type::* temp_channel = &Struct_type::ch26;    
-    for(int axis=0;axis<d;++axis){
-        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),temp_channel);
-        Axis_Finite_Differential_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels((axis+1)%d),temp_channel,one_over_2dx(axis),axis);
-        const T factor=pow(-1,axis+1);
-        SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),factor*dt_over_tau_s,temp_channel,density_channel,density_channel,Cell_Type_Interior);}
-
+    Density_Plus_Poly_Term_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,density_backup_channel,m_channel,dt_over_tau_s);
+}
+//######################################################################
+// Add_Random_Term_To_Density
+//######################################################################
+template<class T,int d> void SF_Example<T,d>::
+Add_Random_Term_To_Density(const T dt)
+{
+    const T random_value=random.Get_Uniform_Number(0,1);
+    Add_Random_Term<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,density_backup_channel,random_factor*dt/tau_s,random_value);
 }
 //######################################################################
 // Add_Laplacian_Term_To_Density
@@ -358,26 +346,40 @@ Add_Divergence_Term_To_Density(const T dt)
                                             density_channel,density_channel,Cell_Type_Interior);
 }
 //######################################################################
-// Add_Poly_Term_To_Density
+// Add_Differential_Term_To_Density
 //######################################################################
 template<class T,int d> void SF_Example<T,d>::
-Add_Poly_Term_To_Density(const T dt)
+Add_Differential_Term_To_Density(const T dt)
 {
-    T Struct_type::* m_channel                     = &Struct_type::ch22;
-    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),m_channel);
-    SF_M_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),m_channel,T_backup_channel,m_alpha,K*gamma);
+    Channel_Vector dSdX_channels;
+    dSdX_channels(0)                = &Struct_type::ch22;
+    dSdX_channels(1)                = &Struct_type::ch23;
+    if(d==3) dSdX_channels(2)       = &Struct_type::ch24;
+
+    for(int axis=0;axis<d;++axis) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels(axis));
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),theta_channel);
+    SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),Av_channel);
+    // compute dS/dx and dS/dy (dS/dz)
+    const TV one_over_2dx=(T).5*hierarchy->Lattice(0).one_over_dX;
+    for(int axis=0;axis<d;++axis)
+        Axis_Finite_Differential_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_backup_channel,dSdX_channels(axis),one_over_2dx(axis),axis);
+    // evaluate psi
+    Theta_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels,theta_channel);
+    // eps * eps' 
+    Epsilon_Epsilon_Prime_dSdX_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels,theta_channel,Av_channel,
+                                                        omega,delta,epsilon_xyz(0));
+
     const T dt_over_tau_s=dt/tau_s;
-    Density_Plus_Poly_Term_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,density_backup_channel,m_channel,dt_over_tau_s);
+    T Struct_type::* temp_channel = &Struct_type::ch26;    
+    for(int axis=0;axis<d;++axis){
+        SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),temp_channel);
+        Axis_Finite_Differential_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels((axis+1)%d),temp_channel,one_over_2dx(axis),axis);
+        const T factor=pow(-1,axis+1);
+        SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),factor*dt_over_tau_s,temp_channel,density_channel,density_channel,Cell_Type_Interior);}
+
 }
-//######################################################################
-// Add_Random_Term_To_Density
-//######################################################################
-template<class T,int d> void SF_Example<T,d>::
-Add_Random_Term_To_Density(const T dt)
-{
-    const T random_value=random.Get_Uniform_Number(0,1);
-    Add_Random_Term<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),density_channel,density_backup_channel,random_factor*dt/tau_s,random_value);
-}
+
+
 //######################################################################
 // Implicitly_Update_Density
 //######################################################################
@@ -750,6 +752,7 @@ Register_Options()
     parse_args->Add_Double_Argument("-SR",(T)0.,"SR.");
     parse_args->Add_Double_Argument("-bv",(T)0.,"background velocity");
     parse_args->Add_Double_Argument("-rf",(T).05,"random factor");
+    parse_args->Add_Double_Argument("-cw",(T).03,"cell width");
 
     parse_args->Add_Option_Argument("-ed","Explicit diffusion");
     parse_args->Add_Option_Argument("-uvf","Uniform velocity field.");
@@ -787,6 +790,7 @@ Parse_Options()
     fc_2=parse_args->Get_Double_Value("-fc2");
     gamma=parse_args->Get_Double_Value("-gamma");
     K=parse_args->Get_Double_Value("-K");
+    cell_width=parse_args->Get_Double_Value("-cw");
     delta=parse_args->Get_Double_Value("-delta");
     m_alpha=parse_args->Get_Double_Value("-ma");
     bv=parse_args->Get_Double_Value("-bv");

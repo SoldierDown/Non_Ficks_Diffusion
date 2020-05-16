@@ -38,7 +38,7 @@ class Beta_Calculator
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
                 if(flags(offset)&Cell_Type_Interior){ 
-                    const T minus_dSdz=-dSdz_data(offset);
+                    const T minus_dSdz=dSdz_data(offset);
                     const T partial_sqrt=sqrt(Nova_Utilities::Sqr(dSdx_data(offset))+Nova_Utilities::Sqr(dSdy_data(offset))); const T half_pi=(T).5*pi;
                     if(minus_dSdz==(T)0.) beta_data(offset)=half_pi;
                     else{ const T atan_value=atan(partial_sqrt/minus_dSdz);

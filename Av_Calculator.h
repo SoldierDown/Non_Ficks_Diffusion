@@ -42,7 +42,6 @@ class Av_Calculator
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
                 if(flags(offset)&Cell_Type_Interior) Av_data(offset)=delta*((T)1.+eps_xy*cos(omega*theta_data(offset)));
         };
-
         SPGrid_Computations::Run_Parallel_Blocks(blocks,av_calculator);
     }
     void Run(SPGrid::SPGrid_Allocator<Struct_type,3>& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
@@ -59,7 +58,6 @@ class Av_Calculator
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
                 if(flags(offset)&Cell_Type_Interior) Av_data(offset)=delta*((T)1.+eps_xy*cos(omega*theta_data(offset))+eps_z*cos((T)2.*beta_data(offset)));
         };
-
         SPGrid_Computations::Run_Parallel_Blocks(blocks,av_calculator);
     }
 

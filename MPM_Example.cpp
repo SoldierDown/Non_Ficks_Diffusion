@@ -1434,8 +1434,31 @@ Write_Output_Files(const int frame) const
 //######################################################################
 template<class T> void MPM_Example<T,2>::
 Read_Output_Files(const int frame)
-{
+{            
+    fluid_source.min_corner=TV({4.75,4.75});
+    fluid_source.max_corner=TV({5.25,5.25});
+
+    T_Barrier ground(0.,TV({0.,1.}),TV({0.,1}));
+    barriers.Append(ground);
+    T_Barrier ceiling(0.,TV({0.,-1.}),TV({0.,10}));
+    barriers.Append(ceiling);
+    T_Barrier left_wall(0.,TV({1.,0.}),TV({1,0.}));
+    barriers.Append(left_wall);
+    T_Barrier right_wall(0.,TV({-1.,0.}),TV({10,0.}));
+    barriers.Append(right_wall);    
+
     File_Utilities::Read_From_File(output_directory+"/"+std::to_string(frame)+"/particles",particles);
+    Populate_Simulated_Particles();
+    waiting_particles=simulated_particles;
+    Initialize_SPGrid();
+    particle_bins.Resize(threads,threads);
+    Log::cout<<"barrier size: "<<barriers.size()<<std::endl;
+    Reset_Grid_Based_Variables();
+    Update_Particle_Weights();
+    Group_Particles();
+    Rasterize_Voxels();
+    Rasterize();
+    Process_Waiting_Particles();
 }
 //######################################################################
 // Read_Output_Files
@@ -1444,6 +1467,17 @@ template<class T> void MPM_Example<T,3>::
 Read_Output_Files(const int frame)
 {
     File_Utilities::Read_From_File(output_directory+"/"+std::to_string(frame)+"/particles",particles);
+    Populate_Simulated_Particles();
+    waiting_particles=simulated_particles;
+    Initialize_SPGrid();
+    particle_bins.Resize(threads,threads);
+    Log::cout<<"barrier size: "<<barriers.size()<<std::endl;
+    Reset_Grid_Based_Variables();
+    Update_Particle_Weights();
+    Group_Particles();
+    Rasterize_Voxels();
+    Rasterize();
+    Process_Waiting_Particles();
 }
 //######################################################################
 

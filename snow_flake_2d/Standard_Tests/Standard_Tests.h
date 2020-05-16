@@ -31,7 +31,7 @@ class Standard_Tests: public SF_Example<T,d>
   public:
     using Base::output_directory; using Base::test_number;using Base::counts;using Base::levels;using Base::domain_walls;using Base::hierarchy;using Base::rasterizer;
     using Base::cfl;    using Base::density_sources; using Base::velocity_sources;    using Base::density_channel; using Base::T_channel;
-    using Base::omega;  using Base::FICKS; using Base::const_density_value; using Base::K;
+    using Base::omega;  using Base::FICKS; using Base::const_density_value; using Base::K; using Base::cell_width;
     using Base::explicit_diffusion;
     /****************************
      * example explanation:
@@ -49,7 +49,7 @@ class Standard_Tests: public SF_Example<T,d>
         Base::Parse_Options();
         output_directory=(explicit_diffusion?(FICKS?"Snow_Flake_F_":"Snow_Flake_NF_"):(FICKS?"Implicit_Snow_Flake_F_":"Implicit_Snow_Flake_NF_"))+std::to_string(d)+"d_"+"case"+std::to_string(test_number)+"_"+std::to_string(omega)+"branches_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
         for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=false;
-        TV min_corner,max_corner=TV(4.);
+        TV min_corner,max_corner=TV(cell_width*counts(0));
         hierarchy=new Hierarchy(counts,Range<T,d>(min_corner,max_corner),levels);
     }
 //######################################################################
@@ -83,8 +83,8 @@ class Standard_Tests: public SF_Example<T,d>
 //######################################################################
     void Initialize_Sources() override
     {
-        const T radius=(T).04;
-        const TV center=TV(2.);
+        const T radius=(T)2.*cell_width;
+        const TV center=TV((T).5*cell_width*counts(0));
         Implicit_Object<T,d>* obj=new Sphere_Implicit_Object<T,d>(center,radius);
         density_sources.Append(obj);
     }
