@@ -77,14 +77,14 @@ class Standard_Tests: public SF_Example<T,d>
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                 const T_INDEX index=base_index+range_iterator.Index();
                 if(flags(offset)&Cell_Type_Interior && density_sources(0)->Inside(hierarchy->Lattice(0).Center(index))) density_data(offset)=const_density_value;
-                T_data(offset)=T0;
+                T_data(offset)=-(T)1./K;
                 range_iterator.Next();}}
     }
 //######################################################################
     void Initialize_Sources() override
     {
-        const T radius=(T)2.*cell_width;
-        const TV center=TV({(T).5*cell_width*counts(0),(T).5*cell_width*counts(1),(T).5*cell_width*counts(2)});
+        const T radius=(T)4.*cell_width;
+        const TV center=TV({(T).5*cell_width*counts(0),(T)0.,(T).5*cell_width*counts(2)});
         Implicit_Object<T,d>* obj=new Sphere_Implicit_Object<T,d>(center,radius);
         density_sources.Append(obj);
     }
