@@ -61,7 +61,7 @@ SF_Example()
 {
     random.Set_Seed(0);
     
-    zeta=TV(1.); epsilon_xyz=Vector<T,2>({.01,.01}); 
+    Gamma=TV(1.); epsilon_xyz=Vector<T,2>({.01,.01}); 
 
     density_channel                         = &Struct_type::ch0;            // intermedia 
     density_backup_channel                  = &Struct_type::ch1;            // S^n
@@ -273,19 +273,19 @@ Add_Novel_Divergence_Term_To_Density(const T dt)
     if(d==3) Beta_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels,beta_channel);
     
     // Compute Av
-    Av_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),Av_channel,theta_channel,beta_channel,epsilon_xyz,delta,omega);
+    Av_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),Av_channel,theta_channel,beta_channel,epsilon_xyz,delta,omega,zeta);
     
     // compute AvD0, AvD1, (AvD2)
-    Compute_AvD0<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels,Av_channel,AvD_channels(0),theta_channel,epsilon_xyz,delta,omega);
-    Compute_AvD1<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels,Av_channel,AvD_channels(1),theta_channel,epsilon_xyz,delta,omega);
-    if(d==3) Compute_AvD2<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels,Av_channel,AvD_channels(2),epsilon_xyz,delta,omega);
+    Compute_AvD0<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels,Av_channel,AvD_channels(0),theta_channel,beta_channel,epsilon_xyz,delta,omega,zeta);
+    Compute_AvD1<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels,Av_channel,AvD_channels(1),theta_channel,beta_channel,epsilon_xyz,delta,omega,zeta);
+    if(d==3) Compute_AvD2<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),dSdX_channels,Av_channel,AvD_channels(2),beta_channel,epsilon_xyz,delta,omega,zeta);
 
     T Struct_type::* tmp_channel            = &Struct_type::ch28;
     const T dt_over_tau_s=dt/tau_s;
     for(int axis=0;axis<d;++axis){
         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),tmp_channel);
         Axis_Finite_Differential_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),AvD_channels(axis),tmp_channel,one_over_2dx(axis),axis);
-        SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),zeta(axis)*dt_over_tau_s,tmp_channel,density_channel,density_channel,Cell_Type_Interior);}
+        SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),Gamma(axis)*dt_over_tau_s,tmp_channel,density_channel,density_channel,Cell_Type_Interior);}
 }
 //######################################################################
 // Add_Poly_Term_To_Density
@@ -325,9 +325,9 @@ Add_Laplacian_Term_To_Density(const T dt)
     const T one_over_dx=hierarchy->Lattice(0).one_over_dX(0);
     SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),divergence_channel);
     for(int axis=0;axis<d;++axis) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),Av2_grad_s_channels(axis));
-    SF_Av_Squared_Grad_Star_S_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),Av2_grad_s_channels,Av_channel,density_backup_channel,(T)1.,zeta,one_over_dx);
+    SF_Av_Squared_Grad_Star_S_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),Av2_grad_s_channels,Av_channel,density_backup_channel,(T)1.,Gamma,one_over_dx);
     
-    Hierarchy_Projection::Compute_Divergence_Star(*hierarchy,Av2_grad_s_channels,divergence_channel,zeta); 
+    Hierarchy_Projection::Compute_Divergence_Star(*hierarchy,Av2_grad_s_channels,divergence_channel,Gamma); 
     SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),-fc_1*dt_over_tau_s,divergence_channel,
                                             density_channel,density_channel,Cell_Type_Interior);
 }
@@ -424,7 +424,7 @@ template<class T,int d> void SF_Example<T,d>::
 Add_Gradient_Term_To_Face_Qsc(const T dt)
 {
     const T minus_dt_over_tau_1=-dt/tau_1; const TV one_over_dx=hierarchy->Lattice(0).one_over_dX;
-    SF_Av_Squared_Grad_Star_S_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),face_qsc_channels,Av_channel,density_backup_channel,(1-fc_1)*minus_dt_over_tau_1,zeta,one_over_dx);
+    SF_Av_Squared_Grad_Star_S_Helper<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),face_qsc_channels,Av_channel,density_backup_channel,(1-fc_1)*minus_dt_over_tau_1,Gamma,one_over_dx);
 }
 //######################################################################
 // Implicitly_Update_Face_Qsc
@@ -484,7 +484,7 @@ Add_Laplacian_Term_To_Temperature(const T dt)
     if(FICKS) fc_2=(T)1.;
     const T one_over_dx2=Nova_Utilities::Sqr(hierarchy->Lattice(0).one_over_dX(0)); 
     SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),lap_T_channel);
-    Lap_Star_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),T_backup_channel,lap_T_channel,zeta,one_over_dx2);
+    Lap_Star_Calculator<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),T_backup_channel,lap_T_channel,Gamma,one_over_dx2);
     SPGrid::Masked_Saxpy<Struct_type,T,d>(hierarchy->Allocator(0),hierarchy->Blocks(0),fc_2*dt,lap_T_channel,T_channel,T_channel,Cell_Type_Interior);
 }
 //######################################################################
@@ -721,7 +721,7 @@ Log_Parameters() const
     *output<<"gamma="<<gamma<<std::endl;
     *output<<"K="<<K<<std::endl;
     *output<<"delta="<<delta<<std::endl;
-    *output<<"zeta="<<zeta<<std::endl;
+    *output<<"Gamma="<<Gamma<<std::endl;
     *output<<"epsilon="<<epsilon_xyz<<std::endl;
     *output<<"m_alpha="<<m_alpha<<std::endl;
     *output<<"SR="<<SR<<std::endl;
@@ -738,6 +738,7 @@ Register_Options()
     // for phase field
     parse_args->Add_Option_Argument("-ficks","Fick's diffusion");
     parse_args->Add_Integer_Argument("-omega",6,"Number of branches.");
+    parse_args->Add_Integer_Argument("-zeta",6,"zeta");
     parse_args->Add_Double_Argument("-cdv",(T)1.,"Constant density value.");
     parse_args->Add_Double_Argument("-taus",(T).0003,"tau s.");
     parse_args->Add_Double_Argument("-tau1",(T).0001,"tau 1.");
@@ -746,9 +747,9 @@ Register_Options()
     parse_args->Add_Double_Argument("-fc2",(T)0.,"Fc 2.");
     parse_args->Add_Double_Argument("-gamma",(T)10.,"gamma.");
     parse_args->Add_Double_Argument("-K",(T)4.,"K");
-    parse_args->Add_Double_Argument("-T0",(T)-.25,"K");
+    parse_args->Add_Double_Argument("-T0",(T)-.25,"Initial temperature");
     parse_args->Add_Double_Argument("-delta",(T).01,"delta.");
-    parse_args->Add_Double_Argument("-zeta",(T).25,"Zeta.");
+    parse_args->Add_Double_Argument("-Gamma",(T).25,"Gamma.");
 
     parse_args->Add_Double_Argument("-ma",(T).9,"m_alpha.");
     parse_args->Add_Double_Argument("-SR",(T)0.,"SR.");
@@ -800,8 +801,9 @@ Parse_Options()
     random_factor=parse_args->Get_Double_Value("-rf");
     epsilon_xyz(0)=parse_args->Get_Double_Value("-eps_xy");
     epsilon_xyz(1)=parse_args->Get_Double_Value("-eps_z");
-    if(d==3) zeta(2)=parse_args->Get_Double_Value("-zeta");
+    if(d==3) Gamma(2)=parse_args->Get_Double_Value("-Gamma");
     omega=parse_args->Get_Integer_Value("-omega");
+    zeta=parse_args->Get_Integer_Value("-zeta");
     FICKS=parse_args->Get_Option_Value("-ficks");
     explicit_diffusion=parse_args->Get_Option_Value("-ed");
     uvf=parse_args->Get_Option_Value("-uvf");
@@ -820,7 +822,7 @@ Parse_Options()
     cg_restart_iterations=parse_args->Get_Integer_Value("-cg_restart_iterations");
     cg_tolerance=(T)parse_args->Get_Double_Value("-cg_tolerance");
     if(FICKS){fc_1=(T)1.; fc_2=(T)1.;}
-    Log::cout<<"epsilon: "<<epsilon_xyz<<", m_alpha: "<<m_alpha<<", delta: "<<delta<<", zeta: "<<zeta<<", gamma: "<<gamma<<std::endl;
+    Log::cout<<"epsilon: "<<epsilon_xyz<<", m_alpha: "<<m_alpha<<", delta: "<<delta<<", Gamma: "<<Gamma<<", gamma: "<<gamma<<std::endl;
 }
 //######################################################################
 // Write_Output_Files

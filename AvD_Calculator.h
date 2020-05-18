@@ -25,13 +25,15 @@ class Compute_AvD0
 
   public:
     Compute_AvD0(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-                Channel_Vector& dSdX_channels,T Struct_type::* Av_channel,T Struct_type::* AvD0_channel,T Struct_type::* theta_channel,
-                const Vector<T,2> epsilon,const T delta,const int omega)
-    {Run(allocator,blocks,dSdX_channels,Av_channel,AvD0_channel,theta_channel,epsilon,delta,omega);}
+                Channel_Vector& dSdX_channels,T Struct_type::* Av_channel,T Struct_type::* AvD0_channel,
+                T Struct_type::* theta_channel,T Struct_type::* beta_channel,
+                const Vector<T,2> epsilon,const T delta,const int omega,const int zeta)
+    {Run(allocator,blocks,dSdX_channels,Av_channel,AvD0_channel,theta_channel,beta_channel,epsilon,delta,omega,zeta);}
 
     void Run(SPGrid::SPGrid_Allocator<Struct_type,2>& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-            Vector<T Struct_type::*,2>& dSdX_channels,T Struct_type::* Av_channel,T Struct_type::* AvD0_channel,T Struct_type::* theta_channel,
-            const Vector<T,2> epsilon,const T delta,const int omega) const
+            Vector<T Struct_type::*,2>& dSdX_channels,T Struct_type::* Av_channel,T Struct_type::* AvD0_channel,
+            T Struct_type::* theta_channel,T Struct_type::* beta_channel,
+            const Vector<T,2> epsilon,const T delta,const int omega,const int zeta) const
     {
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto AvD0_data=allocator.template Get_Array<Struct_type,T>(AvD0_channel); auto Av_data=allocator.template Get_Const_Array<Struct_type,T>(Av_channel);
@@ -48,12 +50,14 @@ class Compute_AvD0
         SPGrid_Computations::Run_Parallel_Blocks(blocks,compute_avd0);
     }
     void Run(SPGrid::SPGrid_Allocator<Struct_type,3>& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-            Vector<T Struct_type::*,3>& dSdX_channels,T Struct_type::* Av_channel,T Struct_type::* AvD0_channel,T Struct_type::* theta_channel,
-            const Vector<T,2> epsilon,const T delta,const int omega) const
+            Vector<T Struct_type::*,3>& dSdX_channels,T Struct_type::* Av_channel,T Struct_type::* AvD0_channel,
+            T Struct_type::* theta_channel,T Struct_type::* beta_channel,
+            const Vector<T,2> epsilon,const T delta,const int omega,const int zeta) const
     {
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto AvD0_data=allocator.template Get_Array<Struct_type,T>(AvD0_channel); auto Av_data=allocator.template Get_Const_Array<Struct_type,T>(Av_channel);
         auto theta_data=allocator.template Get_Const_Array<Struct_type,T>(theta_channel);
+        auto beta_data=allocator.template Get_Const_Array<Struct_type,T>(beta_channel);
         auto dSdx_data=allocator.template Get_Const_Array<Struct_type,T>(dSdX_channels(0)); 
         auto dSdy_data=allocator.template Get_Const_Array<Struct_type,T>(dSdX_channels(1));
         auto dSdz_data=allocator.template Get_Const_Array<Struct_type,T>(dSdX_channels(2));
@@ -67,7 +71,7 @@ class Compute_AvD0
                     const T Av=Av_data(offset);
                     const T FP=Av*delta*eps_xy*omega*sin(omega*theta_data(offset))*dSdy;
                     T SP=(T)0.;
-                    if(dSdX_squared!=(T)0.) SP=Av*-(T)4.*eps_z*delta*dSdx*Nova_Utilities::Sqr(dSdz)/dSdX_squared;
+                    if(dSdX_squared!=(T)0.) SP=Av*zeta*eps_z*delta*dSdx*dSdz*sin(zeta*beta_data(offset))/sqrt(dSdX_squared);
                     AvD0_data(offset)=FP+SP;}
         };
 
@@ -88,13 +92,15 @@ class Compute_AvD1
 
   public:
     Compute_AvD1(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-                Channel_Vector& dSdX_channels,T Struct_type::* Av_channel,T Struct_type::* AvD1_channel,T Struct_type::* theta_channel,
-                const Vector<T,2> epsilon,const T delta,const int omega)
-    {Run(allocator,blocks,dSdX_channels,Av_channel,AvD1_channel,theta_channel,epsilon,delta,omega);}
+                Channel_Vector& dSdX_channels,T Struct_type::* Av_channel,T Struct_type::* AvD1_channel,
+                T Struct_type::* theta_channel,T Struct_type::* beta_channel,
+                const Vector<T,2> epsilon,const T delta,const int omega,const int zeta)
+    {Run(allocator,blocks,dSdX_channels,Av_channel,AvD1_channel,theta_channel,beta_channel,epsilon,delta,omega,zeta);}
 
     void Run(SPGrid::SPGrid_Allocator<Struct_type,2>& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-            Vector<T Struct_type::*,2>& dSdX_channels,T Struct_type::* Av_channel,T Struct_type::* AvD1_channel,T Struct_type::* theta_channel,
-            const Vector<T,2> epsilon,const T delta,const int omega) const
+            Vector<T Struct_type::*,2>& dSdX_channels,T Struct_type::* Av_channel,T Struct_type::* AvD1_channel,
+            T Struct_type::* theta_channel,T Struct_type::* beta_channel,
+            const Vector<T,2> epsilon,const T delta,const int omega,const int zeta) const
     {
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto AvD1_data=allocator.template Get_Array<Struct_type,T>(AvD1_channel); auto Av_data=allocator.template Get_Const_Array<Struct_type,T>(Av_channel);
@@ -111,12 +117,14 @@ class Compute_AvD1
         SPGrid_Computations::Run_Parallel_Blocks(blocks,compute_avd1);
     }
     void Run(SPGrid::SPGrid_Allocator<Struct_type,3>& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-            Vector<T Struct_type::*,3>& dSdX_channels,T Struct_type::* Av_channel,T Struct_type::* AvD1_channel,T Struct_type::* theta_channel,
-            const Vector<T,2> epsilon,const T delta,const int omega) const
+            Vector<T Struct_type::*,3>& dSdX_channels,T Struct_type::* Av_channel,T Struct_type::* AvD1_channel,
+            T Struct_type::* theta_channel,T Struct_type::* beta_channel,
+            const Vector<T,2> epsilon,const T delta,const int omega,const int zeta) const
     {
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto AvD1_data=allocator.template Get_Array<Struct_type,T>(AvD1_channel); auto Av_data=allocator.template Get_Const_Array<Struct_type,T>(Av_channel);
         auto theta_data=allocator.template Get_Const_Array<Struct_type,T>(theta_channel);
+        auto beta_data=allocator.template Get_Const_Array<Struct_type,T>(beta_channel);
         auto dSdx_data=allocator.template Get_Const_Array<Struct_type,T>(dSdX_channels(0)); 
         auto dSdy_data=allocator.template Get_Const_Array<Struct_type,T>(dSdX_channels(1));
         auto dSdz_data=allocator.template Get_Const_Array<Struct_type,T>(dSdX_channels(2));
@@ -130,7 +138,7 @@ class Compute_AvD1
                     const T Av=Av_data(offset);
                     const T FP=Av*-delta*eps_xy*omega*sin(omega*theta_data(offset))*dSdx;
                     T SP=(T)0.;
-                    if(dSdX_squared!=(T)0.) SP=Av*-(T)4.*eps_z*delta*dSdy*Nova_Utilities::Sqr(dSdz)/dSdX_squared;
+                    if(dSdX_squared!=(T)0.) SP=Av*zeta*eps_z*delta*dSdy*dSdz*sin(zeta*beta_data(offset))/sqrt(dSdX_squared);
                     AvD1_data(offset)=FP+SP;}                 
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,compute_avd1);
@@ -151,13 +159,14 @@ class Compute_AvD2
 
   public:
     Compute_AvD2(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-                Channel_Vector& dSdX_channels,T Struct_type::* Av_channel,T Struct_type::* AvD2_channel,
-                const Vector<T,2> epsilon,const T delta,const int omega)
-    {Run(allocator,blocks,dSdX_channels,Av_channel,AvD2_channel,epsilon,delta,omega);}
+                Channel_Vector& dSdX_channels,T Struct_type::* Av_channel,T Struct_type::* AvD2_channel,T Struct_type::* beta_channel,
+                const Vector<T,2> epsilon,const T delta,const int omega,const int zeta)
+    {Run(allocator,blocks,dSdX_channels,Av_channel,AvD2_channel,beta_channel,epsilon,delta,omega,zeta);}
 
     void Run(SPGrid::SPGrid_Allocator<Struct_type,2>& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-            Vector<T Struct_type::*,2>& dSdX_channels,T Struct_type::* Av_channel,T Struct_type::* AvD2_channel,
-            const Vector<T,2> epsilon,const T delta,const int omega) const
+            Vector<T Struct_type::*,2>& dSdX_channels,T Struct_type::* Av_channel,
+            T Struct_type::* AvD2_channel,T Struct_type::* beta_channel,
+            const Vector<T,2> epsilon,const T delta,const int omega,const int zeta) const
     {
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto AvD2_data=allocator.template Get_Array<Struct_type,T>(AvD2_channel);
@@ -171,12 +180,14 @@ class Compute_AvD2
     }
 
     void Run(SPGrid::SPGrid_Allocator<Struct_type,3>& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
-            Vector<T Struct_type::*,3>& dSdX_channels,T Struct_type::* Av_channel,T Struct_type::* AvD2_channel,
-            const Vector<T,2> epsilon,const T delta,const int omega) const
+            Vector<T Struct_type::*,3>& dSdX_channels,T Struct_type::* Av_channel,
+            T Struct_type::* AvD2_channel,T Struct_type::* beta_channel,
+            const Vector<T,2> epsilon,const T delta,const int omega,const int zeta) const
     {
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto AvD2_data=allocator.template Get_Array<Struct_type,T>(AvD2_channel);
         auto Av_data=allocator.template Get_Const_Array<Struct_type,T>(Av_channel);
+        auto beta_data=allocator.template Get_Const_Array<Struct_type,T>(beta_channel);
         auto dSdx_data=allocator.template Get_Const_Array<Struct_type,T>(dSdX_channels(0)); 
         auto dSdy_data=allocator.template Get_Const_Array<Struct_type,T>(dSdX_channels(1));
         auto dSdz_data=allocator.template Get_Const_Array<Struct_type,T>(dSdX_channels(2));
@@ -190,7 +201,7 @@ class Compute_AvD2
                     const T dSdX_squared=Nova_Utilities::Sqr(dSdx)+Nova_Utilities::Sqr(dSdy)+Nova_Utilities::Sqr(dSdz);
                     if(dSdX_squared!=(T)0.){
                     const T Av=Av_data(offset);
-                    const T D2=(T)4.*eps_z*delta*dSdz*dSdx2_plus_dSdy2/dSdX_squared;
+                    const T D2=-zeta*eps_z*sin(zeta*beta_data(offset));
                     AvD2_data(offset)=Av*D2;}}
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,compute_avd2);

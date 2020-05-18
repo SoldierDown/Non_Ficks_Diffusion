@@ -47,6 +47,7 @@ class SF_Example: public Example<T,d>
     // for updating m_channel
     T m_alpha,gamma;
     // for updating epsilon_channel
+    T zeta;
     int omega;
     T cell_width;
     T delta;
@@ -79,7 +80,7 @@ class SF_Example: public Example<T,d>
     Channel_Vector face_velocity_channels;
 
     Vector<Vector<bool,2>,d> domain_walls;
-    Vector<T,d> zeta;
+    Vector<T,d> Gamma;
     Vector<T,2> epsilon_xyz;
     
     Array<Implicit_Object<T,d>*> velocity_sources;

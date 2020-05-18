@@ -26,12 +26,12 @@ class Av_Calculator
   public:
     Av_Calculator(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
                 T Struct_type::* Av_channel,T Struct_type::* theta_channel,T Struct_type::* beta_channel,
-                const Vector<T,2> epsilon,const T delta,const int omega)
-    {Run(allocator,blocks,Av_channel,theta_channel,beta_channel,epsilon,delta,omega);}
+                const Vector<T,2> epsilon,const T delta,const int omega,const int zeta)
+    {Run(allocator,blocks,Av_channel,theta_channel,beta_channel,epsilon,delta,omega,zeta);}
 
     void Run(SPGrid::SPGrid_Allocator<Struct_type,2>& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
             T Struct_type::* Av_channel,T Struct_type::* theta_channel,T Struct_type::* beta_channel,
-            const Vector<T,2> epsilon,const T delta,const int omega) const
+            const Vector<T,2> epsilon,const T delta,const int omega,const int zeta) const
     {
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags); 
         auto Av_data=allocator.template Get_Array<Struct_type,T>(Av_channel);
@@ -46,7 +46,7 @@ class Av_Calculator
     }
     void Run(SPGrid::SPGrid_Allocator<Struct_type,3>& allocator,const std::pair<const uint64_t*,unsigned>& blocks,
             T Struct_type::* Av_channel,T Struct_type::* theta_channel,T Struct_type::* beta_channel,
-            const Vector<T,2> epsilon,const T delta,const int omega) const
+            const Vector<T,2> epsilon,const T delta,const int omega,const int zeta) const
     {
         auto flags=allocator.template Get_Const_Array<Struct_type,unsigned>(&Struct_type::flags); 
         auto Av_data=allocator.template Get_Array<Struct_type,T>(Av_channel);
@@ -56,7 +56,7 @@ class Av_Calculator
         auto av_calculator=[&](uint64_t offset)
         {
             for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))
-                if(flags(offset)&Cell_Type_Interior) Av_data(offset)=delta*((T)1.+eps_xy*cos(omega*theta_data(offset))+eps_z*cos((T)2.*beta_data(offset)));
+                if(flags(offset)&Cell_Type_Interior) Av_data(offset)=delta*((T)1.+eps_xy*cos(omega*theta_data(offset))+eps_z*cos(zeta*beta_data(offset)));
         };
         SPGrid_Computations::Run_Parallel_Blocks(blocks,av_calculator);
     }
