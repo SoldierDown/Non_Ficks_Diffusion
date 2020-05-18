@@ -236,9 +236,10 @@ Update_Density(const T dt)
 template<class T,int d> void SF_Example<T,d>::
 Explicitly_Update_Density(const T dt)
 {
-    Add_Novel_Divergence_Term_To_Density(dt);
+    Add_Differential_Term_To_Density(dt);
+    // Add_Novel_Divergence_Term_To_Density(dt);
     Add_Poly_Term_To_Density(dt);
-    // Add_Random_Term_To_Density(dt);
+    Add_Random_Term_To_Density(dt);
     Add_Laplacian_Term_To_Density(dt);
     if(!FICKS) Add_Divergence_Term_To_Density(dt);
 }

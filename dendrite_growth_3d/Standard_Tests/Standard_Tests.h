@@ -50,8 +50,7 @@ class Standard_Tests: public DG_Example<T,d>
         Base::Parse_Options();
         output_directory=(explicit_diffusion?(FICKS?"Dendrite_Growth_F_":"Dendrite_Growth_NF_"):(FICKS?"Implicit_Dendrite_Growth_F_":"Implicit_Dendrite_Growth_NF_"))+std::to_string(d)+"d_case"+std::to_string(test_number)+"_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1))+"x"+std::to_string(counts(2));
         for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=true;
-        TV min_corner,max_corner=TV(cell_width*counts(0));
-        max_corner(1)=cell_width*counts(1);
+        TV min_corner,max_corner=cell_width*TV({(T)counts(0),(T)counts(1),(T)counts(2)});
         hierarchy=new Hierarchy(counts,Range<T,d>(min_corner,max_corner),levels);
     }
 //######################################################################

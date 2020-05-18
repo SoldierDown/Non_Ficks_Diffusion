@@ -658,12 +658,11 @@ Modify_Density_With_Sources()
 //######################################################################
 // Initialize_Velocity_Field
 //######################################################################
-// template<class T,int d> void DG_Example<T,d>::
-// Initialize_Velocity_Field()
-// {
-//     
-//         Uniform_Velocity_Field_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(0),face_velocity_channels,bv,0);
-// }
+template<class T,int d> void DG_Example<T,d>::
+Initialize_Velocity_Field()
+{
+    Uniform_Velocity_Field_Initializer<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(0),face_velocity_channels,bv,0);
+}
 //######################################################################
 // Project
 //######################################################################
@@ -744,6 +743,7 @@ Register_Options()
     parse_args->Add_Double_Argument("-delta",(T).2,"delta.");
     parse_args->Add_Double_Argument("-eps",(T)1.e-2,"epsilon.");
     parse_args->Add_Double_Argument("-K",(T)2.,"K.");
+    parse_args->Add_Double_Argument("-bv",(T)1.,"background velocity.");
 
     parse_args->Add_Double_Argument("-ma",(T).9,"m_alpha.");
     parse_args->Add_Double_Argument("-SR",(T)0.,"SR.");
@@ -784,6 +784,7 @@ Parse_Options()
     gamma=parse_args->Get_Double_Value("-gamma");
     delta=parse_args->Get_Double_Value("-delta");
     K=parse_args->Get_Double_Value("-K");
+    bv=parse_args->Get_Double_Value("-bv");
     epsilon=parse_args->Get_Double_Value("-eps");
     m_alpha=parse_args->Get_Double_Value("-ma");
     random_factor=parse_args->Get_Double_Value("-rf");

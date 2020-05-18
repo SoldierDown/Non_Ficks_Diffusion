@@ -30,6 +30,12 @@ inline T clamp(T a, T lower, T upper)
     else if(a>upper) return upper;
     else return a;
 }
+template<class T>
+inline T pos(T a)
+{   
+    if(a<(T)0.) return (T)0.;
+    else return a;
+}
 template<class T,int d>
 class OpenVDB_Converter
 {
@@ -135,6 +141,7 @@ class OpenVDB_Converter
         std::istream* input1=File_Utilities::Safe_Open_Input(ss.str()+"/flags");
         std::istream* input2=File_Utilities::Safe_Open_Input(ss.str()+"/block_offsets");
 
+        
         // check for density
         bool draw_density=File_Utilities::File_Exists(ss.str()+"/spgrid_density",false);
         std::istream* input3=draw_density?File_Utilities::Safe_Open_Input(ss.str()+"/spgrid_density"):nullptr;
@@ -159,7 +166,6 @@ class OpenVDB_Converter
             openvdb::FloatGrid::Ptr mygrid = openvdb::FloatGrid::create(); 
             mygrid->setTransform(openvdb::math::Transform::createLinearTransform(256./xm*0.1f));
             std::cout<<"cell width: "<<mygrid->voxelSize()[0]<<std::endl;
-#pragma omp parallel for
             for(int cell_id=0;cell_id<voxels.size();++cell_id){
                 openvdb::FloatGrid::Accessor accessor = mygrid->getAccessor();
                 const int i=cell_id/(ym*zm); const int j=(cell_id-i*ym*zm)/zm; const int k=cell_id-i*ym*zm-j*zm;
@@ -173,7 +179,7 @@ class OpenVDB_Converter
                         int iter_id=Cell_ID(iter_cell_index(0)-1,iter_cell_index(1)-1,iter_cell_index(2)-1);
                         if(iter_id==-1) ;
                         else{TV iter_cell_location=grid.Center(iter_cell_index);
-                        T iter_density=voxels[iter_id].density; T factor=1.;
+                        T iter_density=pos(voxels[iter_id].density); T factor=1.;
                         for(int axis=0;axis<3;++axis){ T delta_dis=1.-abs(iter_cell_location(axis)-node_location(axis))/dx; factor*=delta_dis;}
                         interpolated_density+=factor*iter_density;}}
                         interpolated_density*=density_factor;
@@ -182,7 +188,7 @@ class OpenVDB_Converter
                         interpolated_density=pow(interpolated_density,gamma_l)*((T)1.-interpolated_density)
                                             +pow(interpolated_density,gamma_u)*interpolated_density;}
 
-                        if(interpolated_density>threshold){ openvdb::Coord xyz(node_ijk(0),node_ijk(1),node_ijk(2));
+                        if(interpolated_density>=threshold){ openvdb::Coord xyz(node_ijk(0),node_ijk(1),node_ijk(2));
                             accessor.setValue(xyz,interpolated_density);}}
             }
 
@@ -195,22 +201,25 @@ class OpenVDB_Converter
             openvdb::FloatGrid::Ptr mygrid = openvdb::FloatGrid::create();
             mygrid->setTransform(openvdb::math::Transform::createLinearTransform(512./xm*0.1f));
             std::cout<<"cell width: "<<mygrid->voxelSize()[0]<<std::endl;
-
-#pragma omp parallel for
+            T min_density=(T)1.e10; T max_density=(T)-1.e10;
             for(int cell_id=0;cell_id<voxels.size();++cell_id){
                 openvdb::FloatGrid::Accessor accessor = mygrid->getAccessor();
                 const int i=cell_id/(ym*zm); const int j=(cell_id-i*ym*zm)/zm; const int k=cell_id-i*ym*zm-j*zm;
-                T cell_density=voxels[cell_id].density;
+                T cell_density=pos(voxels[cell_id].density);
                 cell_density*=density_factor;
                 // transform: 
                 if(tr){cell_density=(clamp(cell_density,l,u)-l)/(u-l);
-                cell_density=pow(cell_density,gamma_l)*((T)1.-cell_density)+pow(cell_density,gamma_u)*cell_density;}                
-                if(cell_density>threshold){ openvdb::Coord xyz(i,j,k);
+                cell_density=pow(cell_density,gamma_l)*((T)1.-cell_density)+pow(cell_density,gamma_u)*cell_density;}              
+                
+                
+                
+                if(cell_density>=threshold){ openvdb::Coord xyz(i,j,k);
                     accessor.setValue(xyz,cell_density);}}
             string output_filename=output_directory+"/converted_data/"+std::to_string(current_frame/step)+".vdb";
             mygrid->setName("density");
-            openvdb::io::File(output_filename).write({mygrid});}
-
+            openvdb::io::File(output_filename).write({mygrid});
+            std::cout<<"min: "<<min_density<<", max: "<<max_density<<std::endl;}
+        
         delete input2;delete input1;
         if(input3!=nullptr) delete input3;
     }

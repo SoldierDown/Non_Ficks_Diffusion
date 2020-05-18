@@ -46,6 +46,7 @@ class DG_Example: public Example<T,d>
     // for updating m_channel
     T m_alpha,gamma;
     // for updating epsilon_channel
+    T bv;
     T cell_width;
     T K;
     T epsilon;
@@ -139,7 +140,7 @@ class DG_Example: public Example<T,d>
     void Modify_Density_With_Sources();
     // void Add_Source(const T dt);
     // void Set_Neumann_Faces_Inside_Sources();
-    // void Initialize_Velocity_Field();
+    void Initialize_Velocity_Field();
     void Register_Options() override;
     void Parse_Options() override;
     void Read_Output_Files(const int frame);

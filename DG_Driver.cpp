@@ -25,7 +25,7 @@ Initialize()
     if(!example.restart) example.Initialize();
     else example.Read_Output_Files(example.restart_frame);
 
-    // example.Initialize_Velocity_Field();
+    example.Initialize_Velocity_Field();
     example.Backup();
 }
 //######################################################################
@@ -34,6 +34,9 @@ Initialize()
 template<class T,int d> void DG_Driver<T,d>::
 Advance_One_Time_Step_Explicit_Part(const T dt,const T time)
 {
+    // example.Advect_Scalar_Field(dt);
+    // if(!example.FICKS) example.Advect_Face_Vector_Field(dt);
+    
     if(example.FICKS){example.Update_Density(dt); example.Update_Temperature(dt);}
     else{example.Update_Density(dt);example.Update_Face_Qsc(dt);
     example.Update_Temperature(dt);example.Update_Face_Qtc(dt);}
