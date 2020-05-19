@@ -18,7 +18,7 @@ Smoke_Driver(Smoke_Example<T,d>& example_input)
 template<class T,int d> void Smoke_Driver<T,d>::
 Initialize()
 {
-    substep_counter=0;
+    substep_counter=0; total_rt=(T)0.;
     diffision_rt=(T)0.; qc_advection_rt=(T)0.; density_advection_rt=(T)0.;
     velocity_advection_rt=(T)0.; source_modification_rf=(T)0.; projection_rt=(T)0.;
     Base::Initialize();
@@ -85,6 +85,7 @@ Advance_To_Target_Time(const T target_time)
 {
     bool done=false;
     for(int substep=1;!done;substep++){
+        high_resolution_clock::time_point tb=high_resolution_clock::now();
         Log::Scope scope("SUBSTEP","substep "+std::to_string(substep));
         substep_counter++;
         T dt=Compute_Dt(time,target_time);
@@ -94,7 +95,9 @@ Advance_To_Target_Time(const T target_time)
         Advance_One_Time_Step_Implicit_Part(dt,time);
         Log::cout<<"dt: "<<dt<<std::endl;
         if(!done) example.Write_Substep("END Substep",substep,0);
-        time+=dt;}
+        time+=dt;
+        high_resolution_clock::time_point te=high_resolution_clock::now();
+        total_rt+=duration_cast<duration<T>>(te-tb).count();}
 }
 //######################################################################
 // Simulate_To_Frame

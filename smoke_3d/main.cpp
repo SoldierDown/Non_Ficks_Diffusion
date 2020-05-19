@@ -16,7 +16,6 @@ extern Pthread_Queue* pthread_queue;
 
 int main(int argc,char** argv)
 {
-    high_resolution_clock::time_point tb=high_resolution_clock::now();
     enum {d=3};
     typedef float T;typedef Vector<T,d> TV;
     typedef Vector<int,d> T_INDEX;
@@ -34,12 +33,11 @@ int main(int argc,char** argv)
 
     Smoke_Driver<T,d> driver(*example);
     driver.Execute_Main_Program();
-    high_resolution_clock::time_point te=high_resolution_clock::now();
-    T total_rt=duration_cast<duration<double>>(te-tb).count();
+
     int substeps=driver.substep_counter;
     Log::cout<<"Average: "<<std::endl;
     Log::cout<<"Total substeps: "<<substeps<<std::endl;
-    Log::cout<<"full timestep: "<<total_rt/substeps<<std::endl;
+    Log::cout<<"full timestep: "<<driver.total_rt/substeps<<std::endl;
     Log::cout<<"diffusion: "<<driver.diffision_rt/substeps<<std::endl;
     Log::cout<<"qc advection: "<<driver.qc_advection_rt/substeps<<std::endl;
     Log::cout<<"density advection: "<<driver.density_advection_rt/substeps<<std::endl;
