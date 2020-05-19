@@ -30,7 +30,17 @@ int main(int argc,char** argv)
 
     DG_Driver<T,d> driver(*example);
     driver.Execute_Main_Program();
-
+    int substeps=example->substep_counter;
+    Log::cout<<"Average: "<<std::endl;
+    Log::cout<<"Total substeps: "<<substeps<<std::endl;
+    Log::cout<<"full timestep: "<<example->total_rt/substeps<<std::endl;
+    Log::cout<<"Advect scalar: "<<example->advect_scalar_rt/substeps<<std::endl;
+    Log::cout<<"Advect Q: "<<example->advect_Q_rt/substeps<<std::endl;
+    Log::cout<<"Update density: "<<example->total_rt/substeps<<std::endl;
+    Log::cout<<"Diffuse: "<<example->total_rt/substeps<<std::endl;
+    Log::cout<<"Update T: "<<example->total_rt/substeps<<std::endl;
+    Log::cout<<"Update Qs: "<<example->total_rt/substeps<<std::endl;
+    Log::cout<<"Update Qt: "<<example->total_rt/substeps<<std::endl;
     delete example;
 
     return 0;

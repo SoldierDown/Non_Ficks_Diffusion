@@ -48,7 +48,9 @@
 #include "Add_Random_Term.h"
 #include "Boundary_Check.h"
 #include "Masked_Multiply.h"
+#include <chrono>
 #include <omp.h>
+using namespace std::chrono;
 using namespace Nova;
 namespace Nova{
 extern int number_of_threads;
@@ -98,6 +100,9 @@ DG_Example()
 template<class T,int d> void DG_Example<T,d>::
 Initialize()
 {
+    substep_counter=0;
+    total_rt=(T)0.; advect_scalar_rt=(T)0.; advect_Q_rt=(T)0.; diffusion_rt=(T)0.;
+    update_s_rt=(T)0.; update_t_rt=(T)0.; update_qs_rt=(T)0.; update_qt_rt=(T)0.;
     Initialize_SPGrid();
     Initialize_State();
 }
@@ -241,8 +246,12 @@ Explicitly_Update_Density(const T dt)
 {
     Add_Poly_Term_To_Density(dt);
     Add_Random_Term_To_Density(dt);
+
+    high_resolution_clock::time_point tb=high_resolution_clock::now();
     Add_Laplacian_Term_To_Density(dt);
     if(!FICKS) Add_Divergence_Term_To_Density(dt);
+    high_resolution_clock::time_point te=high_resolution_clock::now();
+    diffusion_rt+=duration_cast<duration<T>>(te-tb).count();
 }
 //######################################################################
 // Add_Laplacian_Term_To_Density

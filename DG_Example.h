@@ -33,6 +33,15 @@ class DG_Example: public Example<T,d>
     using Base::frame_title;using Base::output_directory;using Base::parse_args;using Base::first_frame;
     using Base::output;
     Random_Numbers<T> random;
+    int substep_counter;
+    T total_rt;
+    T advect_scalar_rt;
+    T advect_Q_rt;
+    T diffusion_rt;
+    T update_s_rt;
+    T update_t_rt;
+    T update_qs_rt;
+    T update_qt_rt;
     bool uvf;
     bool FICKS;
     bool explicit_diffusion;
