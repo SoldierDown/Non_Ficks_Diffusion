@@ -61,7 +61,6 @@ class Poisson_Multigrid_Solver
             multigrid_hierarchy(mg_level)=new Hierarchy_Multigrid(hierarchy.Lattice(0),std::max(hierarchy.Levels(),mg_levels));
 
         {
-            Log::Scope scope("Multigrid_Solver::Activate_Multigrid_Pages");
             // activate page for all multigrid levels
             for(int spgrid_level=0;spgrid_level<hierarchy.Levels();++spgrid_level)
                 for(Base_block_iterator iterator(hierarchy.Blocks(spgrid_level));iterator.Valid();iterator.Next_Block()){uint64_t offset=iterator.Offset();
@@ -76,7 +75,6 @@ class Poisson_Multigrid_Solver
         }
 
         {
-            Log::Scope scope("Multigrid_Solver::Copy_Interior");
             // copy interior information
             for(int level=0;level<hierarchy.Levels();++level)
                 Initialize_Mask<Base_struct_type,Multigrid_struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),
@@ -84,7 +82,6 @@ class Poisson_Multigrid_Solver
         }
 
         {
-            Log::Scope scope("Multigrid_Solver::Copy_Dirichlet");
             // copy dirichlet information
             for(int level=0;level<hierarchy.Levels();++level)
                 Initialize_Mask<Base_struct_type,Multigrid_struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),

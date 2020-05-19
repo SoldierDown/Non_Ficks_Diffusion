@@ -49,7 +49,6 @@ class Standard_Tests: public MPM_Example<T,d>
 //######################################################################
     void Initialize_Particles(int test_case) override
     {
-        Log::Scope scope("Initialize_Particles");
         switch (test_case)
         {
         case 1:{

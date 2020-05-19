@@ -1,7 +1,9 @@
 //!#####################################################################
 //! \file Smoke_Driver.cpp
 //!#####################################################################
+#include <chrono>
 #include "Smoke_Driver.h"
+using namespace std::chrono;
 using namespace Nova;
 //######################################################################
 // Constructor
@@ -16,6 +18,9 @@ Smoke_Driver(Smoke_Example<T,d>& example_input)
 template<class T,int d> void Smoke_Driver<T,d>::
 Initialize()
 {
+    substep_counter=0;
+    diffision_rt=(T)0.; qc_advection_rt=(T)0.; density_advection_rt=(T)0.;
+    velocity_advection_rt=(T)0.; source_modification_rf=(T)0.; projection_rt=(T)0.;
     Base::Initialize();
 
     example.Log_Parameters();
@@ -34,12 +39,32 @@ Initialize()
 template<class T,int d> void Smoke_Driver<T,d>::
 Advance_One_Time_Step_Explicit_Part(const T dt,const T time)
 {
-    if(!example.nd) {example.Diffuse_Density(dt); example.Backup_Density();}
+    if(!example.nd) {
+        high_resolution_clock::time_point tb=high_resolution_clock::now();
+        if(example.FICKS) example.Ficks_Diffusion(dt);
+        else example.Non_Ficks_Diffusion(dt);
+        high_resolution_clock::time_point te=high_resolution_clock::now();
+	    diffision_rt+=duration_cast<duration<T>>(te-tb).count();
+        tb=high_resolution_clock::now();
+        if(!example.FICKS) example.Advect_Face_Vector(dt);
+        te=high_resolution_clock::now();
+	    qc_advection_rt+=duration_cast<duration<T>>(te-tb).count();
+    example.Backup_Density();}
+    high_resolution_clock::time_point tb=high_resolution_clock::now();
     example.Advect_Density(dt);
+    high_resolution_clock::time_point te=high_resolution_clock::now();
+    density_advection_rt+=duration_cast<duration<T>>(te-tb).count();
+    tb=high_resolution_clock::now();
     if(example.const_density_source) example.Modify_Density_With_Sources();
     else example.Add_Source(dt);
+    te=high_resolution_clock::now();
+    source_modification_rf+=duration_cast<duration<T>>(te-tb).count();
     // convect
+    tb=high_resolution_clock::now();
     if(!example.uvf) example.Advect_Face_Velocities(dt);
+    te=high_resolution_clock::now();
+    velocity_advection_rt+=duration_cast<duration<T>>(te-tb).count();
+
 }
 //######################################################################
 // Advance_One_Time_Step_Implicit_Part
@@ -47,7 +72,10 @@ Advance_One_Time_Step_Explicit_Part(const T dt,const T time)
 template<class T,int d> void Smoke_Driver<T,d>::
 Advance_One_Time_Step_Implicit_Part(const T dt,const T time)
 {
+    high_resolution_clock::time_point tb=high_resolution_clock::now();
     if(!example.uvf) example.Project();
+    high_resolution_clock::time_point te=high_resolution_clock::now();
+    projection_rt+=duration_cast<duration<T>>(te-tb).count();
 }
 //######################################################################
 // Advance_To_Target_Time
@@ -58,6 +86,7 @@ Advance_To_Target_Time(const T target_time)
     bool done=false;
     for(int substep=1;!done;substep++){
         Log::Scope scope("SUBSTEP","substep "+std::to_string(substep));
+        substep_counter++;
         T dt=Compute_Dt(time,target_time);
         if(example.explicit_diffusion) dt/=(T)100.;
         Example<T,d>::Clamp_Time_Step_With_Target_Time(time,target_time,dt,done);

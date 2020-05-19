@@ -20,6 +20,14 @@ class Smoke_Driver: public Driver<T,d>
     using Base::Compute_Dt;using Base::Write_Output_Files;
 
   public:
+    int substep_counter;
+    T diffision_rt;
+    T qc_advection_rt;
+    T density_advection_rt;
+    T velocity_advection_rt;
+    T source_modification_rf;
+    T projection_rt;
+    T total_rt;
     Smoke_Example<T,d>& example;
 
     Smoke_Driver(Smoke_Example<T,d>& example_input);

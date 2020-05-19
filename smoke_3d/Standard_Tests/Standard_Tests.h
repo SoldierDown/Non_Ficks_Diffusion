@@ -62,7 +62,6 @@ class Standard_Tests: public Smoke_Example<T,d>
 //######################################################################
     void Initialize_Fluid_State(const int test_number) override
     {
-        Log::Scope scope("Initialize_Fluid_State");
         // clear density channel
         for(int level=0;level<levels;++level)
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel);

@@ -136,7 +136,6 @@ void Compute_Right_Hand_Side(Grid_Hierarchy<Struct_type,T,d>& hierarchy,T Struct
 template<class Struct_type,class T,int d>
 void Compute_Graded_Octree(Grid_Hierarchy<Struct_type,T,d>*& current_hierarchy)
 {
-    Log::Scope scope("Compute_Graded_Octree");
 
     using TV                                    = Vector<T,d>;
     using T_INDEX                               = Vector<int,d>;

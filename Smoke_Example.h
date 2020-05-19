@@ -30,7 +30,6 @@ class Smoke_Example: public Example<T,d>
 
   public:
     using Base::frame_title;using Base::output_directory;using Base::parse_args;using Base::first_frame;
-
     int test_number;
     bool nd;
     bool const_density_source;
@@ -72,6 +71,7 @@ class Smoke_Example: public Example<T,d>
     void Initialize_SPGrid();
     void Limit_Dt(T& dt,const T time) override;
     void Advect_Density(const T dt);
+    void Advect_Face_Vector(const T dt);
     void Diffuse_Density(const T dt);
     void Backup_Density();
     void Ficks_Diffusion(const T dt);

@@ -55,7 +55,6 @@ class Uniform_Grid_Advection_Helper
     static void Uniform_Grid_Advect_Face_Velocities(Hierarchy& hierarchy,Channel_Vector& face_velocity_channels,Channel_Vector& face_velocity_backup_channels,
                                                     Channel_Vector& interpolated_face_velocity_channels,T Struct_type::* temp_channel,const T dt)
     {
-        Log::Scope scope("Grid_Hierarchy_Advection::Advect_Face_Velocities");
         Vector<uint64_t,d> other_face_offsets; for(int v=0;v<d;++v) other_face_offsets(v)=Topology_Helper::Axis_Vector_Offset(v);
         Vector<uint64_t,d> negative_face_offsets; for(int axis=0;axis<d;++axis) negative_face_offsets(axis)=Topology_Helper::Negative_Axis_Vector_Offset(axis);
         uint64_t nodes_of_cell_offsets[number_of_nodes_per_cell]; Topology_Helper::Nodes_Of_Cell_Offsets(nodes_of_cell_offsets);
@@ -88,7 +87,6 @@ class Uniform_Grid_Advection_Helper
     static void Uniform_Grid_Advect_Face_Vector(Hierarchy& hierarchy,Channel_Vector& face_vector_channels,Channel_Vector& face_velocity_channels,
                                     				Channel_Vector& interpolated_face_velocity_channels,T Struct_type::* temp_channel,const T dt)
     {
-        Log::Scope scope("Uniform_Grid_Advection::Advect_Face_Vector");
         const int levels=hierarchy.Levels();
         Vector<uint64_t,d> other_face_offsets; for(int v=0;v<d;++v) other_face_offsets(v)=Topology_Helper::Axis_Vector_Offset(v);
         Vector<uint64_t,d> negative_face_offsets; for(int axis=0;axis<d;++axis) negative_face_offsets(axis)=Topology_Helper::Negative_Axis_Vector_Offset(axis);
