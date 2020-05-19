@@ -2,6 +2,8 @@
 //! \file SF_Driver.cpp
 //!#####################################################################
 #include "SF_Driver.h"
+#include <chrono>
+using namespace std::chrono;
 using namespace Nova;
 //######################################################################
 // Constructor
@@ -36,14 +38,47 @@ Advance_One_Time_Step_Explicit_Part(const T dt,const T time)
 {
     // scalar advance
     // example.Add_Source(dt);
-    // example.Advect_Scalar_Field(dt);
-    // if(!example.FICKS) example.Advect_Face_Vector_Field(dt);
+    high_resolution_clock::time_point tb=high_resolution_clock::now();
+    example.Advect_Scalar_Field(dt);
+    high_resolution_clock::time_point te=high_resolution_clock::now();
+    example.advect_scalar_rt+=duration_cast<duration<T>>(te-tb).count();
+
+    tb=high_resolution_clock::now();
+    if(!example.FICKS) example.Advect_Face_Vector_Field(dt);
+    te=high_resolution_clock::now();
+    example.advect_Q_rt+=duration_cast<duration<T>>(te-tb).count();
 
     if(example.FICKS){Log::cout<<"Fick's"<<std::endl;
-    example.Update_Density(dt); example.Update_Temperature(dt);}
+    tb=high_resolution_clock::now();
+    example.Update_Density(dt); 
+    te=high_resolution_clock::now();
+    example.update_s_rt+=duration_cast<duration<T>>(te-tb).count();
+    
+    tb=high_resolution_clock::now();
+    example.Update_Temperature(dt);
+    te=high_resolution_clock::now();
+    example.update_t_rt+=duration_cast<duration<T>>(te-tb).count();}
     else{Log::cout<<"Non-Fick's"<<std::endl;
-    example.Update_Density(dt);example.Update_Face_Qsc(dt);
-    example.Update_Temperature(dt);example.Update_Face_Qtc(dt);}
+    tb=high_resolution_clock::now();
+    example.Update_Density(dt);
+    te=high_resolution_clock::now();
+    example.update_s_rt+=duration_cast<duration<T>>(te-tb).count();
+    
+    tb=high_resolution_clock::now();
+    example.Update_Face_Qsc(dt);
+    te=high_resolution_clock::now();
+    example.update_qs_rt+=duration_cast<duration<T>>(te-tb).count();
+
+    tb=high_resolution_clock::now();
+    example.Update_Temperature(dt);
+    te=high_resolution_clock::now();
+    example.update_t_rt+=duration_cast<duration<T>>(te-tb).count();
+
+    tb=high_resolution_clock::now();
+    example.Update_Face_Qtc(dt);
+    te=high_resolution_clock::now();
+    example.update_qt_rt+=duration_cast<duration<T>>(te-tb).count();
+    }
     example.Backup();
 
     // convect
@@ -65,6 +100,7 @@ Advance_To_Target_Time(const T target_time)
 {
     bool done=false;
     for(int substep=1;!done;substep++){
+        high_resolution_clock::time_point tb=high_resolution_clock::now();
         Log::Scope scope("SUBSTEP","substep "+std::to_string(substep));
         T dt=Compute_Dt(time,target_time);
         // dt=std::max(min_dt,std::min(max_dt,dt));
@@ -77,7 +113,10 @@ Advance_To_Target_Time(const T target_time)
         Log::cout<<"dt: "<<dt<<std::endl;
         // done=true;
         if(!done) example.Write_Substep("END Substep",substep,0);
-        time+=dt;}
+        time+=dt;
+        high_resolution_clock::time_point te=high_resolution_clock::now();
+        example.total_rt+=duration_cast<duration<T>>(te-tb).count();
+    }
 }
 //######################################################################
 // Simulate_To_Frame
