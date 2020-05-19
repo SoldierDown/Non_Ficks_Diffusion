@@ -317,7 +317,6 @@ Compute_Bounding_Box(Range<T,3>& bbox)
 template<class T> void MPM_Example<T,2>::
 Rasterize_Voxels()
 {
-    high_resolution_clock::time_point tb=high_resolution_clock::now();
     using Cell_Iterator                     = Grid_Iterator_Cell<T,2>;
     using MPM_Hierarchy_Initializer         = Grid_Hierarchy_Initializer<MPM_struct_type,T,2>;
     using Diff_Hierarchy_Initializer        = Grid_Hierarchy_Initializer<Diff_struct_type,T,2>;
@@ -334,11 +333,6 @@ Rasterize_Voxels()
         diff_hierarchy->Activate_Cell(0,iterator.Cell_Index(),Cell_Type_Dirichlet);
     diff_hierarchy->Update_Block_Offsets();
     diff_hierarchy->Initialize_Red_Black_Partition(2*threads);
-
-    high_resolution_clock::time_point te=high_resolution_clock::now();
-	duration<double> dur=duration_cast<duration<double>>(te-tb);
-	ras_vx_cnt++;
-    ras_vx_rt+=dur.count();
 }
 //######################################################################
 // Rasterize_Voxels
@@ -346,7 +340,6 @@ Rasterize_Voxels()
 template<class T> void MPM_Example<T,3>::
 Rasterize_Voxels()
 {
-    high_resolution_clock::time_point tb=high_resolution_clock::now();
     using Cell_Iterator                     = Grid_Iterator_Cell<T,3>;
     using MPM_Hierarchy_Initializer         = Grid_Hierarchy_Initializer<MPM_struct_type,T,3>;
     using Diff_Hierarchy_Initializer        = Grid_Hierarchy_Initializer<Diff_struct_type,T,3>;
@@ -363,11 +356,6 @@ Rasterize_Voxels()
         diff_hierarchy->Activate_Cell(0,iterator.Cell_Index(),Cell_Type_Dirichlet);
     diff_hierarchy->Update_Block_Offsets();
     diff_hierarchy->Initialize_Red_Black_Partition(2*threads);
-
-    high_resolution_clock::time_point te=high_resolution_clock::now();
-	duration<double> dur=duration_cast<duration<double>>(te-tb);
-	ras_vx_cnt++;
-    ras_vx_rt+=dur.count();
 }
 //######################################################################
 // Initialize_SPGrid
@@ -577,12 +565,7 @@ Rasterize()
     for(int level=0;level<levels;++level) Saturation_Normalization_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel);     
     // clamp saturation
     for(int level=0;level<levels;++level) Clamp_Heler<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel);     
-    if(!FICKS&&!explicit_diffusion) for(int level=0;level<levels;++level) Div_Qc_Normalization_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),div_Qc_channel,volume_channel);  
-    
-    high_resolution_clock::time_point te=high_resolution_clock::now();
-	duration<double> dur=duration_cast<duration<double>>(te-tb);
-    ras_cnt++;
-    ras_rt+=dur.count();       
+    if(!FICKS&&!explicit_diffusion) for(int level=0;level<levels;++level) Div_Qc_Normalization_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),div_Qc_channel,volume_channel);         
 }
 //######################################################################
 // Rasterize
@@ -594,7 +577,7 @@ Rasterize()
     T Diff_struct_type::*   diff_mass_solid_channel         =&Diff_struct_type::ch10;
     for(int level=0;level<levels;++level) Clear<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),diff_mass_solid_channel);
     const T cell_volume=mpm_hierarchy->Lattice(0).dX.Product();
-    // for(int level=0;level<levels;++level) Grid_Saturation_Initialization_Helper<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel,cell_volume);     
+    for(int level=0;level<levels;++level) Grid_Saturation_Initialization_Helper<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel,cell_volume);     
     const T fluid_density=(T)1.;
     auto mass=mpm_hierarchy->Channel(0,mass_channel);       
     auto diff_mass_solid=diff_hierarchy->Channel(0,diff_mass_solid_channel);        
@@ -625,10 +608,6 @@ Rasterize()
     // clamp saturation
     for(int level=0;level<levels;++level) Clamp_Heler<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel);     
     if(!FICKS&&!explicit_diffusion) for(int level=0;level<levels;++level) Div_Qc_Normalization_Helper<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),div_Qc_channel,volume_channel);  
-    high_resolution_clock::time_point te=high_resolution_clock::now();
-	duration<double> dur=duration_cast<duration<double>>(te-tb);
-    ras_cnt++;
-    ras_rt+=dur.count();    
 }
 //######################################################################
 // Ficks_Diffusion
@@ -909,11 +888,6 @@ Update_Particle_Velocities_And_Positions(const T dt)
             int k=remove_indices(0)(i);
             invalid_particles.Append(simulated_particles(k));
             simulated_particles.Remove_Index(k);}
-
-    high_resolution_clock::time_point te=high_resolution_clock::now();
-	duration<double> dur=duration_cast<duration<double>>(te-tb);
-    update_x_v_cnt++;
-    update_x_v_rt+=dur.count();
 }
 //######################################################################
 // Update_Particle_Velocities_And_Positions
@@ -988,11 +962,6 @@ Update_Particle_Velocities_And_Positions(const T dt)
             int k=remove_indices(0)(i);
             invalid_particles.Append(simulated_particles(k));
             simulated_particles.Remove_Index(k);}
-
-    high_resolution_clock::time_point te=high_resolution_clock::now();
-	duration<double> dur=duration_cast<duration<double>>(te-tb);
-    update_x_v_cnt++;
-    update_x_v_rt+=dur.count();
 }
 //######################################################################
 // Allocate_Particle
@@ -1114,11 +1083,6 @@ Apply_Force(const T dt)
     for(int level=0;level<levels;++level) MPM_RHS_Helper<MPM_struct_type,T,2>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),velocity_star_channels,mpm_rhs_channels);     
     MPM_CG_Vector<MPM_struct_type,T,2> solver_vp(*mpm_hierarchy,velocity_star_channels),solver_rhs(*mpm_hierarchy,mpm_rhs_channels),solver_q(*mpm_hierarchy,mpm_q_channels),solver_s(*mpm_hierarchy,mpm_s_channels),solver_r(*mpm_hierarchy,mpm_r_channels),solver_k(*mpm_hierarchy,mpm_z_channels),solver_z(*mpm_hierarchy,mpm_z_channels);
     solver->Solve(mpm_system,solver_vp,solver_rhs,solver_q,solver_s,solver_r,solver_k,solver_z,1e-7,0,cg_max_iterations);}
-    high_resolution_clock::time_point te=high_resolution_clock::now();
-	duration<double> dur=duration_cast<duration<double>>(te-tb);
-    apply_force_cnt++;
-    apply_force_rt+=dur.count();
-
 }
 //######################################################################
 // Apply_Force
@@ -1140,11 +1104,6 @@ Apply_Force(const T dt)
     for(int level=0;level<levels;++level) MPM_RHS_Helper<MPM_struct_type,T,3>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),velocity_star_channels,mpm_rhs_channels);     
     MPM_CG_Vector<MPM_struct_type,T,3> solver_vp(*mpm_hierarchy,velocity_star_channels),solver_rhs(*mpm_hierarchy,mpm_rhs_channels),solver_q(*mpm_hierarchy,mpm_q_channels),solver_s(*mpm_hierarchy,mpm_s_channels),solver_r(*mpm_hierarchy,mpm_r_channels),solver_k(*mpm_hierarchy,mpm_z_channels),solver_z(*mpm_hierarchy,mpm_z_channels);
     solver->Solve(mpm_system,solver_vp,solver_rhs,solver_q,solver_s,solver_r,solver_k,solver_z,1e-7,0,cg_max_iterations);}
-    high_resolution_clock::time_point te=high_resolution_clock::now();
-	duration<double> dur=duration_cast<duration<double>>(te-tb);
-    apply_force_cnt++;
-    apply_force_rt+=dur.count();
-
 }
 //######################################################################
 // Apply_Explicit_Force
@@ -1179,10 +1138,6 @@ Apply_Explicit_Force(const T dt)
                     else {f0(data)-=inner_force(0); f1(data)-=inner_force(1);}
                     f0(data)+=body_force(0); f1(data)+=body_force(1);}}}}
     for(int level=0;level<levels;++level) Explicit_Force_Helper<MPM_struct_type,T,2>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),f_channels,velocity_channels,velocity_star_channels,dt);
-    high_resolution_clock::time_point te=high_resolution_clock::now();
-	duration<double> dur=duration_cast<duration<double>>(te-tb);
-    explicit_force_cnt++;
-    explicit_force_rt+=dur.count();
 }
 //######################################################################
 // Apply_Explicit_Force
@@ -1215,10 +1170,6 @@ Apply_Explicit_Force(const T dt)
                     else {f0(data)-=inner_force(0); f1(data)-=inner_force(1); f2(data)-=inner_force(2);}
                     f0(data)+=body_force(0); f1(data)+=body_force(1); f2(data)+=body_force(2);}}}}
     for(int level=0;level<levels;++level) Explicit_Force_Helper<MPM_struct_type,T,3>(mpm_hierarchy->Allocator(level),mpm_hierarchy->Blocks(level),f_channels,velocity_channels,velocity_star_channels,dt);
-    high_resolution_clock::time_point te=high_resolution_clock::now();
-	duration<double> dur=duration_cast<duration<double>>(te-tb);
-    explicit_force_cnt++;
-    explicit_force_rt+=dur.count();
 }
 //######################################################################
 // Grid_Based_Collision

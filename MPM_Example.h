@@ -22,101 +22,6 @@
 #include "./Tools/Cropped_Influence_Iterator.h"
 
 namespace Nova{
-template<class T>
-static T N2(const T x)
-{
-    if(fabs(x)<(T).5) return (T).75-Nova_Utilities::Sqr(x);
-    else if(fabs(x)<(T)1.5) return (T).5*Nova_Utilities::Sqr((T)1.5-fabs(x));
-    else return (T)0.;
-}
-template<class T,int d>
-inline T N2(const Vector<T,d>& X,const Vector<T,d> one_over_dX)
-{
-    T value=(T)1.;
-    for(int axis=0;axis<d;++axis) value*=N2(X(axis)*one_over_dX(axis));
-    return value;
-}
-template<class T>
-static T dN2(const T x)
-{
-    T sign=x>=(T)0.?(T)1.:(T)-1.;
-    if(fabs(x)<(T).5) return -(T)2.*x;
-    else if(fabs(x)<(T)1.5) return x-(T)1.5*sign;
-    else return (T)0.;  
-}
-template<class T,int d>
-inline T dN2(const Vector<T,d> X,const int axis,const Vector<T,d> one_over_dX)
-{
-    T value=(T)1.;
-    for(int v=0;v<d;++v) 
-        if(v==axis) value*=one_over_dX(v)*dN2(X(v)*one_over_dX(v));
-        else value*=N2(X(v)*one_over_dX(v));
-    return value;
-}
-template<class T,int d>
-inline Vector<T,d> dN2(const Vector<T,d> X,const Vector<T,d> one_over_dX)
-{
-    Vector<T,d> value=Vector<T,d>();
-    for(int axis=0;axis<d;++axis) value(axis)=dN2(X,axis,one_over_dX);
-    return value;
-}
-template<class T,int d>
-static T N3(const T x)
-{
-    if(fabs(x)<(T)1.) return (T).5*Nova_Utilities::Cube(fabs(x))-Nova_Utilities::Sqr(x)+(T)two_thirds;
-    else if(fabs(x)<(T)2.) return (T)-one_sixth*Nova_Utilities::Cube(fabs(x))+Nova_Utilities::Sqr(x)-(T)2.*fabs(x)+(T)four_thirds;
-    else return (T)0.;
-}
-template<class T,int d>
-inline T N3(const Vector<T,d> X,const Vector<T,d> one_over_dX)
-{
-    T value=(T)1.;
-    for(int axis=0;axis<d;++axis) value*=N3(X(axis)*one_over_dX(axis));
-    return value;
-}
-template<class T>
-static T dN3(const T x)
-{
-    T sign=x>=(T)0.?(T)1.:(T)-1.;
-    if(fabs(x)<(T)1.) return (T)1.5*Nova_Utilities::Sqr(x)*sign-(T)2.*x;
-    else if(fabs(x)<(T)2.) return (T)-.5*Nova_Utilities::Sqr(x)*sign+(T)2.*x-(T)2.*sign;
-    else return (T)0.;  
-}
-template<class T,int d>
-inline T dN3(const Vector<T,d> X,const int axis,const Vector<T,d> one_over_dX)
-{
-    T value=(T)1.;
-    for(int v=0;v<d;++v) 
-        if(v==axis) value*=one_over_dX(v)*dN3(X(v)*one_over_dX(v));
-        else value*=N3(X(v)*one_over_dX(v));
-    return value;
-}
-template<class T,int d>
-inline Vector<T,d> dN3(const Vector<T,d> X,const Vector<T,d> one_over_dX)
-{
-    Vector<T,d> value=Vector<T,d>();
-    for(int axis=0;axis<d;++axis) value(axis)=dN3(X,axis,one_over_dX);
-    return value;
-}
-
-template<class T> void
-Vector_To_Flag(Vector<int,2> current_cell)
-{
-    using Struct_type               = MPM_Data<T>;
-    using Allocator_type            = SPGrid::SPGrid_Allocator<Struct_type,2>;
-    using Flag_array_mask           = typename Allocator_type::template Array_mask<unsigned>;
-    std::cout<<Flag_array_mask::Linear_Offset(current_cell(0),current_cell(1))<<std::endl;
-}
-
-template<class T> void
-Vector_To_Flag(Vector<int,3> current_cell)
-{
-    using Struct_type               = MPM_Data<T>;
-    using Allocator_type            = SPGrid::SPGrid_Allocator<Struct_type,3>;
-    using Flag_array_mask           = typename Allocator_type::template Array_mask<unsigned>;
-    std::cout<<Flag_array_mask::Linear_Offset(current_cell(0),current_cell(1),current_cell(2))<<std::endl;
-}
-
 template <class T,int d> class MPM_Example;
 template<class T>
 class MPM_Example<T,2>: public Example<T,2>
@@ -145,16 +50,6 @@ class MPM_Example<T,2>: public Example<T,2>
     using Base::frame_title;using Base::output_directory;using Base::parse_args;using Base::first_frame;
 
     T nbw;
-    T explicit_force_rt=0.;
-    int explicit_force_cnt=0;
-    T apply_force_rt=0.;
-    int apply_force_cnt=0;
-    T ras_rt=0.;
-    int ras_cnt=0;
-    T ras_vx_rt=0.;
-    int ras_vx_cnt=0;
-    T update_x_v_rt=0.;
-    int update_x_v_cnt=0;
     T flip;
     T cfl;
     int levels,threads;
@@ -288,16 +183,6 @@ class MPM_Example<T,3>: public Example<T,3>
     using Base::frame_title;using Base::output_directory;using Base::parse_args;using Base::first_frame;
 
     T nbw;
-    T explicit_force_rt=0.;
-    int explicit_force_cnt=0;
-    T apply_force_rt=0.;
-    int apply_force_cnt=0;
-    T ras_rt=0.;
-    int ras_cnt=0;
-    T ras_vx_rt=0.;
-    int ras_vx_cnt=0;
-    T update_x_v_rt=0.;
-    int update_x_v_cnt=0;
     T flip;
     T cfl;
     int levels,threads;

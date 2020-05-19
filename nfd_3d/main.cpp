@@ -12,7 +12,6 @@ namespace Nova{
 }
 int main(int argc,char** argv)
 {
-    high_resolution_clock::time_point tb = high_resolution_clock::now();
     enum {d=3};
     typedef float T;
     MPM_Example<T,d> *example=new Standard_Tests<T,d>();
@@ -25,9 +24,22 @@ int main(int argc,char** argv)
 
     MPM_Driver<T,d> driver(*example);
     driver.Execute_Main_Program();
-    high_resolution_clock::time_point te=high_resolution_clock::now();
-	duration<double> dur=duration_cast<duration<double>>(te-tb);
-	Log::cout<<"Total duration: "<<dur.count()<<std::endl;  
+ 
+    int substeps=driver.substep_counter;
+    Log::cout<<"Average: "<<std::endl;
+    Log::cout<<"Total substeps: "<<substeps<<std::endl;
+    Log::cout<<"Initialize SPGrid: "<<driver.init_spgrid_rt/substeps<<std::endl;
+    Log::cout<<"Reset grid variables: "<<driver.reset_grid_var_rt/substeps<<std::endl;
+    Log::cout<<"Update particle weights: "<<driver.update_p_weights_rt/substeps<<std::endl;
+    Log::cout<<"Group Particles: "<<driver.group_p_rt/substeps<<std::endl;
+    Log::cout<<"Rasterize: "<<driver.rasterize_rt/substeps<<std::endl;
+    Log::cout<<"Process waiting particles: "<<driver.procee_waiting_p_rt/substeps<<std::endl;
+    Log::cout<<"Diffusion: "<<driver.diffusion_rt/substeps<<std::endl;
+    Log::cout<<"Update constitutive model state: "<<driver.update_constitutive_model_state_rt/substeps<<std::endl;
+    Log::cout<<"Update particle velocity and position: "<<driver.update_p_v_x_rt/substeps<<std::endl;
+    Log::cout<<"Populate simulated particles: "<<driver.pop_sim_p_rt/substeps<<std::endl;
+    Log::cout<<"Total: "<<driver.total_rt/substeps<<std::endl;
+
     delete example;
 
     return 0;

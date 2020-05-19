@@ -20,6 +20,18 @@ class MPM_Driver: public Driver<T,d>
     using Base::Compute_Dt;using Base::Write_Output_Files;
 
   public:
+    int substep_counter;
+    T total_rt;
+    T init_spgrid_rt;
+    T reset_grid_var_rt;
+    T update_p_weights_rt;
+    T group_p_rt;
+    T rasterize_rt;
+    T procee_waiting_p_rt;
+    T diffusion_rt;
+    T update_constitutive_model_state_rt;
+    T update_p_v_x_rt;
+    T pop_sim_p_rt;
     MPM_Example<T,d>& example;
 
     MPM_Driver(MPM_Example<T,d>& example_input);
