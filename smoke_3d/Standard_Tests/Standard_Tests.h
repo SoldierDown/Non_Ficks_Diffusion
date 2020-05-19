@@ -48,6 +48,7 @@ class Standard_Tests: public Smoke_Example<T,d>
     {
         Base::Parse_Options();
         output_directory=(explicit_diffusion?"Source_Smoke_":"Implicit_Source_Smoke_")+std::to_string(d)+"d_"+(FICKS?"F":"NF")+"_case_"+std::to_string(test_number)+"_diff_"+std::to_string(diff_coeff)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau)+"_bv_"+std::to_string(bv)+"_sr_"+std::to_string(source_rate)+"_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1))+"x"+std::to_string(counts(2));
+        output_directory="Implicit_Source_Smoke_Without_Diffusion";
         for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=false;
         TV min_corner,max_corner=TV(4.);
         max_corner(1)=(T)8.;
@@ -83,7 +84,7 @@ class Standard_Tests: public Smoke_Example<T,d>
 //######################################################################
     void Initialize_Sources(const int test_number) override
     {
-        const T cell_width=(T)4./counts(0);
+        const T cell_width=(T)4./(T)64.;
         switch (test_number)
         {
         // test case 1: density&velocity source near the bottom 

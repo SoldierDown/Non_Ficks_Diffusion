@@ -76,6 +76,7 @@ class Standard_Tests: public MPM_Example<T,d>
                 std::cout<<"block area: "<<block_area<<", area per particle:"<<area_per_particle<<std::endl;
                 for(int i=0;i<number_of_particles;++i){
                     T_Particle p;
+                    p.eos=false;
                     p.X=random.Get_Uniform_Vector(block);
                     p.V=TV();
                     p.constitutive_model.Compute_Lame_Parameters(E,nu);

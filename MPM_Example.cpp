@@ -51,7 +51,7 @@ template<class T> MPM_Example<T,2>::
 MPM_Example()
     :Base(),mpm_hierarchy(nullptr),diff_hierarchy(nullptr)
 {
-    gravity=TV::Axis_Vector(1)*(T)-2.;
+    gravity=TV::Axis_Vector(1)*(T)0.;
     flip=(T).9;
     explicit_diffusion=false;
 
@@ -102,7 +102,7 @@ MPM_Example()
 	mg_levels=2;
 	cg_max_iterations=10000;
 	cg_restart_iterations=50;
-    gravity=TV::Axis_Vector(1)*(T)-2.;
+    gravity=TV::Axis_Vector(1)*(T)0.;
     flip=(T).9;
     explicit_diffusion=false;
      
@@ -535,7 +535,7 @@ Rasterize()
     T Diff_struct_type::*   diff_mass_solid_channel         =&Diff_struct_type::ch10;
     for(int level=0;level<levels;++level) Clear<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),diff_mass_solid_channel);
     const T cell_volume=mpm_hierarchy->Lattice(0).dX.Product();
-    // for(int level=0;level<levels;++level) Grid_Saturation_Initialization_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel,cell_volume);     
+    for(int level=0;level<levels;++level) Grid_Saturation_Initialization_Helper<Diff_struct_type,T,2>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel,void_mass_fluid_channel,cell_volume);     
     const T fluid_density=(T)1.;
     auto mass=mpm_hierarchy->Channel(0,mass_channel);       
     auto diff_mass_solid=diff_hierarchy->Channel(0,diff_mass_solid_channel);        
@@ -1092,7 +1092,7 @@ Apply_Force(const T dt)
 {
     high_resolution_clock::time_point tb=high_resolution_clock::now();
     Apply_Explicit_Force(dt);
-    Grid_Based_Collision(true);
+    Grid_Based_Collision(false);
     if(true){
     Conjugate_Gradient<T> cg;
     Krylov_Solver<T>* solver=(Krylov_Solver<T>*)&cg;
@@ -1386,30 +1386,6 @@ Write_Output_Files(const int frame) const
 template<class T> void MPM_Example<T,2>::
 Read_Output_Files(const int frame)
 {            
-    fluid_source.min_corner=TV({4.75,4.75});
-    fluid_source.max_corner=TV({5.25,5.25});
-
-    T_Barrier ground(0.,TV({0.,1.}),TV({0.,1}));
-    barriers.Append(ground);
-    T_Barrier ceiling(0.,TV({0.,-1.}),TV({0.,10}));
-    barriers.Append(ceiling);
-    T_Barrier left_wall(0.,TV({1.,0.}),TV({1,0.}));
-    barriers.Append(left_wall);
-    T_Barrier right_wall(0.,TV({-1.,0.}),TV({10,0.}));
-    barriers.Append(right_wall);    
-
-    File_Utilities::Read_From_File(output_directory+"/"+std::to_string(frame)+"/particles",particles);
-    Populate_Simulated_Particles();
-    waiting_particles=simulated_particles;
-    Initialize_SPGrid();
-    particle_bins.Resize(threads,threads);
-    Log::cout<<"barrier size: "<<barriers.size()<<std::endl;
-    Reset_Grid_Based_Variables();
-    Update_Particle_Weights();
-    Group_Particles();
-    Rasterize_Voxels();
-    Rasterize();
-    Process_Waiting_Particles();
 }
 //######################################################################
 // Read_Output_Files
@@ -1417,18 +1393,6 @@ Read_Output_Files(const int frame)
 template<class T> void MPM_Example<T,3>::
 Read_Output_Files(const int frame)
 {
-    File_Utilities::Read_From_File(output_directory+"/"+std::to_string(frame)+"/particles",particles);
-    Populate_Simulated_Particles();
-    waiting_particles=simulated_particles;
-    Initialize_SPGrid();
-    particle_bins.Resize(threads,threads);
-    Log::cout<<"barrier size: "<<barriers.size()<<std::endl;
-    Reset_Grid_Based_Variables();
-    Update_Particle_Weights();
-    Group_Particles();
-    Rasterize_Voxels();
-    Rasterize();
-    Process_Waiting_Particles();
 }
 //######################################################################
 
