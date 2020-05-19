@@ -24,8 +24,7 @@ class Flag_Setup_Helper
 
     void Run(Allocator_type& allocator,const std::pair<const uint64_t*,unsigned>& blocks,T Struct_type::* channel) const
     {
-        auto mass=allocator.template Get_Const_Array<Struct_type,T>(&Struct_type::ch0); 
-        auto flags=allocator.template Get_Array<Struct_type,unsigned>(&Struct_type::flags);
+        auto mass=allocator.template Get_Const_Array<Struct_type,T>(&Struct_type::ch0); auto flags=allocator.template Get_Array<Struct_type,unsigned>(&Struct_type::flags);
         auto flag_setup_helper=[&](uint64_t offset)
         {
              for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type))

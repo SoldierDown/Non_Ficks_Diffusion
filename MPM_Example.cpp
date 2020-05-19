@@ -1071,7 +1071,7 @@ Apply_Force(const T dt)
 {
     high_resolution_clock::time_point tb=high_resolution_clock::now();
     Apply_Explicit_Force(dt);
-    Grid_Based_Collision(true);
+    Grid_Based_Collision(false);
     if(true){
     Conjugate_Gradient<T> cg;
     Krylov_Solver<T>* solver=(Krylov_Solver<T>*)&cg;
