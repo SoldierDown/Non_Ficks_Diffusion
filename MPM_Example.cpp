@@ -105,6 +105,7 @@ MPM_Example()
     gravity=TV::Axis_Vector(1)*(T)0.;
     flip=(T).9;
     explicit_diffusion=false;
+    iteration_counter=0;
      
     mpm_flags_channel                       = &MPM_struct_type::flags;
     mass_channel                            = &MPM_struct_type::ch0;
@@ -673,6 +674,7 @@ Ficks_Diffusion(T dt)
 	CG_Vector<Diff_struct_type,T,3> x_V(*diff_hierarchy,saturation_channel),b_V(*diff_hierarchy,diff_rhs_channel),q_V(*diff_hierarchy,diff_q_channel),
                                     s_V(*diff_hierarchy,diff_s_channel),r_V(*diff_hierarchy,diff_r_channel),k_V(*diff_hierarchy,diff_z_channel),z_V(*diff_hierarchy,diff_z_channel);   
 	Conjugate_Gradient<T> cg;
+    cg.iterations_used=new int;
     cg_system.Multiply(x_V,r_V);
     r_V-=b_V;
     const T b_norm=cg_system.Convergence_Norm(r_V);
@@ -682,6 +684,7 @@ Ficks_Diffusion(T dt)
     cg.restart_iterations=cg_restart_iterations;
     const T tolerance=std::max((T)1e-6*b_norm,(T)1e-6);
     cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_max_iterations);
+    iteration_counter+=*(cg.iterations_used);
     // Clamp saturation
     for(int level=0;level<levels;++level) Clamp_Heler<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel);}
 
@@ -795,15 +798,17 @@ Non_Ficks_Diffusion(T dt)
 	CG_Vector<Diff_struct_type,T,3> x_V(*diff_hierarchy,saturation_channel),b_V(*diff_hierarchy,diff_rhs_channel),q_V(*diff_hierarchy,diff_q_channel),
                                                 s_V(*diff_hierarchy,diff_s_channel),r_V(*diff_hierarchy,diff_r_channel),k_V(*diff_hierarchy,diff_z_channel),z_V(*diff_hierarchy,diff_z_channel);   
 	Conjugate_Gradient<T> cg;
+    cg.iterations_used=new int;
     cg_system.Multiply(x_V,r_V);
     r_V-=b_V;
     const T b_norm=cg_system.Convergence_Norm(r_V);
     Log::cout<<"Norm: "<<b_norm<<std::endl;
-    cg.print_residuals=true;
-    cg.print_diagnostics=true;
+    cg.print_residuals=false;
+    cg.print_diagnostics=false;
     cg.restart_iterations=cg_restart_iterations;
     const T tolerance=std::max((T)1e-6*b_norm,(T)1e-6);
     cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_max_iterations);
+    iteration_counter+=*(cg.iterations_used);    
     // Clamp saturation
     for(int level=0;level<levels;++level) Clamp_Heler<Diff_struct_type,T,3>(diff_hierarchy->Allocator(level),diff_hierarchy->Blocks(level),saturation_channel);        
     

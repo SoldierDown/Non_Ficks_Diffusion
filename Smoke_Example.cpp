@@ -61,6 +61,7 @@ Smoke_Example()
 template<class T,int d> void Smoke_Example<T,d>::
 Initialize()
 {
+    iteration_counter=0;
     Initialize_SPGrid();
     Initialize_Fluid_State(test_number);
 }
@@ -171,15 +172,17 @@ Ficks_Diffusion(const T dt)
 	    CG_Vector<Struct_type,T,d> x_V(*hierarchy,density_channel),b_V(*hierarchy,b_channel),q_V(*hierarchy,q_channel),
                                     s_V(*hierarchy,s_channel),r_V(*hierarchy,r_channel),k_V(*hierarchy,k_channel),z_V(*hierarchy,z_channel);   
 	    Conjugate_Gradient<T> cg;
+        cg.iterations_used=new int;
         cg_system.Multiply(x_V,r_V);
         r_V-=b_V;
         const T b_norm=cg_system.Convergence_Norm(r_V);
         Log::cout<<"Norm: "<<b_norm<<std::endl;
-        // cg.print_residuals=true;
-        // cg.print_diagnostics=true;
+        cg.print_residuals=false;
+        cg.print_diagnostics=true;
         cg.restart_iterations=cg_restart_iterations;
         const T tolerance=std::max((T)1e-4*b_norm,(T)1e-4);
         cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
+        iteration_counter+=*(cg.iterations_used);
         for(int level=0;level<levels;++level) Density_Clamp_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel);}
     else{
         T Struct_type::* lap_density_channel    = &Struct_type::ch8;
@@ -247,15 +250,17 @@ Non_Ficks_Diffusion(const T dt)
         CG_Vector<Struct_type,T,d> x_V(*hierarchy,density_channel),b_V(*hierarchy,b_channel),q_V(*hierarchy,q_channel),
                                                     s_V(*hierarchy,s_channel),r_V(*hierarchy,r_channel),k_V(*hierarchy,z_channel),z_V(*hierarchy,z_channel);   
         Conjugate_Gradient<T> cg;
+        cg.iterations_used=new int;
         cg_system.Multiply(x_V,r_V);
         r_V-=b_V;
         const T b_norm=cg_system.Convergence_Norm(r_V);
         Log::cout<<"Norm: "<<b_norm<<std::endl;
-        cg.print_residuals=true;
+        cg.print_residuals=false;
         cg.print_diagnostics=true;
         cg.restart_iterations=cg_restart_iterations;
         const T tolerance=std::max((T)1e-4*b_norm,(T)1e-4);
         cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
+        iteration_counter+=*(cg.iterations_used);
         for(int level=0;level<levels;++level) Density_Clamp_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel);
     }
 }
@@ -438,6 +443,7 @@ Project()
     CG_Vector<Struct_type,T,d> z_V(*hierarchy,z_channel);
 
     Conjugate_Gradient<T> cg;
+    cg.print_diagnostics=false; cg.print_residuals=false;
     cg_system.Multiply(x_V,r_V);
     r_V-=b_V;
     const T b_norm=cg_system.Convergence_Norm(r_V);

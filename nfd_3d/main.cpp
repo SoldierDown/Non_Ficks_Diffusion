@@ -38,6 +38,8 @@ int main(int argc,char** argv)
     Log::cout<<"Update constitutive model state: "<<driver.update_constitutive_model_state_rt/substeps<<std::endl;
     Log::cout<<"Update particle velocity and position: "<<driver.update_p_v_x_rt/substeps<<std::endl;
     Log::cout<<"Populate simulated particles: "<<driver.pop_sim_p_rt/substeps<<std::endl;
+    Log::cout<<"Total iterations: "<<example->iteration_counter<<std::endl;
+    Log::cout<<"average iterations: "<<(T)example->iteration_counter/(T)substeps<<std::endl;
     Log::cout<<"Total: "<<driver.total_rt/substeps<<std::endl;
 
     delete example;

@@ -31,6 +31,7 @@ class Smoke_Example: public Example<T,d>
   public:
     using Base::frame_title;using Base::output_directory;using Base::parse_args;using Base::first_frame;
     int test_number;
+    int iteration_counter;
     bool nd;
     bool const_density_source;
     T const_density_value;

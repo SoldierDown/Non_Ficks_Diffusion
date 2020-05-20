@@ -185,6 +185,7 @@ class MPM_Example<T,3>: public Example<T,3>
     T nbw;
     T flip;
     T cfl;
+    int iteration_counter;
     int levels,threads;
     int n_fluid,n_solid;
     T_INDEX counts;

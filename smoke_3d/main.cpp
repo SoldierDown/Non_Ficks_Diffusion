@@ -44,6 +44,7 @@ int main(int argc,char** argv)
     Log::cout<<"velocity advection: "<<driver.velocity_advection_rt/substeps<<std::endl;
     Log::cout<<"source modification: "<<driver.source_modification_rf/substeps<<std::endl;
     Log::cout<<"projection: "<<driver.projection_rt/substeps<<std::endl;
+    Log::cout<<"iterations: "<<(T)example->iteration_counter/(T)substeps<<std::endl;
     delete example;
 
     return 0;
