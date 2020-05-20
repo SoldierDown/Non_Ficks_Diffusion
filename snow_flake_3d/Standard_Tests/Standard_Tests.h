@@ -83,7 +83,7 @@ class Standard_Tests: public SF_Example<T,d>
 //######################################################################
     void Initialize_Sources() override
     {
-        const T radius=(T)4.*cell_width;
+        const T radius=(T)2.*cell_width;
         const TV center=TV({(T).5*cell_width*counts(0),(T)0.,(T).5*cell_width*counts(2)});
         Implicit_Object<T,d>* obj=new Sphere_Implicit_Object<T,d>(center,radius);
         density_sources.Append(obj);

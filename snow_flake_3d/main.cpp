@@ -36,11 +36,11 @@ int main(int argc,char** argv)
     Log::cout<<"full timestep: "<<example->total_rt/substeps<<std::endl;
     Log::cout<<"Advect scalar: "<<example->advect_scalar_rt/substeps<<std::endl;
     Log::cout<<"Advect Q: "<<example->advect_Q_rt/substeps<<std::endl;
-    Log::cout<<"Update density: "<<example->total_rt/substeps<<std::endl;
-    Log::cout<<"Diffuse: "<<example->total_rt/substeps<<std::endl;
-    Log::cout<<"Update T: "<<example->total_rt/substeps<<std::endl;
-    Log::cout<<"Update Qs: "<<example->total_rt/substeps<<std::endl;
-    Log::cout<<"Update Qt: "<<example->total_rt/substeps<<std::endl;
+    Log::cout<<"Update density: "<<example->update_s_rt/substeps<<std::endl;
+    Log::cout<<"Diffuse: "<<example->diffusion_rt/substeps<<std::endl;
+    Log::cout<<"Update T: "<<example->update_t_rt/substeps<<std::endl;
+    Log::cout<<"Update Qs: "<<example->update_qs_rt/substeps<<std::endl;
+    Log::cout<<"Update Qt: "<<example->update_qt_rt/substeps<<std::endl;
     delete example;
 
     return 0;

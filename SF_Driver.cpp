@@ -100,6 +100,7 @@ Advance_To_Target_Time(const T target_time)
 {
     bool done=false;
     for(int substep=1;!done;substep++){
+        example.substep_counter++;
         high_resolution_clock::time_point tb=high_resolution_clock::now();
         Log::Scope scope("SUBSTEP","substep "+std::to_string(substep));
         T dt=Compute_Dt(time,target_time);
