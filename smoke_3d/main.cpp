@@ -38,8 +38,8 @@ int main(int argc,char** argv)
     Log::cout<<"Average: "<<std::endl;
     Log::cout<<"Total substeps: "<<substeps<<std::endl;
     Log::cout<<"full timestep: "<<driver.total_rt/substeps<<std::endl;
-    Log::cout<<"diffusion: "<<driver.diffision_rt/substeps<<std::endl;
-    Log::cout<<"qc advection: "<<driver.qc_advection_rt/substeps<<std::endl;
+    Log::cout<<"diffusion: "<<example->diffusion_rt/substeps<<std::endl;
+    Log::cout<<"qc advection: "<<example->qc_advection_rt/substeps<<std::endl;
     Log::cout<<"density advection: "<<driver.density_advection_rt/substeps<<std::endl;
     Log::cout<<"velocity advection: "<<driver.velocity_advection_rt/substeps<<std::endl;
     Log::cout<<"source modification: "<<driver.source_modification_rf/substeps<<std::endl;

@@ -21,8 +21,6 @@ class Smoke_Driver: public Driver<T,d>
 
   public:
     int substep_counter;
-    T diffision_rt;
-    T qc_advection_rt;
     T density_advection_rt;
     T velocity_advection_rt;
     T source_modification_rf;

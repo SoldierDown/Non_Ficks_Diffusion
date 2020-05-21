@@ -35,6 +35,8 @@
 #include "Flip_Helper.h"
 #include "Write_To_File_Helper.h"
 #include <omp.h>
+#include <chrono>
+using namespace std::chrono;
 using namespace Nova;
 namespace Nova{
 extern int number_of_threads;
@@ -61,7 +63,7 @@ Smoke_Example()
 template<class T,int d> void Smoke_Example<T,d>::
 Initialize()
 {
-    iteration_counter=0;
+    diffusion_rt=(T)0.; qc_advection_rt=(T)0.; 
     Initialize_SPGrid();
     Initialize_Fluid_State(test_number);
 }
@@ -126,9 +128,13 @@ Advect_Density(const T dt)
 template<class T,int d> void Smoke_Example<T,d>::
 Diffuse_Density(const T dt)
 {
-    if(FICKS) Ficks_Diffusion(dt);
+    if(FICKS){
+        high_resolution_clock::time_point tb=high_resolution_clock::now();
+        Ficks_Diffusion(dt);
+        high_resolution_clock::time_point te=high_resolution_clock::now();
+        diffusion_rt+=duration_cast<duration<T>>(te-tb).count();    
+    }
     else Non_Ficks_Diffusion(dt); 
-    if(!FICKS) Advect_Face_Vector(dt);
 }
 //######################################################################
 // Backup_Density
@@ -218,11 +224,36 @@ Non_Ficks_Diffusion(const T dt)
         for(int level=0;level<levels;++level) Lap_Calculator<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_backup_channel,lap_density_channel,one_over_dx2);        
         for(int level=0;level<levels;++level) 
             Non_Ficks_Smoke_Density_Explicit_Update_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,lap_density_channel,div_qc_channel,coeff3,coeff4);
-        for(int level=0;level<levels;++level) Density_Clamp_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel);}
+        for(int level=0;level<levels;++level) Density_Clamp_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel);
+        
+        // Advect face vector by axis
+        Channel_Vector interpolated_face_velocity_channels;
+        interpolated_face_velocity_channels(0)              = &Struct_type::ch8;
+        interpolated_face_velocity_channels(1)              = &Struct_type::ch9;
+        if(d==3) interpolated_face_velocity_channels(2)     = &Struct_type::ch10; 
+        Channel_Vector face_qc_backup_channels;
+        face_qc_backup_channels(0)                          = &Struct_type::ch11;
+        face_qc_backup_channels(1)                          = &Struct_type::ch12;
+        if(d==3) face_qc_backup_channels(2)                 = &Struct_type::ch13; 
+        T Struct_type::* temp_channel                       = &Struct_type::ch14;  
+        // Clear
+        for(int level=0;level<levels;++level) {for(int v=0;v<d;++v) {
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),interpolated_face_velocity_channels(v));
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qc_backup_channels(v));}
+            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),temp_channel);} 
+        
+        for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis) 
+            SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qc_channels(axis),
+                                                face_qc_backup_channels(axis),Topology_Helper::Face_Active_Mask(axis));
+        Uniform_Grid_Advection_Helper<Struct_type,T,d>::Uniform_Grid_Advect_Face_Vector(*hierarchy,face_qc_channels,face_velocity_channels,interpolated_face_velocity_channels,temp_channel,dt);
+        // update Qc
+        for(int level=0;level<levels;++level)
+            Explicit_Face_Qc_Updater<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_qc_channels,face_qc_channels,density_backup_channel,coeff5,coeff6,level);}
     else{
+        high_resolution_clock::time_point tb=high_resolution_clock::now();
         const T coeff1=dt*diff_coeff*(Fc*tau+dt)/(dt+tau);  const T coeff2=dt*tau/(dt+tau);                    
         const T coeff5=tau/(tau+dt);                        const T coeff6=-diff_coeff*dt*(1-Fc)/(tau+dt);        
-        if(!FICKS) assert(coeff6==(T)0.); if(tau==(T)0.) assert(coeff5==(T)0.);
+        // if(!FICKS) assert(coeff6==(T)0.); if(tau==(T)0.) assert(coeff5==(T)0.);
         // compute div(Qc^n)
         T Struct_type::* div_qc_channel                 = &Struct_type::ch8;
         for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qc_channel);
@@ -250,29 +281,20 @@ Non_Ficks_Diffusion(const T dt)
         CG_Vector<Struct_type,T,d> x_V(*hierarchy,density_channel),b_V(*hierarchy,b_channel),q_V(*hierarchy,q_channel),
                                                     s_V(*hierarchy,s_channel),r_V(*hierarchy,r_channel),k_V(*hierarchy,z_channel),z_V(*hierarchy,z_channel);   
         Conjugate_Gradient<T> cg;
-        cg.iterations_used=new int;
         cg_system.Multiply(x_V,r_V);
         r_V-=b_V;
         const T b_norm=cg_system.Convergence_Norm(r_V);
         Log::cout<<"Norm: "<<b_norm<<std::endl;
-        cg.print_residuals=false;
+        cg.print_residuals=true;
         cg.print_diagnostics=true;
         cg.restart_iterations=cg_restart_iterations;
         const T tolerance=std::max((T)1e-4*b_norm,(T)1e-4);
         cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
-        iteration_counter+=*(cg.iterations_used);
         for(int level=0;level<levels;++level) Density_Clamp_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel);
-    }
-}
-//######################################################################
-// Advect_Face_Vector
-//######################################################################
-template    <class T,int d> void Smoke_Example<T,d>::
-Advect_Face_Vector(const T dt)
-{
-    const T coeff3=dt*diff_coeff*Fc;                    const T coeff4=-dt;
-    const T coeff5=-dt/tau;                             const T coeff6=-diff_coeff*dt*(1-Fc)/tau;
-    if(explicit_diffusion){            
+        high_resolution_clock::time_point te=high_resolution_clock::now();
+        diffusion_rt+=duration_cast<duration<T>>(te-tb).count();
+
+        tb=high_resolution_clock::now();
         // Advect face vector by axis
         Channel_Vector interpolated_face_velocity_channels;
         interpolated_face_velocity_channels(0)              = &Struct_type::ch8;
@@ -283,43 +305,25 @@ Advect_Face_Vector(const T dt)
         face_qc_backup_channels(1)                          = &Struct_type::ch12;
         if(d==3) face_qc_backup_channels(2)                 = &Struct_type::ch13; 
         T Struct_type::* temp_channel                       = &Struct_type::ch14;  
+
         // Clear
         for(int level=0;level<levels;++level) {for(int v=0;v<d;++v) {
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),interpolated_face_velocity_channels(v));
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qc_backup_channels(v));}
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),temp_channel);} 
-        
-        for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis) 
-            SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qc_channels(axis),
-                                                face_qc_backup_channels(axis),Topology_Helper::Face_Active_Mask(axis));
+            
         Uniform_Grid_Advection_Helper<Struct_type,T,d>::Uniform_Grid_Advect_Face_Vector(*hierarchy,face_qc_channels,face_velocity_channels,interpolated_face_velocity_channels,temp_channel,dt);
-        // update Qc
-        for(int level=0;level<levels;++level)
-            Explicit_Face_Qc_Updater<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_qc_channels,face_qc_channels,density_backup_channel,coeff5,coeff6,level);}
-    else{
-        // Advect face vector by axis
-        Channel_Vector interpolated_face_velocity_channels;
-        interpolated_face_velocity_channels(0)              = &Struct_type::ch8;
-        interpolated_face_velocity_channels(1)              = &Struct_type::ch9;
-        if(d==3) interpolated_face_velocity_channels(2)     = &Struct_type::ch10; 
-        Channel_Vector face_qc_backup_channels;
-        face_qc_backup_channels(0)                          = &Struct_type::ch11;
-        face_qc_backup_channels(1)                          = &Struct_type::ch12;
-        if(d==3) face_qc_backup_channels(2)                 = &Struct_type::ch13; 
-        T Struct_type::* temp_channel                       = &Struct_type::ch14;  
-        // Clear
-        for(int level=0;level<levels;++level) {for(int v=0;v<d;++v) {
-            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),interpolated_face_velocity_channels(v));
-            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qc_backup_channels(v));}
-            SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),temp_channel);} 
-        Uniform_Grid_Advection_Helper<Struct_type,T,d>::Uniform_Grid_Advect_Face_Vector(*hierarchy,face_qc_channels,face_velocity_channels,interpolated_face_velocity_channels,temp_channel,dt);
+
         // Back up face qc
         for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis) 
             SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qc_channels(axis),
                                                 face_qc_backup_channels(axis),Topology_Helper::Face_Active_Mask(axis));
         // update Qc
         for(int level=0;level<levels;++level)
-            Implicit_Face_Qc_Updater<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_qc_channels,face_qc_backup_channels,density_channel,coeff5,coeff6,level);}
+            Implicit_Face_Qc_Updater<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_qc_channels,face_qc_backup_channels,density_channel,coeff5,coeff6,level);
+        te=high_resolution_clock::now();
+        qc_advection_rt+=duration_cast<duration<T>>(te-tb).count();
+    }
 }
 //######################################################################
 // Modify_Density_With_Sources

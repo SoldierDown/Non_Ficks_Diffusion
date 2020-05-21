@@ -19,7 +19,7 @@ template<class T,int d> void Smoke_Driver<T,d>::
 Initialize()
 {
     substep_counter=0; total_rt=(T)0.;
-    diffision_rt=(T)0.; qc_advection_rt=(T)0.; density_advection_rt=(T)0.;
+    density_advection_rt=(T)0.;
     velocity_advection_rt=(T)0.; source_modification_rf=(T)0.; projection_rt=(T)0.;
     Base::Initialize();
 
@@ -40,16 +40,7 @@ template<class T,int d> void Smoke_Driver<T,d>::
 Advance_One_Time_Step_Explicit_Part(const T dt,const T time)
 {
     if(!example.nd) {
-        high_resolution_clock::time_point tb=high_resolution_clock::now();
-        if(example.FICKS) example.Ficks_Diffusion(dt);
-        else example.Non_Ficks_Diffusion(dt);
-        high_resolution_clock::time_point te=high_resolution_clock::now();
-	    diffision_rt+=duration_cast<duration<T>>(te-tb).count();
-        tb=high_resolution_clock::now();
-        if(!example.FICKS) example.Advect_Face_Vector(dt);
-        te=high_resolution_clock::now();
-	    qc_advection_rt+=duration_cast<duration<T>>(te-tb).count();
-    example.Backup_Density();}
+        example.Diffuse_Density(dt); example.Backup_Density();}
     high_resolution_clock::time_point tb=high_resolution_clock::now();
     example.Advect_Density(dt);
     high_resolution_clock::time_point te=high_resolution_clock::now();
