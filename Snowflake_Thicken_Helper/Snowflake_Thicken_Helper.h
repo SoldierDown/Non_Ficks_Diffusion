@@ -14,13 +14,17 @@
 #include <nova/SPGrid/Tools/SPGrid_Clear.h>
 #include <nova/Tools/Utilities/File_Utilities.h>
 #include <nova/Tools/Utilities/Range_Iterator.h>
+#include <vector>
 #include <assert.h>
 #include <openvdb/openvdb.h>
+#include <openvdb/math/Vec3.h>
+#include <openvdb/math/Vec4.h>
+#include <openvdb/tools/VolumeToMesh.h>
 #include "Viewer_Data.h"
 #include "../Poisson_Solver/Grid_Hierarchy_Projection.h"
 #include <iostream>
 using namespace std;
-
+using namespace openvdb;
 namespace Nova{
 template<class T>
 inline T clamp(T a, T lower, T upper)
@@ -69,6 +73,7 @@ class Snowflake_Thicken_Helper
     int first_frame, last_frame;
     int step;
     int thickness;
+    T threshold;
     Index_type block_size;
     T density_factor;
     T Struct_type::* density_channel;
@@ -168,8 +173,11 @@ class Snowflake_Thicken_Helper
                         for(int layer=0;layer<2*thickness;++layer){
                             openvdb::Coord xyz(node_ijk(0),node_ijk(1),layer);
                             accessor.setValue(xyz,interpolated_density);}}}
-            string output_filename=output_directory+"/converted_data/"+std::to_string(current_frame/step)+".vdb";
+            string output_filename=output_directory+"/vdb_data/"+std::to_string(current_frame/step)+".vdb";
             mygrid->setName("density");
+            vector<math::Vec3<T>> points; vector<math::Vec3<uint32_t>> triangles; vector<math::Vec4<uint32_t>> quads;
+            tools::volumeToMesh(*mygrid,points,triangles,quads,threshold);
+            Save_To_OBJ(current_frame,points,triangles,quads);
             openvdb::io::File(output_filename).write({mygrid});}
         else{
             std::cout<<"using cell data"<<std::endl;
@@ -181,9 +189,14 @@ class Snowflake_Thicken_Helper
                 int cell_id=Cell_ID(i,j); T cell_density=voxels[cell_id].density;
                 for(int layer=0;layer<thickness;++layer){openvdb::Coord xyz(i,j,layer);
                     accessor.setValue(xyz,cell_density*density_factor);}}
-            string output_filename=output_directory+"/converted_data/"+std::to_string(current_frame/step)+".vdb";
+            string output_filename=output_directory+"/vdb_data/"+std::to_string(current_frame/step)+".vdb";
             mygrid->setName("density");
-            openvdb::io::File(output_filename).write({mygrid});}
+            vector<math::Vec3<T>> points; vector<math::Vec3<uint32_t>> triangles; vector<math::Vec4<uint32_t>> quads;
+            tools::volumeToMesh(*mygrid,points,triangles,quads,threshold);
+            Save_To_OBJ(current_frame,points,triangles,quads);
+            openvdb::io::File(output_filename).write({mygrid});
+            
+            }
 
         delete input2;delete input1;
         if(input3!=nullptr) delete input3;
@@ -199,6 +212,7 @@ class Snowflake_Thicken_Helper
         parse_args->Add_Integer_Argument("-step",1,"step");
         parse_args->Add_Integer_Argument("-thick",2,"snowflake thickness");
         parse_args->Add_Double_Argument("-df",4.,"density factor");
+        parse_args->Add_Double_Argument("-th",.5,"density threshold");
     }
 
     void Parse_Options()
@@ -211,6 +225,7 @@ class Snowflake_Thicken_Helper
         step=parse_args->Get_Integer_Value("-step");
         thickness=parse_args->Get_Integer_Value("-thick");
         density_factor=parse_args->Get_Double_Value("-df");
+        threshold=parse_args->Get_Double_Value("-th");
         
     }
 
@@ -221,14 +236,22 @@ class Snowflake_Thicken_Helper
         parse_args->Parse(argc,argv);
         Parse_Options();
     }
-    
 
-
-        
-
-
-
-
+    void Save_To_OBJ(const int current_frame,vector<math::Vec3<T>>& points,vector<math::Vec3<uint32_t>>& triangles,vector<math::Vec4<uint32_t>>& quads)
+    {
+        std::cout<<"saving to obj"<<std::endl;
+        std::cout<<"points: "<<points.size()<<", triangles: "<<triangles.size()<<", quads: "<<quads.size()<<std::endl;
+        string obj_filename=output_directory+"/obj_data/"+std::to_string(current_frame/step)+".obj";
+		// const char* file_name = name_s.c_str();
+		FILE* fp=fopen(obj_filename.c_str(), "w");
+		for (int i=0;i<points.size();++i)
+		    fprintf(fp, "v %.6f %.6f %.6f\n",points[i](0),points[i](1),points[i](2));
+        for(int i=0;i<triangles.size();++i)
+		    fprintf(fp, "f %d %d %d\n",triangles[i](0)+1,triangles[i](1)+1,triangles[i](2)+1);
+		for (int i=0;i<quads.size();++i)
+		    fprintf(fp, "f %d %d %d %d\n",quads[i](0)+1,quads[i](1)+1,quads[i](2)+1,quads[i](3)+1);
+		fclose(fp);
+    }
 };
 }
 #endif

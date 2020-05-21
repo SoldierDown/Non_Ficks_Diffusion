@@ -930,34 +930,35 @@ Update_Particle_Velocities_And_Positions(const T dt)
             remove_indices(omp_get_thread_num()).Append(i);
             p.valid=false;}}
 
-    // calculate center of the hydrogel and average velocity norm;
-//     const int particle_number=simulated_particles.size();
-//     TV average_X_location=TV(); 
-//     for(int i=0;i<threads;++i) average_X_location+=X_location_sum(i);
-//     average_X_location/=particle_number;
-//     Log::cout<<"average location: "<<average_X_location<<std::endl;
-//     // calculate abs axis shift sum
-//     Array<TV> abs_X_shift_sum(threads);
-// #pragma omp parallel for
-//     for(unsigned i=0;i<simulated_particles.size();++i){
-//         const int thread_id=omp_get_thread_num(); const int id=simulated_particles(i);
-//         T_Particle &p=particles(id); TV X=p.X;
-//         abs_X_shift_sum(thread_id)+=(X-average_X_location).Abs();}
 
-    // calculate average abs axis shift
-    // TV average_abs_X_shift=TV(); 
-    // for(int i=0;i<threads;++i) average_abs_X_shift+=abs_X_shift_sum(i);
-    // average_abs_X_shift/=particle_number;
-    // Log::cout<<"average shift: "<<average_abs_X_shift<<std::endl;
+     // calculate center of the hydrogel and average velocity norm;
+     const int particle_number=simulated_particles.size();
+     TV average_X_location=TV(); 
+     for(int i=0;i<threads;++i) average_X_location+=X_location_sum(i);
+     average_X_location/=particle_number;
+     Log::cout<<"average location: "<<average_X_location<<std::endl;
+     // calculate abs axis shift sum
+     Array<TV> abs_X_shift_sum(threads);
+ #pragma omp parallel for
+     for(unsigned i=0;i<simulated_particles.size();++i){
+         const int thread_id=omp_get_thread_num(); const int id=simulated_particles(i);
+         T_Particle &p=particles(id); TV X=p.X;
+         abs_X_shift_sum(thread_id)+=(X-average_X_location).Abs();}
+ 
+     // calculate average abs axis shift
+     TV average_abs_X_shift=TV(); 
+     for(int i=0;i<threads;++i) average_abs_X_shift+=abs_X_shift_sum(i);
+     average_abs_X_shift/=particle_number;
+     Log::cout<<"average shift: "<<average_abs_X_shift<<std::endl;
     
-//     const T several_cell_width=nbw*mpm_grid.dX(0);
-//     TV min_corner=TV(), max_corner=(T)2*average_abs_X_shift+TV(several_cell_width);
-//     Range<T,3> shift_box(min_corner,max_corner);
-// #pragma omp parallel for
-//     for(unsigned i=0;i<simulated_particles.size();++i){
-//         const int id=simulated_particles(i);
-//         T_Particle &p=particles(id);
-//         if(!shift_box.Inside((p.X-average_X_location).Abs())) p.valid=false;}
+    const T several_cell_width=nbw*mpm_grid.dX(0);
+    TV min_corner=TV(), max_corner=(T)2*average_abs_X_shift+TV(several_cell_width);
+    Range<T,3> shift_box(min_corner,max_corner);
+#pragma omp parallel for
+    for(unsigned i=0;i<simulated_particles.size();++i){
+        const int id=simulated_particles(i);
+        T_Particle &p=particles(id);
+        if(!shift_box.Inside((p.X-average_X_location).Abs())) p.valid=false;}
 
     // get rid of flying away particles
     for(int i=1;i<remove_indices.size();++i)
