@@ -175,7 +175,9 @@ Ficks_Diffusion(const T dt)
         SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),b_channel);}
 
 	    for(int level=0;level<levels;++level) Ficks_RHS_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel,b_channel,a);
-	    CG_Vector<Struct_type,T,d> x_V(*hierarchy,density_channel),b_V(*hierarchy,b_channel),q_V(*hierarchy,q_channel),
+	    for(int level=0;level<levels;++level) SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_backup_channel,
+                                                                                density_channel,(unsigned)Cell_Type_Interior);
+        CG_Vector<Struct_type,T,d> x_V(*hierarchy,density_channel),b_V(*hierarchy,b_channel),q_V(*hierarchy,q_channel),
                                     s_V(*hierarchy,s_channel),r_V(*hierarchy,r_channel),k_V(*hierarchy,k_channel),z_V(*hierarchy,z_channel);   
 	    Conjugate_Gradient<T> cg;
         cg.iterations_used=new int;
@@ -253,8 +255,6 @@ Non_Ficks_Diffusion(const T dt)
         high_resolution_clock::time_point tb=high_resolution_clock::now();
         const T coeff1=dt*diff_coeff*(Fc*tau+dt)/(dt+tau);  const T coeff2=dt*tau/(dt+tau);                    
         const T coeff5=tau/(tau+dt);                        const T coeff6=-diff_coeff*dt*(1-Fc)/(tau+dt);        
-        // if(!FICKS) assert(coeff6==(T)0.); if(tau==(T)0.) assert(coeff5==(T)0.);
-        // compute div(Qc^n)
         T Struct_type::* div_qc_channel                 = &Struct_type::ch8;
         for(int level=0;level<levels;++level) SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),div_qc_channel);
         Hierarchy_Projection::Compute_Divergence(*hierarchy,face_qc_channels,div_qc_channel);
@@ -263,7 +263,7 @@ Non_Ficks_Diffusion(const T dt)
         T Struct_type::* q_channel                      = &Struct_type::ch9;
         T Struct_type::* r_channel                      = &Struct_type::ch10;
         T Struct_type::* s_channel                      = &Struct_type::ch11;
-        T Struct_type::* k_channel                      = &Struct_type::ch11;
+        T Struct_type::* k_channel                      = &Struct_type::ch12;
         T Struct_type::* z_channel                      = &Struct_type::ch12;
         T Struct_type::* b_channel                      = &Struct_type::ch13;
         // clear all channels
@@ -281,15 +281,17 @@ Non_Ficks_Diffusion(const T dt)
         CG_Vector<Struct_type,T,d> x_V(*hierarchy,density_channel),b_V(*hierarchy,b_channel),q_V(*hierarchy,q_channel),
                                                     s_V(*hierarchy,s_channel),r_V(*hierarchy,r_channel),k_V(*hierarchy,z_channel),z_V(*hierarchy,z_channel);   
         Conjugate_Gradient<T> cg;
+        cg.iterations_used=new int;
         cg_system.Multiply(x_V,r_V);
         r_V-=b_V;
         const T b_norm=cg_system.Convergence_Norm(r_V);
         Log::cout<<"Norm: "<<b_norm<<std::endl;
-        cg.print_residuals=true;
+        cg.print_residuals=false;
         cg.print_diagnostics=true;
         cg.restart_iterations=cg_restart_iterations;
         const T tolerance=std::max((T)1e-4*b_norm,(T)1e-4);
         cg.Solve(cg_system,x_V,b_V,q_V,s_V,r_V,k_V,z_V,tolerance,0,cg_iterations);
+        iteration_counter+=*(cg.iterations_used);
         for(int level=0;level<levels;++level) Density_Clamp_Helper<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel);
         high_resolution_clock::time_point te=high_resolution_clock::now();
         diffusion_rt+=duration_cast<duration<T>>(te-tb).count();

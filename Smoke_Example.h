@@ -37,6 +37,7 @@ class Smoke_Example: public Example<T,d>
     T const_density_value;
     T diffusion_rt=(T)0.;
     T qc_advection_rt=(T)0.;
+    T qc_update_rt=(T)0.;
     bool FICKS;
     bool explicit_diffusion;
     bool uvf;

@@ -35,6 +35,7 @@ class Volume2Mesh_Helper
     int thickness;
     T threshold;
     T density_factor;
+    T cell_volume;
   public:
     Volume2Mesh_Helper()
         :parse_args(nullptr)

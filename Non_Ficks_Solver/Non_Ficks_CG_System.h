@@ -31,7 +31,7 @@ class Non_Ficks_CG_System: public Krylov_System_Base<T>
 
     Non_Ficks_CG_System(Hierarchy& hierarchy_input,const int mg_levels_input,const T coeff1_input,
         const int boundary_smoothing_iterations_input,const int interior_smoothing_iterations_input,const int bottom_smoothing_iterations_input)
-        :Base(false,false),hierarchy(hierarchy_input),mg_levels(mg_levels_input),coeff1(coeff1_input),multigrid_solver(hierarchy,mg_levels,coeff1),
+        :Base(true,false),hierarchy(hierarchy_input),mg_levels(mg_levels_input),coeff1(coeff1_input),multigrid_solver(hierarchy,mg_levels,coeff1),
         boundary_smoothing_iterations(boundary_smoothing_iterations_input),interior_smoothing_iterations(interior_smoothing_iterations_input),bottom_smoothing_iterations(bottom_smoothing_iterations_input)
     {
         multigrid_solver.Initialize();
@@ -88,11 +88,22 @@ class Non_Ficks_CG_System: public Krylov_System_Base<T>
         return max_value;
     }
 
-    //void Apply_Preconditioner(const Vector_Base& r,Vector_Base& z) const
-    //{
-    //    T Base_struct_type::* r_channel         = CG_Vector<Base_struct_type,T,d>::Cg_Vector(r).channel;
-    //    T Base_struct_type::* z_channel         = CG_Vector<Base_struct_type,T,d>::Cg_Vector(z).channel;
-    //}
+    void Apply_Preconditioner(const Vector_Base& r,Vector_Base& z) const
+    {
+        T Base_struct_type::* r_channel         = CG_Vector<Base_struct_type,T,d>::Cg_Vector(r).channel;
+        T Base_struct_type::* z_channel         = CG_Vector<Base_struct_type,T,d>::Cg_Vector(z).channel;
+
+        multigrid_solver.Initialize_Right_Hand_Side(r_channel);
+        multigrid_solver.Initialize_Guess();
+        multigrid_solver.V_Cycle(boundary_smoothing_iterations,interior_smoothing_iterations,bottom_smoothing_iterations);
+
+        // clear z
+        for(int level=0;level<hierarchy.Levels();++level)
+            SPGrid::Clear<Base_struct_type,T,d>(hierarchy.Allocator(level),hierarchy.Blocks(level),z_channel);
+
+        // copy u from multigrid hierarchy
+        multigrid_solver.Copy_Channel_Values(z_channel,multigrid_solver.u_channel,false);
+    }
 };
 }
 #endif

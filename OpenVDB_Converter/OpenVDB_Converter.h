@@ -66,6 +66,7 @@ class OpenVDB_Converter
         }
     };
     public: 
+    bool silent;
     bool interpolated;
     int threads;
     Parse_Args *parse_args;
@@ -131,6 +132,7 @@ class OpenVDB_Converter
 
     void Convert_Frame(const int current_frame)
     {
+        std::cout<<"Frame "<<current_frame<<std::endl;
         voxels.clear();
         if(hierarchy!=nullptr) delete hierarchy;
         hierarchy=new Hierarchy(grid,levels);
@@ -146,6 +148,7 @@ class OpenVDB_Converter
         bool draw_density=File_Utilities::File_Exists(ss.str()+"/spgrid_density",false);
         std::istream* input3=draw_density?File_Utilities::Safe_Open_Input(ss.str()+"/spgrid_density"):nullptr;
 
+        T total_mass=(T)0.; const T cell_volume=Nova_Utilities::Cube(dx);
         for(int level=0;level<levels;++level){unsigned number_of_blocks=0;
             Read_Write<unsigned>::Read(*input2,number_of_blocks);
 
@@ -187,7 +190,6 @@ class OpenVDB_Converter
                         if(tr){interpolated_density=(clamp(interpolated_density,l,u)-l)/(u-l);
                         interpolated_density=pow(interpolated_density,gamma_l)*((T)1.-interpolated_density)
                                             +pow(interpolated_density,gamma_u)*interpolated_density;}
-
                         if(interpolated_density>=threshold){ openvdb::Coord xyz(node_ijk(0),node_ijk(1),node_ijk(2));
                             accessor.setValue(xyz,interpolated_density);}}
             }
@@ -207,18 +209,23 @@ class OpenVDB_Converter
                 const int i=cell_id/(ym*zm); const int j=(cell_id-i*ym*zm)/zm; const int k=cell_id-i*ym*zm-j*zm;
                 T cell_density=pos(voxels[cell_id].density);
                 cell_density*=density_factor;
+                if(silent) total_mass+=cell_density;
                 // transform: 
-                if(tr){cell_density=(clamp(cell_density,l,u)-l)/(u-l);
+                if(!silent&&tr){cell_density=(clamp(cell_density,l,u)-l)/(u-l);
                 cell_density=pow(cell_density,gamma_l)*((T)1.-cell_density)+pow(cell_density,gamma_u)*cell_density;}              
                 
-                
-                
-                if(cell_density>=threshold){ openvdb::Coord xyz(i,j,k);
+                if(!silent&&cell_density>=threshold){ openvdb::Coord xyz(i,j,k);
                     accessor.setValue(xyz,cell_density);}}
-            string output_filename=output_directory+"/converted_data/"+std::to_string(current_frame/step)+".vdb";
+            if(!silent) {string output_filename=output_directory+"/converted_data/"+std::to_string(current_frame/step)+".vdb";
             mygrid->setName("density");
-            openvdb::io::File(output_filename).write({mygrid});
-            std::cout<<"min: "<<min_density<<", max: "<<max_density<<std::endl;}
+            openvdb::io::File(output_filename).write({mygrid});}}
+        
+        if(silent){
+        string obj_filename=output_directory+"/mass_"+std::to_string(first_frame)+".txt";
+		FILE* fp=fopen(obj_filename.c_str(), "a");
+		fprintf(fp, "%d %.6f\n",current_frame,total_mass*cell_volume);
+		fclose(fp);}
+        
         
         delete input2;delete input1;
         if(input3!=nullptr) delete input3;
@@ -229,6 +236,7 @@ class OpenVDB_Converter
         if(!parse_args) return;
         parse_args->Add_Option_Argument("-inter","Use interpolation");
         parse_args->Add_Option_Argument("-tr","Use transform");
+        parse_args->Add_Option_Argument("-s","Silent mode: no output file");
         parse_args->Add_String_Argument("-o","","output directory");
         parse_args->Add_Integer_Argument("-first_frame",0,"first frame");
         parse_args->Add_Integer_Argument("-last_frame",0,"last frame");
@@ -246,6 +254,7 @@ class OpenVDB_Converter
         fix_frame=parse_args->Get_Integer_Value("-fix");
         interpolated=parse_args->Get_Option_Value("-inter");
         tr=parse_args->Get_Option_Value("-tr");
+        silent=parse_args->Get_Option_Value("-s");
         output_directory=parse_args->Get_String_Value("-o");
         if(fix_frame>0){last_frame=fix_frame; first_frame=fix_frame; step=1;}
         else{first_frame=parse_args->Get_Integer_Value("-first_frame");
@@ -257,6 +266,7 @@ class OpenVDB_Converter
         threshold=parse_args->Get_Double_Value("-th");
         threads=parse_args->Get_Integer_Value("-threads");
         if(threads>8) threads=8;
+        if(silent){tr=false;interpolated=false;}
     }
 
     void Parse(int argc,char* argv[])

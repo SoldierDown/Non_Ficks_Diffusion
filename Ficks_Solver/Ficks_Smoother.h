@@ -26,7 +26,6 @@ class Ficks_Smoother
     static void Multiply_With_System_Matrix(Hierarchy& hierarchy,T Struct_type::* u_channel,T Struct_type::* Lu_channel,const T Ddt)
     {
         const int levels=hierarchy.Levels();
-
         // compute laplace
         for(int level=0;level<levels;++level)
             Ficks_Ax_Helper<Struct_type,T,d>(hierarchy,hierarchy.Blocks(level),u_channel,Lu_channel,Ddt,level);
