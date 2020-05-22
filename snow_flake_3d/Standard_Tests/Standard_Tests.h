@@ -50,7 +50,6 @@ class Standard_Tests: public SF_Example<T,d>
         Base::Parse_Options();
         output_directory=(explicit_diffusion?(FICKS?"Snow_Flake_F_":"Snow_Flake_NF_"):(FICKS?"Implicit_Snow_Flake_F_":"Implicit_Snow_Flake_NF_"))+std::to_string(d)+"d_"
                         +std::to_string(omega)+"branches_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1))+"x"+std::to_string(counts(2))+"_case"+std::to_string(test_number);
-        // output_directory="3Qt";
         for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=false;
         TV min_corner,max_corner=TV({cell_width*counts(0),cell_width*counts(1),cell_width*counts(2)});
         hierarchy=new Hierarchy(counts,Range<T,d>(min_corner,max_corner),levels);

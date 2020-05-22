@@ -132,8 +132,7 @@ Diffuse_Density(const T dt)
         high_resolution_clock::time_point tb=high_resolution_clock::now();
         Ficks_Diffusion(dt);
         high_resolution_clock::time_point te=high_resolution_clock::now();
-        diffusion_rt+=duration_cast<duration<T>>(te-tb).count();    
-    }
+        diffusion_rt+=duration_cast<duration<T>>(te-tb).count();}
     else Non_Ficks_Diffusion(dt); 
 }
 //######################################################################

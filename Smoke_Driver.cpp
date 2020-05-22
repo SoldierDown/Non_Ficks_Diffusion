@@ -88,7 +88,8 @@ Advance_To_Target_Time(const T target_time)
         if(!done) example.Write_Substep("END Substep",substep,0);
         time+=dt;
         high_resolution_clock::time_point te=high_resolution_clock::now();
-        total_rt+=duration_cast<duration<T>>(te-tb).count();}
+        total_rt+=duration_cast<duration<T>>(te-tb).count();
+    }
 }
 //######################################################################
 // Simulate_To_Frame
@@ -106,7 +107,20 @@ Simulate_To_Frame(const int target_frame)
         
         example.frame_title="Frame "+std::to_string(example.current_frame);
         Write_Output_Files(++example.output_number);        
-        *(example.output)<<"TIME = "<<time<<std::endl;}
+        *(example.output)<<"TIME = "<<time<<std::endl;
+        int substeps=substep_counter;
+        Log::cout<<"Average: "<<std::endl;
+        Log::cout<<"Total substeps: "<<substeps<<std::endl;
+        Log::cout<<"full timestep: "<<total_rt/substeps<<std::endl;
+        Log::cout<<"diffusion: "<<example.diffusion_rt/substeps<<std::endl;
+        Log::cout<<"qc advection: "<<example.qc_advection_rt/substeps<<std::endl;
+        Log::cout<<"qc update: "<<example.qc_update_rt/substeps<<std::endl;
+        Log::cout<<"density advection: "<<density_advection_rt/substeps<<std::endl;
+        Log::cout<<"velocity advection: "<<velocity_advection_rt/substeps<<std::endl;
+        Log::cout<<"source modification: "<<source_modification_rf/substeps<<std::endl;
+        Log::cout<<"projection: "<<projection_rt/substeps<<std::endl;
+        Log::cout<<"iterations: "<<(T)example.iteration_counter/(T)substeps<<std::endl;
+    }
 }
 //######################################################################
 template class Nova::Smoke_Driver<float,2>;

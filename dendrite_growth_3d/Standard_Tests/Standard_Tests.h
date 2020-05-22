@@ -77,8 +77,7 @@ class Standard_Tests: public DG_Example<T,d>
 
                 for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                     const T_INDEX index=base_index+range_iterator.Index();
-                    if(flags(offset)&Cell_Type_Interior && density_sources(0)->Inside(hierarchy->Lattice(level).Center(index))) 
-                    {density_data(offset)=const_density_value;}
+                    if(flags(offset)&Cell_Type_Interior && density_sources(0)->Inside(hierarchy->Lattice(level).Center(index)))  density_data(offset)=const_density_value;
                     T_data(offset)=-(T)1./K;
                     range_iterator.Next();}}}
     }

@@ -49,12 +49,9 @@ class Standard_Tests: public Smoke_Example<T,d>
     void Parse_Options() override
     {
         Base::Parse_Options();
-        if(nd) output_directory=(explicit_diffusion?"Source_Smoke_":"Implicit_Source_Smoke_")+std::to_string(d)+"d_"+"case_"+std::to_string(test_number)+(uvf?"_Uniform":"")+"_bv_"+std::to_string(bv)+(const_density_source?"":"_sr_"+std::to_string(source_rate))+"_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
-        else output_directory=(explicit_diffusion?"Source_Smoke_":"Implicit_Source_Smoke_")+std::to_string(d)+"d_"+(FICKS?"F":"NF")+"_case_"+std::to_string(test_number)+"_diff_"+std::to_string(diff_coeff)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau)+(uvf?"_Uniform":"")+"_bv_"+std::to_string(bv)+(const_density_source?"":"_sr_"+std::to_string(source_rate))+"_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
-        for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=true;
-        domain_walls(1)(1)=false; domain_walls(1)(0)=false;
-        // for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=true;
-        // domain_walls(1)(1)=false; domain_walls(1)(0)=false;
+        if(nd) output_directory=(explicit_diffusion?"Smoke_":"Implicit_Smoke_")+std::to_string(d)+"d_"+"case_"+std::to_string(test_number)+(uvf?"_Uniform":"")+"_bv_"+std::to_string(bv)+(const_density_source?"":"_sr_"+std::to_string(source_rate))+"_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
+        else output_directory=(explicit_diffusion?"Smoke_":"Implicit_Smoke_")+std::to_string(d)+"d_"+(FICKS?"F":"NF")+"_case_"+std::to_string(test_number)+"_diff_"+std::to_string(diff_coeff)+"_Fc_"+std::to_string(Fc)+"_tau_"+std::to_string(tau)+(uvf?"_Uniform":"")+"_bv_"+std::to_string(bv)+(const_density_source?"":"_sr_"+std::to_string(source_rate))+"_Resolution_"+std::to_string(counts(0))+"x"+std::to_string(counts(1));
+        for(int axis=0;axis<d;++axis) for(int side=0;side<2;++side) domain_walls(axis)(side)=false;
         TV min_corner,max_corner=TV(4.);
         max_corner(1)=(T)8.;
         hierarchy=new Hierarchy(counts,Range<T,d>(min_corner,max_corner),levels);

@@ -35,7 +35,16 @@ sudo apt-get install cmake
 sudo apt-get install cmake-qt-gui
 sudo apt-get install libncurses5-dev
 ```
-#### Put current project under Nova/Projects
+#### Extract Project
+Extract non_ficks_diffusion.zip to Nova/Projects. The partial directory should look like this:
+```
+.
++-- Projects 
+|   +-- non_ficks_diffusion
+|   +-- Nova_Examples
+|   +-- CMakeLists.txt
+...
+```
 ### Build
 Run the following commands in order:
 ```
@@ -50,23 +59,75 @@ Press ``c`` to configure, and then ``g`` to generate the ``Makefile``. Finally, 
 ```
 make -j 8
 ```
-
+### Configure OpenGL
+Run the following commands in order:
+```
+cd build/
+ln -s ../Projects/Nova_Examples/opengl/example/nova.conf .
+ln -s ../Projects/Nova_Examples/opengl/example/fonts/ .
+ln -s ../Projects/Nova_Examples/opengl/plugins/Grid/shaders/ .
+```
+Choose the correct plugin for visualization in nova.conf in *Nova/build/*
+#### For hydrogel visualization
+``libplugin_Non_Ficks_Diffusion`` has been designed to visualize particles as well as the background grid.
+```
+...
+#Plugin=libplugin_Embedded_Deformables
+Plugin=libplugin_Non_Ficks_Diffusion
+#Plugin=libplugin_Autonomous_Navigation
+...
+```
+#### For other simulations
+``libplugin_Autonomous_Navigation`` can be used to show volumetric data.
+```
+...
+#Plugin=libplugin_Embedded_Deformables
+#Plugin=libplugin_Non_Ficks_Diffusion
+Plugin=libplugin_Autonomous_Navigation
+...
+```
+Here are some of the command options for both plugins.
+- ALT-P: planar camera
+- P: play-pause
+- S: next frame
+- SHIFT-S: previous frame
+- R: reset frame
+- F2: show/hide background grid
+- Scroll: zoom in/out
+- Left-mouse: rotate
+- Right-mouse: translate
 ## Demos
 ### Smoke
-Go to the build directory (*Nova/build/*), run commands for different test cases as below:
 #### With Fourier Diffusion
+Go to the build directory (*Nova/build/*), run the following command for Fourier diffusion test case:
 ```
 ./bin/smoke_3d -threads 8 -last_frame 500 -test_number 3 -diff_coeff 0.01 -bv 1 -sr 50 -size 256 512 256 -mg_levels 4 -ficks
 ```
+Use opengl viewer to check out the result, the diffusive smoke:
+```
+./bin/opengl Implicit_Smoke_2d_F_case_5_diff_0.250000_Fc_0.000000_tau_4.000000_Uniform_bv_0.500000_sr_50.000000_Resolution_64x128/
+```
+![](./pic/F_diffusive.png)
 #### With Non-Fourier Diffusion
+Go to the build directory (*Nova/build/*), run the following command for non-Fourier diffusion test case:
 ```
-./bin/smoke_3d -threads 8 -last_frame 500 -test_number 3 -diff_coeff 0.01 -fc 0 -tau 4 -bv 1 -sr 50 -size 256 512 256 -mg_levels 4 
+./bin/smoke_2d -threads 8 -last_frame 300 -diff_coeff 0.25 -fc 0 -tau 4 -bv 0.5 -sr 50  -size 64 128 -mg_levels 2 -test_number 5 
 ```
+Use opengl viewer to check out the cone structure:
+```
+./bin/opengl Implicit_Smoke_2d_NF_case_5_diff_0.250000_Fc_0.000000_tau_4.000000_Uniform_bv_0.500000_sr_50.000000_Resolution_64x128/
+```
+![](./pic/NF_cone.png)
 #### Without Diffusion
+Go to the build directory (*Nova/build/*), run the following command for smoke simulation without any diffusion:
 ```
 ./bin/smoke_3d -threads 8 -last_frame 500 -test_number 3 -bv 1 -sr 50 -size 256 512 256 -mg_levels 4 -nd
 ```
-
+Use opengl viewer to check out the result:
+```
+./bin/opengl Implicit_Smoke_2d_case_3_bv_0.500000_sr_50.000000_Resolution_64x128/
+```
+![](./pic/smoke_nd.png)
 Here are some of the command options:
 - diff_coeff: the diffusion coeffient
 - bv: background velocity. The velocity field is set to be along y-axis
