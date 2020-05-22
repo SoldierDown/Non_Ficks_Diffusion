@@ -315,16 +315,18 @@ Non_Ficks_Diffusion(const T dt)
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),temp_channel);} 
             
         Uniform_Grid_Advection_Helper<Struct_type,T,d>::Uniform_Grid_Advect_Face_Vector(*hierarchy,face_qc_channels,face_velocity_channels,interpolated_face_velocity_channels,temp_channel,dt);
-
+        te=high_resolution_clock::now();
+        qc_advection_rt+=duration_cast<duration<T>>(te-tb).count();
         // Back up face qc
         for(int level=0;level<levels;++level) for(int axis=0;axis<d;++axis) 
             SPGrid::Masked_Copy<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),face_qc_channels(axis),
                                                 face_qc_backup_channels(axis),Topology_Helper::Face_Active_Mask(axis));
+        tb=high_resolution_clock::now();
         // update Qc
         for(int level=0;level<levels;++level)
             Implicit_Face_Qc_Updater<Struct_type,T,d>(*hierarchy,hierarchy->Blocks(level),face_qc_channels,face_qc_backup_channels,density_channel,coeff5,coeff6,level);
         te=high_resolution_clock::now();
-        qc_advection_rt+=duration_cast<duration<T>>(te-tb).count();
+        qc_update_rt+=duration_cast<duration<T>>(te-tb).count();
     }
 }
 //######################################################################
