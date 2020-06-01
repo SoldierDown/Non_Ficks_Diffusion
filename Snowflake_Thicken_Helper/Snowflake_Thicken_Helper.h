@@ -189,7 +189,7 @@ class Snowflake_Thicken_Helper
                 int cell_id=Cell_ID(i,j); T cell_density=voxels[cell_id].density;
                 for(int layer=0;layer<thickness;++layer){openvdb::Coord xyz(i,j,layer);
                     accessor.setValue(xyz,cell_density*density_factor);}}
-            string output_filename=output_directory+"/vdb_data/"+std::to_string(current_frame/step)+".vdb";
+            string output_filename=output_5directory+"/vdb_data/"+std::to_string(current_frame/step)+".vdb";
             mygrid->setName("density");
             vector<math::Vec3<T>> points; vector<math::Vec3<uint32_t>> triangles; vector<math::Vec4<uint32_t>> quads;
             tools::volumeToMesh(*mygrid,points,triangles,quads,threshold);

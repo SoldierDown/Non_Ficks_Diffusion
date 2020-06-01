@@ -930,17 +930,18 @@ Update_Particle_Velocities_And_Positions(const T dt)
             remove_indices(omp_get_thread_num()).Append(i);
             p.valid=false;}}
 
-
      // calculate center of the hydrogel and average velocity norm;
-     const int particle_number=simulated_particles.size();
-     TV average_X_location=TV(); 
-     for(int i=0;i<threads;++i) average_X_location+=X_location_sum(i);
-     average_X_location/=particle_number;
-     Log::cout<<"average location: "<<average_X_location<<std::endl;
-     // calculate abs axis shift sum
-     Array<TV> abs_X_shift_sum(threads);
+    const int particle_number=simulated_particles.size();
+    std::cout<<"# threads: "<<omp_get_num_threads()<<std::endl;
+    std::cout<<"particle number: "<<particle_number<<std::endl;
+    TV average_X_location=TV(); 
+    for(int i=0;i<threads;++i) average_X_location+=X_location_sum(i);
+    average_X_location/=particle_number;
+    Log::cout<<"average location: "<<average_X_location<<std::endl;
+    // calculate abs axis shift sum
+    Array<TV> abs_X_shift_sum(threads);
  #pragma omp parallel for
-     for(unsigned i=0;i<simulated_particles.size();++i){
+    for(unsigned i=0;i<simulated_particles.size();++i){
          const int thread_id=omp_get_thread_num(); const int id=simulated_particles(i);
          T_Particle &p=particles(id); TV X=p.X;
          abs_X_shift_sum(thread_id)+=(X-average_X_location).Abs();}

@@ -62,6 +62,7 @@ class Standard_Tests: public Smoke_Example<T,d>
 //######################################################################
     void Initialize_Fluid_State(const int test_number) override
     {
+        int cell_counter=0;
         // clear density channel
         for(int level=0;level<levels;++level)
             SPGrid::Clear<Struct_type,T,d>(hierarchy->Allocator(level),hierarchy->Blocks(level),density_channel);
@@ -77,8 +78,10 @@ class Standard_Tests: public Smoke_Example<T,d>
 
                 for(int e=0;e<Flag_array_mask::elements_per_block;++e,offset+=sizeof(Flags_type)){
                     const T_INDEX index=base_index+range_iterator.Index();
-                    if(flags(offset)&Cell_Type_Interior && density_sources(0)->Inside(hierarchy->Lattice(level).Center(index))) data(offset)=const_density_value;
+                    if(flags(offset)&Cell_Type_Interior && density_sources(0)->Inside(hierarchy->Lattice(level).Center(index))) {data(offset)=const_density_value;
+                        cell_counter++;}
                     range_iterator.Next();}}}
+            std::cout<<"number of cells: "<<cell_counter<<std::endl;
     }
 //######################################################################
     void Initialize_Sources(const int test_number) override

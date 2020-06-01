@@ -166,7 +166,7 @@ class OpenVDB_Converter
         if(interpolated){
             std::cout<<"using interpolated data"<<std::endl;
 		    openvdb::initialize();
-            openvdb::FloatGrid::Ptr mygrid = openvdb::FloatGrid::create(); 
+            openvdb::FloatGrid::Ptr mygrid=openvdb::FloatGrid::create(); 
             mygrid->setTransform(openvdb::math::Transform::createLinearTransform(256./xm*0.1f));
             std::cout<<"cell width: "<<mygrid->voxelSize()[0]<<std::endl;
             for(int cell_id=0;cell_id<voxels.size();++cell_id){
@@ -223,7 +223,7 @@ class OpenVDB_Converter
         if(silent){
         string obj_filename=output_directory+"/mass_"+std::to_string(first_frame)+".txt";
 		FILE* fp=fopen(obj_filename.c_str(), "a");
-		fprintf(fp, "%d %.6f\n",current_frame,total_mass*cell_volume);
+		fprintf(fp, "%d %.6f\n",current_frame,total_mass);
 		fclose(fp);}
         
         
