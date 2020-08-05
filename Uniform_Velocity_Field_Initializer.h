@@ -45,7 +45,6 @@ class Uniform_Velocity_Field_Initializer
                 for(int axis=0;axis<d;++axis){const unsigned face_valid_mask=Topology_Helper::Face_Valid_Mask(axis); const unsigned face_active_mask=Topology_Helper::Face_Active_Mask(axis);
                     if(!(flags(offset)&face_active_mask)) hierarchy.Allocator(level).template Get_Array<Struct_type,T>(face_velocity_channels(axis))(offset)=(T)0.;
                     if(flags(offset)&face_valid_mask)  hierarchy.Allocator(level).template Get_Array<Struct_type,T>(face_velocity_channels(axis))(offset)=background_velocity(axis);
-                    hierarchy.Allocator(level).template Get_Array<Struct_type,T>(face_velocity_channels(axis))(offset)=background_velocity(axis);
                     }
                 range_iterator.Next();}
         };
