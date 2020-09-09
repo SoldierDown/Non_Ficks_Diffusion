@@ -1163,7 +1163,7 @@ Apply_Explicit_Force(const T dt)
             for(int i=0;i<index.size();++i){
                 T_Particle& p=particles(index(i));T_INDEX& closest_cell=p.closest_cell;
                 T_Mat P,F,I,V0_P_FT; T eos_coefficient=(T)0.; T V0=p.volume;
-                if(p.eos) eos_coefficient=V0/p.density*p.bulk_modulus*pow(p.density,p.gamma-(T)1.);
+                if(p.eos) eos_coefficient=V0/p.density*p.bulk_modulus*(pow(p.density,p.gamma)-(T)1.);
                 else{ P=p.constitutive_model.P();F=p.constitutive_model.Fe;I=T_Mat::Identity_Matrix();
                 const T saturation=p.saturation; const T eta=p.constitutive_model.eta*saturation; const T k_p=(T)1e4;
                 const T mu=p.constitutive_model.mu; const T lambda=p.constitutive_model.lambda; 
