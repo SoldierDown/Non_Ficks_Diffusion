@@ -18,6 +18,7 @@ Smoke_Driver(Smoke_Example<T,d>& example_input)
 template<class T,int d> void Smoke_Driver<T,d>::
 Initialize()
 {
+    time=(T)0.;
     substep_counter=0; total_rt=(T)0.;
     density_advection_rt=(T)0.;
     velocity_advection_rt=(T)0.; source_modification_rf=(T)0.; projection_rt=(T)0.;
