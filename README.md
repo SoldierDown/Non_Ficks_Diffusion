@@ -101,7 +101,7 @@ Here are some of the command options for both plugins.
 #### With Fourier Diffusion
 Go to the build directory (*Nova/build/*), run the following command for Fourier diffusion test case:
 ```
-./bin/smoke_3d -threads 8 -last_frame 500 -test_number 3 -diff_coeff 0.01 -bv 1 -sr 50 -size 256 512 256 -mg_levels 4 -ficks
+./bin/non_ficks_smoke_3d -threads 8 -last_frame 500 -test_number 3 -diff_coeff 0.01 -bv 1 -sr 50 -size 256 512 256 -mg_levels 4 -ficks
 ```
 Set plugin to be ``libplugin_Autonomous_Navigation`` in ``Nova/build/nova.conf``. Use opengl viewer to check out the result, the diffusive smoke:
 ```
@@ -111,7 +111,7 @@ Set plugin to be ``libplugin_Autonomous_Navigation`` in ``Nova/build/nova.conf``
 #### With Non-Fourier Diffusion
 Go to the build directory (*Nova/build/*), run the following command for non-Fourier diffusion test case:
 ```
-./bin/smoke_2d -threads 8 -last_frame 300 -diff_coeff 0.25 -fc 0 -tau 4 -bv 0.5 -sr 50  -size 64 128 -mg_levels 2 -test_number 5 
+./bin/non_ficks_smoke_2d -threads 8 -last_frame 300 -diff_coeff 0.25 -fc 0 -tau 4 -bv 0.5 -sr 50  -size 64 128 -mg_levels 2 -test_number 5 
 ```
 Set plugin to be ``libplugin_Autonomous_Navigation`` in ``Nova/build/nova.conf``. Use opengl viewer to check out the cone structure:
 ```
@@ -121,7 +121,7 @@ Set plugin to be ``libplugin_Autonomous_Navigation`` in ``Nova/build/nova.conf``
 #### Without Diffusion
 Go to the build directory (*Nova/build/*), run the following command for smoke simulation without any diffusion:
 ```
-./bin/smoke_3d -threads 8 -last_frame 500 -test_number 3 -bv 1 -sr 50 -size 256 512 256 -mg_levels 4 -nd
+./bin/non_ficks_smoke_3d -threads 8 -last_frame 500 -test_number 3 -bv 1 -sr 50 -size 256 512 256 -mg_levels 4 -nd
 ```
 Set plugin to be ``libplugin_Autonomous_Navigation`` in ``Nova/build/nova.conf``. Use opengl viewer to check out the result:
 ```
