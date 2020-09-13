@@ -70,24 +70,6 @@ public:
         gamma=(T)7;
     }
 
-    T Weight(T_INDEX index)
-    {
-        T weight=(T)1.;
-        index+=1;
-        for(int i=0;i<d;++i)
-            weight*=weights(index(i),i);
-        return weight;
-    }
-
-    TV Weight_Gradient(T_INDEX index)
-    {
-        TV weight_gradient=TV(1);
-        index+=1;
-        for(int i=0;i<d;++i) for(int j=0;j<d;++j)
-        weight_gradient(i)*=(i==j)?dweights(index(j),j):weights(index(j),j);
-        return weight_gradient;
-    }
-
     void Update_Weights(const Grid<T,d>& grid)    
     {
         closest_cell=grid.Closest_Cell(X);
