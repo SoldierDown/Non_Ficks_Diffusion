@@ -18,6 +18,7 @@ MPM_Driver(MPM_Example<T,d>& example_input)
 template<class T,int d> void MPM_Driver<T,d>::
 Initialize()
 {
+    time=(T)0.;
     if(!example.restart){
         example.Initialize();
         example.Reset_Grid_Based_Variables();
@@ -104,7 +105,7 @@ Advance_Step(const T dt)
 {
     example.Initialize_SPGrid();
     example.Reset_Grid_Based_Variables();
-    example.Add_Fluid_Source();
+    // example.Add_Fluid_Source();
     example.Update_Particle_Weights();
     example.Group_Particles();
     example.Rasterize_Voxels();
