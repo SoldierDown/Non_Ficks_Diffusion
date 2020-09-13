@@ -78,5 +78,5 @@ Here are some of the command options for both plugins.
 ### Run
 Go to the build directory (*Nova/build/*), run the following command
 ```
-
+./bin/mpm_2d -test_number 18 -size 64 64 -threads 8 -last_frame 300
 ```
