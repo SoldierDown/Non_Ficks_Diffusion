@@ -1,4 +1,4 @@
-add_executable(smoke_3d
+add_executable(non_ficks_smoke_2d
   main.cpp
   ../Smoke_Driver.cpp
   ../Smoke_Example.cpp
@@ -10,7 +10,7 @@ if (OPENMP_FOUND)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
-target_link_libraries(smoke_3d
+target_link_libraries(non_ficks_smoke_2d
   PRIVATE
   nova::dynamics
   nova::geometry
@@ -20,4 +20,4 @@ target_link_libraries(smoke_3d
 
 file( RELATIVE_PATH REL ${PROJECT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR} )
 
-install(TARGETS smoke_3d RUNTIME DESTINATION ${REL})
+install(TARGETS non_ficks_smoke_2d RUNTIME DESTINATION ${REL})
