@@ -105,7 +105,7 @@ Go to the build directory (*Nova/build/*), run the following command for Fourier
 ```
 Set plugin to be ``libplugin_Autonomous_Navigation`` in ``Nova/build/nova.conf``. Use opengl viewer to check out the result, the diffusive smoke:
 ```
-./bin/opengl Implicit_Smoke_2d_F_case_5_diff_0.250000_Fc_0.000000_tau_4.000000_Uniform_bv_0.500000_sr_50.000000_Resolution_64x128/
+./bin/opengl Implicit_Smoke_3d_F_case_5_diff_0.250000_Fc_0.000000_tau_4.000000_Uniform_bv_0.500000_sr_50.000000_Resolution_64x128/
 ```
 ![](./pic/F_diffusive.png)
 #### With Non-Fourier Diffusion
@@ -125,7 +125,7 @@ Go to the build directory (*Nova/build/*), run the following command for smoke s
 ```
 Set plugin to be ``libplugin_Autonomous_Navigation`` in ``Nova/build/nova.conf``. Use opengl viewer to check out the result:
 ```
-./bin/opengl Implicit_Smoke_2d_case_3_bv_0.500000_sr_50.000000_Resolution_64x128/
+./bin/opengl Implicit_Smoke_3d_case_3_bv_0.500000_sr_50.000000_Resolution_64x128/
 ```
 ![](./pic/smoke_nd.png)
 Here are some of the command options:
