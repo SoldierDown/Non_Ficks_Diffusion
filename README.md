@@ -86,3 +86,7 @@ Go to the build directory (*Nova/build/*), run the following command
 ```
 ./bin/mpm_2d -test_number 18 -size 64 64 -threads 8 -last_frame 300
 ```
+### View Result
+```
+./bin/opengl mpm_2d_18
+```
