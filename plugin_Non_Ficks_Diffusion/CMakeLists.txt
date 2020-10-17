@@ -5,25 +5,25 @@ if(ENABLE_NON_FICKS_DIFFUSION)
     message(FATAL_ERROR "Cannot build Non-Fick's Diffusion plugin without the Assimp library being present.")
   endif()
   
-  add_library(plugin_Non_Ficks_Diffusion
+  add_library(plugin_MPM
     ../../Nova_Examples/opengl/plugins/Assimp/AssimpRenderable_Model.cpp
     ../../Nova_Examples/opengl/plugins/Assimp/AssimpRenderable_Mesh.cpp
     main.cpp
     )
 
   if(WIN32)
-    target_compile_definitions(plugin_Non_Ficks_Diffusion PUBLIC OPENGL_3D_WIN32=1)
+    target_compile_definitions(plugin_MPM PUBLIC OPENGL_3D_WIN32=1)
   endif()
   
   if(UNIX)
-    target_compile_definitions(plugin_Non_Ficks_Diffusion PUBLIC OPENGL_3D_LINUX=1)
+    target_compile_definitions(plugin_MPM PUBLIC OPENGL_3D_LINUX=1)
   endif()
 
-  target_include_directories(plugin_Non_Ficks_Diffusion
+  target_include_directories(plugin_MPM
                              PUBLIC ${VISUALIZER_KERNEL_INCLUDES})
   
   
-  target_link_libraries(plugin_Non_Ficks_Diffusion
+  target_link_libraries(plugin_MPM
     PRIVATE
     nova::dynamics
     nova::geometry
@@ -35,7 +35,7 @@ if(ENABLE_NON_FICKS_DIFFUSION)
     opengl_kernel
     )
   
-  target_compile_features(plugin_Non_Ficks_Diffusion
+  target_compile_features(plugin_MPM
     PRIVATE
     cxx_auto_type
     )
