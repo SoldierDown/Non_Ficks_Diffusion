@@ -24,8 +24,14 @@ sudo apt-get install cmake
 sudo apt-get install cmake-qt-gui
 sudo apt-get install libncurses5-dev
 ```
-#### Extract Project
-Extract non_ficks_diffusion.zip to Nova/Projects. The partial directory should look like this:
+#### Clone Project
+Nova/Projects. The partial directory should look like this:
+```
+cd Nova/Projects
+git clone https://github.com/SoldierDown/Non_Ficks_Diffusion.git non_ficks_diffusion
+```
+The directory should look like this:
+
 ```
 .
 +-- Projects 
