@@ -18,6 +18,10 @@ Nova depends on several libraries such as `GLM`,`FreeType`,`GLFW`,`GLEW`,`Boost`
 ```
 sudo apt-get install libboost1.62-dev libboost-program-options1.62-dev libboost-filesystem1.62-dev libboost-regex1.62-dev libglfw3-dev libglew-dev libglm-dev libassimp-dev libfreetype6-dev
 ```
+An alternative:
+```
+sudo apt-get install libboost-dev libboost-program-options-dev libboost-filesystem-dev libboost-regex-dev libglfw3-dev libglew-dev libglm-dev libassimp-dev libfreetype6-dev
+```
 The build system uses cmake (version 3.0 or higher). We recommend the use of the graphical version ccmake for easy configuration of the environment variables. The best way to install the latest version of cmake and ccmake is to first run the following command:
 ```
 sudo apt-get install cmake
