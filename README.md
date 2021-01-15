@@ -1,5 +1,5 @@
 # A Novel Discretization and Numerical Solver for Non-Fourier Diffusion
-
+![teaser](/pic/teaser.jpg)
 ## Description
 
 This is the opensource code for SIGGRAPH Asia 2020 submission:
